@@ -1,0 +1,3 @@
+[submodule "musl"]
+	path = musl
+	url = https://github.com/robang74/musl-cross-make.git

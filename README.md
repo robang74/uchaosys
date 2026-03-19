@@ -6,6 +6,10 @@
 
 <br>
 
+![0KVM](docs/zero-entropy-virtual-machine.jpg)
+
+<br>
+
 ## uChaos minimal Linux **qemu** bootable system
 
 This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.

@@ -9,10 +9,10 @@ getvarval() {
   grep "$1" $MUSLCFGMAK | cut -d# -f1 | tr -dc 0-9. | tail -n1;
 }
 getnstime() { date +%s%N; }
-elapsedns() { echo $(( $(getnstime) - $1 )); }
-elapsedus() { echo $(( ($(elapsedns $1) + 500) / 1000 )); }
-elapsedms() { echo $(( ($(elapsedus $1) + 500) / 1000 )); }
-elapsedtm() { echo $(( ($(elapsedms $1) + 500) / 1000 )); }
+elapsedns() { echo $((  $(getnstime) - $1 )); }
+elapsedus() { echo $(( ($(elapsedns    $1) + 500) / 1000 )); }
+elapsedms() { echo $(( ($(elapsedus    $1) + 500) / 1000 )); }
+elapsedtm() { echo $(( ($(elapsedms    $1) + 500) / 1000 )); }
 
 export MUSLCFGMAK=cnfg/musl-125x.config.mak
 
@@ -20,7 +20,9 @@ export  ARCH=x86_64 KERNVER=$(getvarval LINUX_VER)
 
 path="musl/output"
 kmod="uchaos_dev.ko"
+bcfg=$(ls -1 cnfg/busybox-*.config | tail -n1)
 kver=$(echo $KERNVER | tr -dc 0-9 | head -c3)x
+kdir="musl/linux-$KERNVER.orig"
 export PATH=$PWD/$path/bin:$PWD/$path/$ARCH/bin:$PATH
 export CCPREFIX=x86_64-linux-musl- HOSTCC=gcc
 unset path
@@ -37,18 +39,28 @@ start=$(getnstime)
 cd musl
 make -j$(nproc) install
 cd -
-echo musl building elapsed time: $(elapsedtm start)s
+echo "musl building elapsed time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
-ln -sf ../musl/linux-$KERNVER.orig kdev/linux-kernel
+ln -sf ../$kdir kdev/linux-kernel
 cp -f cnfg/linux-$kver.config kdev/linux-kernel/.config
 cd kdev/linux-kernel/
 make -j8 HOSTCC=gcc ARCH=x86_64 syncconfig
 make -j8 HOSTCC=gcc ARCH=x86_64
 cd -
-echo linux kernel building time: $(elapsedtm start)s
+echo "linux kernel building time: "$(elapsedtm start)s
+
+# //////////////////////////////////////////////////////////////////////////////
+
+start=$(getnstime)
+test -r bbox/.config || cp $bcfg bbox/.config
+cd bbox
+make -j8 HOSTCC=gcc ARCH=x86_64 oldconfig
+make -j8 HOSTCC=gcc ARCH=x86_64
+cd -
+echo "busybox custom making time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -62,11 +74,22 @@ cd -
 cd kdev
 make dist
 cd -
-echo uchaos proj compiling time: $(elapsedtm start)s
+echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 unset start
-cp -f musl/linux-$KERNVER.orig/arch/x86/boot/bzImage qemu/
-mkdir -p  qemu/update/common/lib/modules/
-cp -f kdev/$kmod.gz qemu/update/common/lib/modules/$kmod
+
+cp -f $kdir/arch/$ARCH/boot/bzImage qemu/
+
+mkdir -p               cpio/lib/modules/
+cp -f kdev/$kmod.gz    cpio/lib/modules/$kmod
+mkdir -p               cpio/usr/bin
+cp -f bbox/busybox     cpio/usr/bin/
+cp -f usrl/uchaosbox   cpio/usr/bin/
+
+chmod +x               cpio/init
+ln -sf bin/busybox     cpio/linuxrc
+ln -sf usr/sbin        cpio/sbin
+ln -sf usr/bin         cpio/bin
+

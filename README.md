@@ -46,6 +46,12 @@ Running system, essential metrics:
 
 - **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
 
+### Configuration
+
+In this peculiar system configuration uChaos replaces all the entropy source within the linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel.
+
+Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability of the uchaos and Linux crng randomness providers, both.
+
 <br>
 
 ---

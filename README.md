@@ -63,3 +63,9 @@ Running system, essential metrics:
 - **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
 
 <br>
+
+### Abstract
+
+- [A Paradigm Shift: from Entropy Collection to Chaos Conduction](docs/uchaos-the-entropy-paradigm-shift.md)
+
+<br>

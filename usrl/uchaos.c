@@ -1,0 +1,1013 @@
+/*
+ * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2 license
+ */
+#define VERSION "v0.5.6"
+/* Quick 2k test: cat uchaos.c  | ./chaos -T 2048 | ent
+ * Boot log test: cat dmesg.txt | ./uchaos -S -M2 | ent
+ *
+ * Compile w/libc:      gcc uchaos.c -O3 --fast-math -Wall -o uchaos -s -lm
+ * Compile 4speed:                   -mavx2 -march=native -funroll-loops
+ * Compile w/musl: musl-gcc uchaos.c -O3 --fast-math -Wall -o uchaos -s -static
+ * Compile option: -D_USE_GET_RTSC (i686: -m32 -msse2), -D_USE_LINUX_RANDOM_H
+ *                 -D_USE_FUNCS_32 (i686: -m32, native), -D_USE_PREV_TIME
+ * Test with: ent, dieharder, PractRand RNG_test (compiled for Ubuntu 22.04 x64)
+ *      drive.google.com/file/d/17ymBcxfO2pA8ET7T4ZxiiO2EYW6_F8Lu/view
+ * Qemu test: cd bare-minimal-linux-system; sh start.sh "" bzImage.515x
+ *      cp -arf prpr/bin update/common/usr (to add missing binaries)
+ * Data production: uctest.sh (shell script for faster production)
+ *
+ * *****************************************************************************
+ *
+ * PRESENTATION
+ *
+ * despite a relatively simple coding, this uchaos binary is able to provide
+ * nearly 4MB/s of (pseudo) random numbers generated from a static input (known
+ * known and constant in time) by stochastics jitter-drive hashing.
+ *
+ * Not even a special hash, just a modified version of one of the most ancient
+ * text-oriented hashing functions that was written before every theory check
+ * (practice shows that it was good for real, not for chance).
+ *
+ * Contrary to the past experiments, the streams mixing here doesn't even happen
+ * because it is a single thread process. And by the way, past experiments were
+ * mixing almost known text strings but they could have easily mixed the various
+ * /dev/random streams in such a way that even if /dev/random would have been
+ * "tampered" by a global attacker of by NSA design, then such mixage would
+ * have provided good speed and security.
+ *
+ * Note: current implementation is a text strings-only PoC, it cannot deal with
+ * binary input that has EOB char (\0) in the input data. Quick to change but it
+ * is not the point here but djb2tum, possibly.
+ *
+ * While uchaos.c has been developed as early source for /dev/random leveraging
+ * dmesg timings in the boot log, it can works with a simple adaptation (text
+ * ending with \0 to binary) also with /dev/random stream as input (source).
+ *
+ * SPOILER
+ *
+ * When processing /dev/random output, uchaos acts as a conditioning
+ * function. Per Bellare (2006/2014), non-PRF functions can preserve
+ * security in specific constructions. The kernel's mixing tolerates
+ * this, though uchaos itself is not independently NIST-certified.
+ *
+ * *****************************************************************************
+ *
+ * PORPOSE
+ *
+ * .config - Linux/x86 6.12.71 Kernel Configuration → Kernel hacking
+ *
+ * CONFIG_WARN_ALL_UNSEEDED_RANDOM:
+ *
+ * Some parts of the kernel contain bugs relating to their use of cryptographically
+ * secure random numbers before it's actually possible to generate those numbers
+ * securely. This setting ensures that these flaws don't go unnoticed, by enabling
+ * a message, should this ever occur. This will allow people with obscure setups
+ * to know when things are going wrong, so that they might contact developers
+ * about fixing it.
+ *
+ * Unfortunately, on some models of some architectures getting a fully seeded CRNG
+ * is extremely difficult, and so this can result in dmesg getting spammed for a
+ * surprisingly long time. This is really bad from a security perspective, and
+ * so architecture maintainers really need to do what they can to get the CRNG
+ * seeded sooner after the system is booted. However, since users cannot do
+ * anything actionable to address this, by default this option is disabled.
+ *
+ * Say Y here if you want to receive warnings for all uses of unseeded randomness.
+ * This will be of use primarily for those developers interested in improving the
+ * security of Linux kernels running on their architecture (or subarchitecture).
+ *
+ * *****************************************************************************
+ *
+ * OUTPUT TESTS
+ *
+ * The first run of commit (#9c8f4f00) passed all the dieharder tests with 49MB.
+ *
+ * gcc uchaos.c -O3 -Wall -o chaos && strip chaos
+ * time cat ../prpr/uchaos.c | ./chaos -T 100000 > uchaos.data.01
+ *
+ * Tests: 100000, collisions: 0 over 6400000 hashes (0.00%) -- OK
+ * Times: running: 19.981 s, hashing: 12.980 s, speed: 320.3 Kh/s
+ * Bits in common compared to 50 % avg is 50.0000 % (-0.2 ppm)
+ *
+ * Collisions here are expected to be 100% for a traditional hash w/fixed input.
+ *
+ * cat uchaos.data.01 | ent
+ * Entropy = 7.999997 bits per byte.
+ * Optimum compression would reduce the size of this 51200000 byte file by 0 percent.
+ * Chi square distribution for 51200000 samples is 247.48, and randomly would exceed
+ * this value 62.04 percent of the times (50% is the ideal value, but 10-90% is fine).
+ * Arithmetic mean value of data bytes is 127.5076 (127.5 = random).
+ * Monte Carlo value for Pi is 3.140672935 (error 0.03 percent).
+ * Serial correlation coefficient is 0.000300 (totally uncorrelated = 0.0).
+ *
+ * *****************************************************************************
+ *
+ * TODO LIST
+ *
+ * Before and after writing in the /dev/random, read avail. entropy from proc
+ *
+ * Create a set of "bit of entropy per byte" polices, and use #if to compile:
+ *   - optimistic 7hw 3vm; or flipcoin 4hw 2vm; or minimal 2hw 1vm.
+ *
+ **************************************************************************** */
+
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <errno.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stddef.h>
+#include <time.h>
+#include <math.h>
+#include <immintrin.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#define AVGV 127.5
+#define E3 1000
+#define E6 1000000
+#define E9 1000000000
+#define MAX_READ_SIZE 4096
+#define MAX_COMP_SIZE (MAX_READ_SIZE << 1)
+#define ABS(a)    ( ( (a) < 0 )  ? -(a) : (a) )
+#define MIN(a,b)  ( ( (a) < (b) ) ? (a) : (b) )
+#define MAX(a,b)  ( ( (a) > (b) ) ? (a) : (b) )
+#define ALGN64(n) ( ( ( (n) + 63) >> 6 ) << 6 )
+#define BIT(v,n)  ( ( (v) >> (n) ) & 1 )
+#define perr(x...) fprintf(stderr, x)
+
+#if 0 // RAF: this code is not used anymore but remains for educational purpose
+      //      functionally is converted into a commentary section about uchaos.c
+      //
+#define ALPH64 "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789@\n"
+static inline uint8_t *bin2s64(uint8_t *buf, uint32_t nmax) {
+    static const uint8_t c[] = ALPH64;
+    for(register uint32_t i = 0; i < nmax; i++)
+        buf[i] = c[ 0x3F & buf[i] ];
+    return buf;
+}
+#endif
+
+#ifdef __x86_64__
+#pragma message("Compiling for the 64-bit arch")
+#define ALGN 128         // host's CPU can have AVX or AVX2 instructions
+#else
+#pragma message("Compiling for the 32-bit arch")
+#define ALGN  64         // host can be a 64bit machine with pie32 elf
+#endif
+
+#ifdef _USE_FUNCS_32
+#define USE_FUNCS_32 1
+#else
+#define USE_FUNCS_32 0
+#endif
+
+#if USE_FUNCS_32
+#pragma message("Using the 32-bit functions set")
+    typedef float    archdf_t;
+    typedef uint32_t archul_t;
+    #define AB     5     //  5 -> 32
+#else
+    typedef double   archdf_t;
+    #if defined(__SIZEOF_INT128__)
+    #pragma message("Using the 128-bit functions set")
+        #define HAS_UINT128 1
+        typedef unsigned __int128 uint128_t;
+        typedef uint128_t archul_t;
+        #define AB  7    //  7 -> 64
+    #else
+    #pragma message("Using the 64-bit functions set")
+        #define HAS_UINT128 0
+        typedef uint64_t archul_t;
+        #define AB  6    //  6 -> 64
+    #endif
+
+#endif
+
+#define ABL (AB-3)       //  2 or  3
+#define ABN (1<<AB)      // 32 or 64
+#define ABX (ABN-1)      // 31 or 63
+#define ABx ((ABN>>1)-1) // 15 or 31
+#define ABy ((ABN>>2)-1) //  7 or 15
+#define ABz ((ABN>>3)-1) //  3 or  7
+
+#ifdef _USE_GET_RTSC /* ****************************************************** */
+#define USE_GET_TIME 0
+/*
+ * Available only on x86 architecture, thus not portable
+ * moreover, when the CPU id changes the two clocks aren't
+ * necessarily synchronised anymore but also the CPU switch
+ * is a matter of stochastics, and it is fine but not monotonic.
+ *
+ * WARNING
+ *
+ * When using uchaos.c to seed /dev/random at boot time, keep in consideration
+ * that TSC will be ready after one second while the system could have entered
+ * in /init esecution at 0.1s which suggest that TSC isn't suitable, anyway.
+ */
+#include <x86intrin.h>
+#ifndef __SSE2__
+#warning "SSE2 not detected (-msse2). Falling back to skew risky CPUID fence."
+static inline uint32_t __cpuid__slfence(void) {
+    uint32_t eax, ebx, ecx, edx;             // cpuid is a heavy-duty serializer
+    __asm__ __volatile__ ("cpuid" : "=a"(eax), "=b"(ebx),
+                                    "=c"(ecx), "=d"(edx)
+                                   : "a"(1)  : "memory");
+    return (ebx >> 24);
+}
+#endif
+static inline uint32_t get_rdtsc_clock(uint32_t *pcpuid) {
+    __asm__ __volatile__ ("" ::: "memory");  // Compiler barrier: avoid reording
+#ifdef __SSE2__
+    _mm_lfence(); return __rdtscp(pcpuid);
+#else
+#warning "Instruction __rdtscp() not available. Falling back to __asm__ rdtsc."
+    uint32_t lsb, msb;
+    *pcpuid = __cpuid__slfence();
+    // non-atomic: scheduler can switch CPU here, it needs sched_setaffinity()
+    __asm__ __volatile__ ("rdtsc" : "=a" (lsb), "=d" (msb));
+    return lsb;
+#endif
+}
+#else /* ******************************************************************** */
+#define USE_GET_TIME 1
+#endif /* ******************************************************************* */
+
+#if 0 // RAF: this code is not used anymore but remains for educational purpose
+      //      functionally is converted into a commentary section about uchaos.c
+      //
+#define PRMX 0
+#define IDIV10(x) ((0xcccccccdULL * x) >> 35)
+static inline uint32_t imod10(uint32_t x) {
+    uint32_t a = IDIV10(x);
+    x -= (a << 3) + (a << 1);        // mult.: 10x = 8x + 2x
+    return x;
+}
+/*
+ * This sequence of primes has a peculiar structure: x, y where x + y = 64.
+ * Both members of each pair is a prime number, and by rotl64 are like x, -x.
+ * They are only five pair of these numbers summing up 64, thus 10 = 3.32 bits.
+ */
+static const uint8_t primes64[20] = {  3, 61,  5, 59, 11, 53, 17, 47, 23, 41,
+                                      19, 45, 29, 35, 31, 33, 13, 51,  7, 57 };
+static inline uint32_t getprmx10(uint32_t x) {
+    return primes64[imod10(x)];
+}
+static inline uint32_t getprmx20(uint32_t x) {
+    x = imod10(x) + (x & 0x10) ? 10 : 0;
+    return primes64[x];
+}
+static inline uint32_t getprmx16(uint32_t x) {
+    return primes64[ 2 + (x & 0x1f) ];
+}
+#else
+#define PRMX 0
+#define getprmx16(w) (5 + (((w) & ABy) << 1))
+#endif
+
+static inline archul_t rotlbit(archul_t n, uint8_t c) {
+    c &= ABX; return (n << c) | (n >> ((-c) & ABX));
+}
+
+#define BLOCK_SIZE 512
+
+#ifdef _USE_LINUX_RANDOM_H
+#include <linux/random.h>
+#else
+#define RNDADDENTROPY 0x40085203
+struct rand_pool_info_buf {
+    int entropy_count;
+    int buf_size;
+    uint32_t buf[BLOCK_SIZE / sizeof(uint32_t)];
+} __attribute__((packed));
+#endif
+
+/* *** HASHING  ************************************************************* */
+/*
+ * The gcc compiler is good at using registers, but other simpler compilers for
+ * micro architectures may be much less. So, when register as keyword is used,
+ * it is impose a pragma, and if compiler cannot satisfy it, warning at least.
+ */
+
+static inline uint32_t getnstime(uint32_t *pcpuid) {
+#if ! USE_GET_TIME
+    if(pcpuid) return get_rdtsc_clock(pcpuid);
+#endif
+    uint32_t ns;
+    struct timespec ts;                  // using sched_yield() to creates chaos,
+    clock_gettime(CLOCK_MONOTONIC, &ts); // getting ns in a hot loop is the limit
+                                         // and we want to see this limit, in VMs
+    ns  =  ts.tv_nsec;
+    ns += (ts.tv_sec & 1) ?  E9       : 0;
+    ns += (ts.tv_sec & 2) ? (E9 << 1) : 0;
+    return ns;
+}
+
+#if 0 // RAF: this code is not used anymore but remains for educational purpose
+      //      functionally is converted into a commentary section about uchaos.c
+      //
+/*
+ * This function isn't 32bit fast but a variant of the original Park-Miller
+ * which has a 2^31-2 period. It is useful to introduce in the uchaos output
+ * a grid-biased distribution which the murmur3 cannot remove but amplify.
+ *
+ * ref. Marsaglia's theorem
+ */
+
+static inline uint64_t parkmiller32(uint64_t z) {
+    return (((z << 1) + 1) * 48271) % 0x7FFFFFFF;
+}
+
+/*
+ * These functions below are, like the above, relatively slow compared with
+ * bit operations because multiplications which impacts platforms without FPU
+ * or accelerated instructions. Therefore, they can be used at the end of the
+ * hot-loop producing the hash but inside they can kill the performances.
+ *
+ * For this reason, the uchaos multiply the 5-bit "entropy" from scheduler
+ * jittering using a Xoshiro approach that mix internal states with shift
+ * and rotations which are extremely fast on every architecture. Finally
+ * the hash is whitened with a diffusing avalanche 32 multiplication which
+ * impacts the 32+1 LSB which are mixed with 33 MLB, thus 1-bit overposition.
+ *
+ * ref. Lorenz strange attractors' theory
+ */
+
+static inline uint64_t murmur3(uint64_t hs) {
+    register uint64_t z = hs;
+    z = (z ^ (z >> 33)) * 0xff51afd7ed558ccdULL;
+    z = (z ^ (z >> 33)) * 0xc4ceb9fe1a85ec53ULL;
+    z = (z ^ (z >> 33));
+    return z;
+}
+
+static inline uint16_t mm3ns16(uint16_t ns, uint16_t p) {
+    register uint32_t z = ns;
+    z = (p ^ (z >> 7)) * 0x45d9f3b;
+    z = (z ^ (z >> 8)) * 0x45d9f3b;
+    z = (z ^ (z >> 9));
+    return (uint16_t)z;
+}
+#endif
+
+#include <sched.h>
+
+#if 0 // RAF: this code is not used anymore but remains for educational purpose
+      //      functionally is converted into a commentary section about uchaos.c
+      //
+      /* RAF: unificated by new rotations approach ************************** */
+#define STBX 0
+#define STBRSTR "stochastics branches"
+#define FINAL_AVALANCHE_MLT 0xc4ceb9fe1a85ec53ULL
+#define perrwrn() perr("\nWARNING: "APPNAME" isn't compiled with "STBRSTR"\n\n")
+#define murmux3(o,h) rotl64((h * FINAL_AVALANCHE_MLT) ^ (h >> 33), 13 + ((o & 0x1f) << 1))
+#define entropy(sz) ((sz << 3) - sz) // eq. to 8x (8-1)
+#define minmix8
+#define knuthmx
+#else /* ******************************************************************** */
+#define STBX 1
+#define perrwrn()
+#define entropy(sz) ((sz << 2) - sz) // eq. to 3x (4-1)
+static inline uint8_t  minmix8(uint8_t b) {
+    b *= (b & 1) ? 0x4d : 0x65;
+    b ^= ((b >> 3) | (b << 5));
+    return b;
+}
+/*
+ * RAF, interesting sequence by a recursive function
+ *
+static inline archul_t rfv(archul_t x) { x >>= USE_FUNCS_32; x += !(x&1); return x; }
+#define rfc(x) ((x >> USE_FUNCS_32) + !((x >> USE_FUNCS_32)&1))
+#define ABT 47
+// rf(ABT) 47,23
+// rf(rf(ABT)) 23,13
+// rf(rf(rf(ABT))) 13,7
+// rf(rf(rf(rf(ABT)))) 7,3
+// rf(rf(rf(rf(rf(ABT))))) 3,1
+ */
+#if USE_FUNCS_32
+#define murmul1 0x85ebca6b
+#define murmul2 0xc2b2ae35
+#define murmul3 0x045d9f3b
+#define rot1    23
+#define rot2    17
+#define rot3     7
+#else
+    #if HAS_UINT128
+#define murmul1 (((uint128_t)0x87c37b91114253d5ULL << 64) | 0x4cf5ad432745937fULL)
+#define murmul2 (((uint128_t)0xff51afd7ed558ccdULL << 64) | 0xc4ceb9fe1a85ec53ULL)
+#define murmul3 (((uint128_t)0x9e3779b97f4a7c15ULL << 64) | 0xf39cc0605cedc834ULL)
+#define rot1    83
+#define rot2    31
+#define rot3    17
+    #else
+#define murmul1 0xff51afd7ed558ccdULL
+#define murmul2 0xc4ceb9fe1a85ec53ULL
+#define murmul3 0x9E3779B9045d9f3bULL
+#define rot1    47
+#define rot2    17
+#define rot3    13
+    #endif
+#endif
+static inline archul_t knuthmx(archul_t iw) {
+    register archul_t w = iw;
+    w  = rotlbit(w, getprmx16(w));
+    w *= (w & 1) ? 0x9E3779B9 : 0x045d9f3b;
+    w ^= rotlbit(w, (w & 2) ? (47 >> USE_FUNCS_32) : 17);
+    return w;
+}
+static inline archul_t murmux3(archul_t ks, archul_t p) {
+#if 0
+    register archul_t z = knuthmx(~ks);
+    z = (p  ^ (z >> (ABx-2))) * murmul1;
+    z = (ks ^ (z <<  ABx   )) * murmul2;
+    z = (z  ^ (z >> (ABx+2))) * murmul3;
+    return rotlbit(z, getprmx16(p>>2));
+#else
+    register archul_t z = ks;
+    z =  p ^ ((z >> (ABx-2)) * murmul1);
+    z = (z ^ ( z <<  ABx  )) * murmul2;
+    z =  z ^ ( z >> (ABx+2));
+    return z;
+#endif
+}
+
+#endif /* ******************************************************************* */
+
+#define pidx(p) ((uint32_t)(uintptr_t)(p))
+#define perr_app_info(a) { perr("%s%s%u %s%s%s%s%s", (a)?"":"\n", APPNAME, ABN, VERSION,\
+        STBX?" w/sb":"", PRMX?"":" !/pr", USE_GET_TIME?"":" rtcs", (a)?"\n":""); }
+#define PMDLY2NS(x) ( ( ( x * pmdly ) + 127 ) >> 8 )
+#define DJB2VGET ( (archul_t)-1 )
+
+static inline int nsleep(uint32_t ns) {
+    struct timespec remaining, request = { 0, ns };
+    int ret = nanosleep(&request, &remaining);
+    return ret;
+}
+
+typedef struct djb2tum_status {
+    uint64_t  ncl,  dmn,  dmx;
+    uint64_t tncl, tdmn, tdmx;
+    uint64_t ctot,  jmn,  jmx;
+    uint64_t evnt, nexp, javg;
+    uint64_t  avg,  oid, pmns, ohs;
+} __attribute__((aligned(8))) djb2_t;
+
+/*
+ * One of the most popular and efficient hash functions for strings in C is
+ * the djb2 algorithm created by Dan Bernstein. It strikes a great balance
+ * between speed and low collision rates. Great for text.
+ *
+ * 5381              Prime number choosen by Dan Bernstein, as 1010100000101
+ *                   empirically is one of the best for English words text.
+ * Alternatives:
+ *
+ * 16777619               The FNV-1 offset basis (32-bit).
+ * 14695981039346656037	  The FNV-1 offset basis (64-bit).
+ */
+#if USE_FUNCS_32
+#define HSHSEED 16777619
+#else
+#define HSHSEED 14695981039346656037ULL
+#endif
+
+#define dtskew(x) (!x || (x)>>28)    // 2^29 is the biggest 2^n before 1E9
+
+#define djb2tum_status_init { 0,-1,0, 0,-1,0, 0,-1,0, 0,0,0, 0,-1,0, HSHSEED }
+
+static archul_t djb2tum(archul_t seed, uint8_t maxn, uint32_t nsdly,
+    uint32_t pmdly, uint8_t nbtls, uint8_t rset)
+{
+    // This is the internal state of the engine
+    static djb2_t s = djb2tum_status_init;
+    /*
+     * In general, the previous time shouldn't be persistent across calls
+     * but this function is running in strict sequence in a manner that
+     * it makes sense keep the ons static, also because dtskew() exists
+     */
+#ifndef _USE_PREV_TIME
+    static
+#endif
+    archul_t __attribute__((aligned(16))) ons = 0;
+
+    if( s.ncl || s.tncl || rset || seed == DJB2VGET ) {
+        s.tncl += s.ncl;   s.ncl = 0;
+        s.tdmx  = MAX(s.dmx, s.tdmx);
+        s.tdmn  = MIN(s.dmn, s.tdmn);
+        s.pmns  = PMDLY2NS  (s.tdmn);
+    }
+
+    if( rset ) { s.dmn = -1, s.dmx = 0, s.ncl = 0; ons = 0; };
+
+    // The best practice is to share a copy not the internal state
+    if( seed == DJB2VGET ) return (uintptr_t)&s;
+
+    if( !maxn ) return 0;
+
+    // 0. hashing loop preparation, p.1 ////////////////////////////////////////
+
+    archul_t __attribute__((aligned(16))) tm_4s_nsec, dff, dlt, ent = 0;
+    register archul_t hsh = s.ohs;
+    uint8_t skw = !!ons, excp = 0;   // excp++ as uint8_t grants for convergence
+
+    if( seed ) hsh ^= seed;
+
+hashotloop:                                      // a loop made by two ASM jumps
+/** HASHING LOOP START  *******************************************************/
+    // 0. hashing loop preparation, p.2 ////////////////////////////////////////
+
+    if( ent ) ent ^= rotlbit(ent, getprmx16(hsh));
+
+    // 1. ns latency time retrievement /////////////////////////////////////////
+
+#if USE_GET_TIME
+    tm_4s_nsec = getnstime( NULL ) >> nbtls;
+#else
+    uint32_t cpuid;
+    tm_4s_nsec = getnstime(&cpuid) >> nbtls;
+    if( cpuid != (uint32_t)s.oid && s.oid != -1 ) {
+        // Knuth, based on gold section seeded by CPU ids event idx
+        hsh = murmux3(hsh, ((archul_t)cpuid << ABy) | s.oid);
+        // reschedule in the following !ons branch
+        ons = 0;
+        s.nexp++;
+    }
+    s.oid = cpuid;
+#endif
+    if( !ons ) { hsh = knuthmx(hsh ^ tm_4s_nsec);         goto reschedule;    }
+
+    // 2. latency calculation //////////////////////////////////////////////////
+
+    dlt = tm_4s_nsec - ons;       // within 4s is fine, with RTCS is always fine
+    if( dtskew(dlt) ) {                                    goto reschedule;    }
+    if( s.dmn == -1 ) { s.dmn = dlt;                       goto reschedule;    }
+    if( skw )         {                                    goto notcrashstats; }
+
+    // 3. internal state update ////////////////////////////////////////////////
+
+    // dmn calculation is mandatory for stochastics bi-forkation turns
+    if( dlt < s.dmn ) {
+        dff = s.dmn - dlt; s.dmn = dlt;
+        ent ^= -dff ^ s.dmn;
+        s.evnt++;
+    } else
+    // dmx calculation can be omited but doing ns*=0x4d anyway
+    if( dlt > s.dmx ) {
+        dff = dlt - s.dmn; s.dmx = dlt;
+        ent ^= dff ^ -s.dmx;
+        s.evnt++;
+    } else {
+notcrashstats:
+        dff = dlt - s.dmn;
+        ent ^= ~dff ^ s.dmx;
+    }
+    if( !dff ) { hsh = knuthmx(hsh); skw = 0;             goto reschedule;    }
+
+    // 4. jittering calculation ////////////////////////////////////////////////
+
+    // dff is jittering for the exeption manager activation
+    if( dff < nsdly + (pmdly ? PMDLY2NS(s.dmn) : 1) + excp ) {
+        excp += 4;                   // increasing excp and accounting for dff
+        s.nexp++;
+        skw = 0;
+    } else {
+        // Knuth, based on gold section seeded by 1E-3 ~ 1E-4 event idx
+        if( excp ) { hsh = murmux3(hsh, ons); } excp = 0;
+        if( skw  ) { skw = 0;                              goto skiptoetropy;  }
+        // min,max jittering can be ommited
+        if( s.jmn == -1 ) s.jmn = dff;
+        else
+        if( dff < s.jmn ) s.jmn = dff;
+        if( dff > s.jmx ) s.jmx = dff;
+        // avg calculation can be ommitted
+        s.avg += dlt; s.javg += dff; s.ncl++;
+    }
+
+    // 5. entropy distillation /////////////////////////////////////////////////
+skiptoetropy:
+    ent ^= dlt        << ABz ;       // 1st derivative of time
+    ent ^= tm_4s_nsec << rot3;       // current monotonic time
+    ent  = knuthmx(ent ^ dff);       // 2nd derivative of time
+
+    // 6. macro-mix in djb2-style //////////////////////////////////////////////
+    /*
+     * (16+1) (32-1 or 32+1) (64-1)
+     *   01     10      00     11
+     */
+    // it consumes entropy, does rotations and forgets the state
+    uint8_t b0 = ent & 0x01, b1 = ent & 0x02; ent = ent >> 2;
+    hsh = ( hsh << (4 + (b0 ? b1 : 1)) ) + (b1 ? -hsh : hsh);
+
+    // 7. entropy injection in hsh /////////////////////////////////////////////
+
+    // it consumes entropy, and does hash the another rotation
+    hsh ^= rotlbit(hsh, getprmx16(ent));
+
+    // 8. preparation for the next round ///////////////////////////////////////
+
+    s.ctot++;
+    // copying with the VMs scheduler timings: continue made by an ASM jump
+reschedule:
+    if(   skw         ) { skw = 0; }
+    if( !excp         ) { maxn--; ons = tm_4s_nsec; }
+    if(  excp || maxn ) {  sched_yield();                  goto hashotloop;    }
+
+/** HASHING LOOP CLOSE  *******************************************************/
+    // 9. finalising w/ a 32+1 bit mix /////////////////////////////////////////
+
+    ent = hsh;                       // forget the entropy mixed in hash
+    hsh = murmux3(hsh, s.ohs);       // whitening the hash before deliver
+    s.ohs = ent;                     // keep the hashing internal state
+
+    return hsh;
+}
+
+static inline uint8_t trndbyte() {
+    sched_yield(); return 0xFF & getnstime(NULL);
+}
+
+static inline uint8_t *bin2str(uint8_t *buf, uint32_t nmax) {
+    for(register uint32_t i = 0; i < nmax; i++)
+        if(!buf[i]) buf[i--] = trndbyte();
+    return buf;
+}
+
+archul_t *str2hsh(const uint8_t *str, archul_t *h, uint32_t *size, uint32_t nsdly,
+    uint32_t pmdly, uint8_t nbtls, uint8_t rset)
+{
+    if (!str || !size) return NULL;
+
+    // 1. Calculate allocation
+    // We need enough 64-bit blocks to cover n bytes.
+    uint32_t i, n = 0, nwords = (*size + ABz) >> ABL;
+
+    // 2. Generate the words-sized array
+    // We allocate a separate array for hashes if that was the intent, or we cast
+    // the rotated string. Based on your code, you want a hash per 8-byte block.
+    if(h == NULL) {
+        if(posix_memalign((void **)&h, ALGN, nwords << ABL) || !h) {
+            perror("posix_memalign");
+            return NULL;
+        }
+    }
+    *size = nwords;
+
+    // 3. Producing the hashing sequence
+    archul_t *p = (archul_t *)str;
+    for (i = 0; i < nwords; i++) {
+        n += ABz+1;
+        // Processing each n-bytes chunk of the rotated/padded string
+        h[i] = djb2tum(p[i], 1 + !!rset, nsdly, pmdly, nbtls, 0);
+        if ( rset && n >= ((archul_t)1 << rset) ) {
+            n = 0; djb2tum(0, 0, 0, 0, 0, 1);
+        }
+    }
+
+    return h;
+}
+
+/** I/O ***********************************************************************/
+
+static inline uint32_t writebuf(int fd, const uint8_t *buffer, uint32_t ntwr) {
+    uint32_t tot = 0;
+    while (ntwr > tot) {
+        errno = 0;
+        int nw = write(fd, buffer + tot, ntwr - tot);
+        if (nw < 1) {
+            if (errno == EINTR) continue;
+            perror("write");
+            exit(EXIT_FAILURE);
+        }
+        tot += nw;
+   }
+   return tot;
+}
+
+static inline uint32_t readbuf(int fd, uint8_t *buffer, uint32_t size, bool intr) {
+    uint32_t tot = 0;
+    while (size > tot) {
+        errno = 0;
+        int nr = read(fd, buffer + tot, size - tot);
+        if (nr == 0) break;
+        if (nr < 0) {
+            if (errno == EINTR) {
+              if(intr) return tot;
+              else continue;
+            }
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+        tot += nr;
+    }
+    return tot;
+}
+
+typedef union {
+    uint8_t   uc[BLOCK_SIZE];
+    archul_t  dt[BLOCK_SIZE>>ABL];
+} __attribute__((aligned(16))) block512_t;
+
+static inline uint32_t readblocks(int fd, uint8_t *buf, uint32_t *nblks) {
+    if(!nblks) return 0;
+    block512_t inp, fst;
+    // Reading max 8 blocks to limit the overflow at min 5 LSB bits,
+    // considering that ASCII text is almost all chars in 32-122 range.
+    // Anyway, pre-processing the input may help but it shouldn't matter
+    // when the final aim is to feed uchaos for providing randomness.
+    uint32_t a, i, n, maxn = 0;
+    memset(buf, 0, BLOCK_SIZE);
+
+    // Input size 16 * 512 = 8K as relevant initial dmesg log before init
+    for(i = 0; i < *nblks; i++) {
+        n = readbuf(fd, inp.uc, BLOCK_SIZE, 0);
+        if(!n) break; else maxn = MAX(maxn, n);
+
+        if(i) {
+            if(n < BLOCK_SIZE) {
+                memcpy(&inp.uc[n], fst.uc, BLOCK_SIZE-n);
+                n = BLOCK_SIZE;
+            }
+        } else {
+            if(n == BLOCK_SIZE)
+                memcpy(fst.uc, inp.uc, BLOCK_SIZE);
+        }
+        block512_t *bp = __builtin_assume_aligned( (block512_t *)buf, 16 );
+
+        // mixing the input by words
+        n = (n + ABz) >> ABL;
+        for (a = 0; a < n; a++)
+            bp->dt[a] ^= inp.dt[a];
+    }
+    *nblks = i;
+
+    return maxn;
+}
+
+/* ** main & its supporters ************************************************* */
+
+// Funzione per ottenere il tempo in nanosecondi
+static uint64_t get_nanos(void) {
+    static uint64_t start = 0;
+    struct timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    if (!start) {
+        start = (uint64_t)ts.tv_sec * E9 + ts.tv_nsec;
+        return start;
+    }
+    return ((uint64_t)ts.tv_sec * E9 + ts.tv_nsec) - start;
+}
+
+static inline void usage(const char *name, const char *cmdn, const uint8_t qlvl) {
+    perr("\n"\
+"%s "VERSION" reads from stdin, stats on stderr, and rand on stdout.\n"\
+"|\n"\
+"\\_ Usage: %s [-h,q%s,V] [-T/K/M/G N] [-d,p,s,r N] [-k /dev/rnd]\n"\
+" |\n"\
+" |    -qq,-q: (extra) quiet run for scripts automation\n"\
+" |    -K/-M/-G: kilo/mega/giga bytes of data w/ stats on\n"\
+" |    -S: low-entropy VMs seeding settings (r31,d3,i16,K4)\n"\
+" |    -Z: the same as -S but with a reset at 2^19 bytes\n"\
+" |    -T: number of collision tests x2 on the same input\n"\
+" |    -d: number of ns above min as the minimum delay\n"\
+" |    -p: number of parts as min/256 ns above the min\n"\
+" |    -s: number of bits to left shift on ns timings\n"\
+" |    -r: number of preliminary runs (default: 1)\n"\
+" |    -k: randomness injection in kernel by ioctl\n"\
+" |    -i: number of 512B-blocks to read from stdin\n"\
+" |    -h/-v: shows this help / appname and version\n"\
+" |\n "\
+"\\_ With -pN is suggested -r31 or -r63 for stats pre-evaluation.\n"\
+" |\n"\
+" \\_ Typeical: [sudo] %s -Sk /dev/random (at /init time)\n\n",
+        name, cmdn, (qlvl > 1) ? "^" : "", cmdn);
+    return;
+}
+
+#define APPNAME "uChaos"
+#define STCX STOCHASTIC_BRANCHES
+#define perrprms(s,p) perr("%s s:%u, q:%u, d+p(%u):%u+%u ns, r:%u, i:%u, Z:%u\n\n",\
+                      s, nbtls, quiet, pmdly, nsdly, p?p:1, nrdry, nblks, rset)
+
+typedef double __attribute__((aligned(8))) df;
+
+int main(int argc, char *argv[]) {
+    struct rand_pool_info_buf entrnd;
+    uint8_t *str = NULL, nbtls = 0, prsts = 0, quiet = 0, rset = 0;
+    uint32_t ntsts = 1, nsdly = 0, nrdry = 1, nblks = 1, pmdly = 0;
+    int devfd = 0;
+
+    // Collect arguments from optional command line parameters
+    while (1) {
+        int opt = getopt(argc, argv, "hvSZG:M:K:T:s:d:p:r:k:i:q");
+        if(opt == 'S' || opt == 'Z') {
+            nsdly = 3; nblks = 16; nrdry = 31; ntsts = 8;
+            rset = (opt == 'Z') ? 19 : 0;
+            perrwrn();
+        } else
+        if(opt == 'v') {
+            perr_app_info(2);
+            return 0;
+        } else
+        if(opt == 'q') {
+            quiet = (++quiet) ? quiet : 2;
+        } else
+        if(opt == '?' || opt == 'h') {
+            char *p, *q = argv[0];
+            if(q) for(p = q; *p; p++) if(*p == '/') q = p+1;
+            usage(APPNAME, q ? q : "uchaos", quiet);
+            return 0;
+        } else
+        if(opt == -1) {
+            break;
+        }
+
+        if(!optarg) continue;
+
+        long x = atoi(optarg);
+        switch (opt) {
+            // ABS sanitises the parametric inputs
+            case 's': nbtls = ABS(x); break;
+            case 'd': nsdly = ABS(x); break;
+            case 'r': nrdry = ABS(x); break;
+            case 'p': pmdly = ABS(x); break;
+            case 'i': nblks = ABS(x); break;
+            case 'k': devfd = open(optarg,O_WRONLY); break;
+            case 'G': ntsts = ABS(x); ntsts <<= 21 ; prsts = 1; break;
+            case 'M': ntsts = ABS(x); ntsts <<= 11 ; prsts = 1; break;
+            case 'K': ntsts = ABS(x); ntsts <<=  1 ; prsts = 1; break;
+            case 'T': ntsts = ABS(x); ntsts <<=  1 ; prsts = 1; break;
+        }
+    }
+
+    if (devfd < 0) {
+        perror("open device");
+        return EXIT_FAILURE;
+    }
+    if(quiet) prsts = 0;
+
+    // Counting time of running starts here, after parameters
+    (void) get_nanos();
+
+    if (posix_memalign((void **)&str, ALGN, BLOCK_SIZE + ABz+1) || !str) {
+        perror("posix_memalign");
+        return EXIT_FAILURE;
+    }
+
+    uint32_t n = (nblks < 2) ? readbuf(STDIN_FILENO, str, BLOCK_SIZE, 0) \
+                             : readblocks(STDIN_FILENO, str, &nblks);
+    if(n < 1) return EXIT_FAILURE;     // djb2tum(9 code refactored thus not anymore
+    //if (nblks > 1) bin2str(str, n); // necessary because djb2tum() born for text,
+    str[n] = 0;                      // refactoring it for binary input, is the way.
+
+    archul_t *hsh = NULL;
+    for(uint32_t a = nrdry; a; a--) {
+        uint32_t size = n;
+        hsh = str2hsh(str, hsh, &size, nsdly, pmdly, nbtls, 0);
+        if(!hsh) return EXIT_FAILURE;
+    }
+
+    archul_t max   = 0,   min = E9;
+    uint64_t bic   = 0,   avg = 0, nk = 0, nt = 0, nx = 0, nn = 0, mt = 0;
+    df       avgbc = 0, avgmx = 0, avgmn = 256;
+
+    if(quiet < 2) {
+        perr_app_info(0);
+        if(prsts) { // RAF, TODO: dealing with size one.
+            if(0 && nblks < 2) {
+                perr("; too short input %u, no stats/check!\n\n", ntsts);
+                prsts = 0;
+            } else perr("; collision: ");
+        } else perrprms("", 0);
+    }
+
+    for (uint32_t a = ntsts; a; a--) {
+        // hashing
+        uint32_t size = n;
+        uint64_t stns = get_nanos(); /**** hashing time accounting start ******/
+        hsh = str2hsh(str, hsh, &size, nsdly, pmdly, nbtls, rset);
+        mt += get_nanos() - stns; /******* hashing time accounting stop *******/
+        if(!hsh) return EXIT_FAILURE;
+
+        uint32_t sz = size << ABL;
+        if(devfd) {
+            entrnd.buf_size = sz;
+            entrnd.entropy_count = entropy(sz);
+            memcpy((uint8_t *)entrnd.buf, (uint8_t *)hsh, sz);
+            #define OPTNK "option -k is designed for /dev/[u]random only"
+            if (ioctl(devfd, RNDADDENTROPY, &entrnd) < 0 && errno != EINTR) {
+                if(errno == ENOTTY) {
+                  perr("\nERROR: "APPNAME" "OPTNK"\n\n");
+                } else perror("ioctl entrnd");
+                return EXIT_FAILURE;
+            }
+            if (quiet < 2) // avoid the need of >/dev/null
+                writebuf(STDOUT_FILENO, (uint8_t *)hsh, sz);
+        } else {
+                writebuf(STDOUT_FILENO, (uint8_t *)hsh, sz);
+        }
+
+        // single run
+        if(ntsts < 2) return 0;
+
+        // skip stats
+        if(!prsts) continue;
+
+        // self-evaluation of the output including the check for repetitions
+        avg = 0, nn = 0;
+        for (uint32_t n = 0; n < size; n++) {
+            for (uint32_t i = n + 1; i < size; i++) {
+                if (hsh[i] == hsh[n]) {
+                    perr("%d:%d ", n, i);
+                    nk++; continue;
+                }
+                archul_t cb = hsh[i] ^ hsh[n];
+                int ham = 0;
+                for (int a = 0; a < ABN; a++)
+                    ham += (cb >> a) & 0x01;
+                bic += ham;
+                avg += ham;
+                if(max < ham) max = ham;
+                if(min > ham) min = ham;
+                nx++;
+                nn++;
+            }
+        }
+
+        df curavg = (df)avg / nn;
+        if(avgmx < curavg) avgmx = curavg;
+        if(avgmn > curavg) avgmn = curavg;
+        avgbc += curavg;
+        nt += size;
+
+        //sched_yield();// Statistics are a block of CPU data-crunching but also
+                        // a predictable delay which sched_yield() can jeopardise.
+                        // Stats makes the large size output slower 1.7x than -q.
+    }
+
+    uint64_t rt = get_nanos();
+    free(hsh); hsh = NULL;
+    if(!prsts) return 0;
+
+    perr("%s\n", nk ? ", status: KO" : "no, status: OK");
+
+    // print statistics ////////////////////////////////////////////////////////
+
+    djb2_t *s = (djb2_t *)(uintptr_t)djb2tum(DJB2VGET, 0, 0, pmdly, 0, 0);
+    perrprms("Setting:", (uint32_t)(s ? s->pmns : 0));
+
+    perr("Hashing: %u, ", ntsts);
+    if((nt >> 3) > E6)
+        perr("%.2lfMH (%.2lfGB)",  (df)nt/(1ULL<<20), (df)nt/(1ULL<<(30-ABL)));
+    else
+        perr("%.1lfKH (%.1lfMB)",  (df)nt/(1ULL<<10), (df)nt/(1ULL<<(20-ABL)));
+    perr(" w/ %.0lf duplicates\n", (df)nk);
+
+    if(nblks < 2) goto skiphamming;
+
+    avgbc /= ntsts;
+    df bic_nx_absl = (df)bic / nx;
+    df bic_nx = (df)100 / ABN * bic_nx_absl;
+
+    #define devppm(v,a) ( ((df)v-a) * E6 / a )
+
+    perr("Hamming <weight>: %.4lf%% ~ 50%% by (%+.4lg ppm)\n",
+        bic_nx, devppm(bic_nx, 50));
+    perr("Hamming distance: %.0lf <%.6lf> %.0lf over %.4lgK XORs\n",
+        (df)min, bic_nx_absl, (df)max, (df)nx/E3);
+    perr("Hamming dist/avg: %.4lf < 1U:%u %+.4lg ppm > %.4lf\n\n",
+        avgmn/bic_nx_absl, ABN, devppm(bic_nx_absl, 32), avgmx/bic_nx_absl);
+
+skiphamming:
+    perr("Perform: exec %.3lgs, %.3lg MB/s; hash %.3lgs, %.01lf KH/s\n",
+        (df)rt/E9, (df)(E9>>(20-ABL))*nt/rt, (df)mt/E9, (df)(E9>>10)*nt/mt);
+
+    if(nblks < 2) goto skiptimings;
+
+    df mean = (df)s->avg  / s->tncl;
+    df jean = (df)s->javg / s->tncl;
+
+    #define dk(a,b,c) ( (1.0 - (df)(a-b)/c) * E3 )
+
+    perr("Latency: %.0f <%.01lf> %.01lfK ns, %.3lgK w/ ev:%.0f, ex:%5.02lf%%\n",
+        (df)s->tdmn, mean, (df)s->tdmx/E3, (df)s->tncl/E3, (df)s->evnt,
+            ((df)s->nexp/s->ctot)*100);
+    perr("`Ratios: %.02lf <avg=1U> %.02lf, min=1U <%.02lf> %.01lf, %.01fb\n",
+        (df)s->tdmn/mean, (df)s->tdmx/mean, mean/s->tdmn, (df)s->tdmx/s->tdmn,
+            __builtin_log2f(mean - s->tdmn));
+    perr("Jitters: %.0f <%.01lf> %.0f ns w/ %.03lgx, %.0lf:1K, %+.01lf‰\n",
+        (df)s->jmn, jean, (df)s->jmx, (df)s->jmx/jean, dk(s->ctot, s->tncl, s->ctot),
+            dk(mean, s->tdmn, jean));
+
+skiptimings:
+    perr("\n");
+
+    return 0; // exit() do free()
+}
+

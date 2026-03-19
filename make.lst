@@ -18,9 +18,19 @@ export MUSLCFGMAK=cnfg/musl-125x.config.mak
 
 export  ARCH=x86_64 KERNVER=$(getvarval LINUX_VER)
 
+path="musl/output"
+kmod="uchaos_dev.ko"
+kver=$(echo $KERNVER | tr -dc 0-9 | head -c3)x
+export PATH=$PWD/$path/bin:$PWD/$path/$ARCH/bin:$PATH
+export CCPREFIX=x86_64-linux-musl- HOSTCC=gcc
+unset path
+
+# //////////////////////////////////////////////////////////////////////////////
+
 git submodule update --init --recursive
 
 # //////////////////////////////////////////////////////////////////////////////
+
 test -r musl/config.mak || cp $MUSLCFGMAK musl/config.mak
 cp -arf cnfg/hashes musl/
 start=$(getnstime)
@@ -28,15 +38,20 @@ cd musl
 make -j$(nproc) install
 cd -
 echo musl building elapsed time: $(elapsedtm start)s
-unset start
-# //////////////////////////////////////////////////////////////////////////////
-
-path="musl/output"
-export PATH=$PWD/$path/bin:$PWD/$path/$ARCH/bin:$PATH
-export CCPREFIX=x86_64-linux-musl- HOSTCC=gcc
-unset path
 
 # //////////////////////////////////////////////////////////////////////////////
+
+start=$(getnstime)
+ln -sf ../musl/linux-$KERNVER.orig kdev/linux-kernel
+cp -f cnfg/linux-$kver.config kdev/linux-kernel/.config
+cd kdev/linux-kernel/
+make -j8 HOSTCC=gcc ARCH=x86_64 syncconfig
+make -j8 HOSTCC=gcc ARCH=x86_64
+cd -
+echo linux kernel building time: $(elapsedtm start)s
+
+# //////////////////////////////////////////////////////////////////////////////
+
 start=$(getnstime)
 cd minz
 sh amalgamate.sh
@@ -44,21 +59,14 @@ cd -
 cd usrl
 make -j$(nproc)
 cd -
-echo minz + usrl uchaosbox time: $(elapsedtm start)s
-unset start
+cd kdev
+make dist
+cd -
+echo uchaos proj compiling time: $(elapsedtm start)s
+
 # //////////////////////////////////////////////////////////////////////////////
 
-ln -sf ../musl/linux-$KERNVER.orig kdev/linux-kernel
-cp -f cnfg/linux-515x.config kdev/linux-kernel/.config
-cd kdev/linux-kernel/
-make -j8 HOSTCC=gcc ARCH=x86_64 syncconfig
-make -j8 HOSTCC=gcc ARCH=x86_64
-cd -
-
-cd kdev
-make
-cd -
-
-cp musl/linux-$KERNVER.orig/arch/x86/boot/bzImage qemu/
-kmod="uchaos_dev.ko"
-gzip -9c $kmod > qemu/update/common/lib/modules/$kmod
+unset start
+cp -f musl/linux-$KERNVER.orig/arch/x86/boot/bzImage qemu/
+mkdir -p  qemu/update/common/lib/modules/
+cp -f kdev/$kmod.gz qemu/update/common/lib/modules/$kmod

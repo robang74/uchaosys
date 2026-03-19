@@ -4,6 +4,10 @@ uChaos minimal Linux **qemu** bootable system
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md)
 
+This project is based on the previous case study `random.txt` in WIP and the `bmls` testing bed, starting on 2026-01-26.
+
+<br>
+
 ## information
 
 Following data are indicative and specific to [v0.1](https://github.com/robang74/uchaosys/releases/tag/v0.1) (66Kb)
@@ -29,3 +33,9 @@ Running system, essential metrics:
 - `total time for being ready to user: 0.06 s`
 - `used memory including 2856 KB cpio: 3468 KB`
 - `total memory by qemu-system-x86_64: 9360 KB`
+
+<br>
+
+---
+
+`(c)` 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, CC BY-NC-ND 4.0

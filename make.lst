@@ -4,26 +4,38 @@
 #
 
 exec 3>/dev/null
-export ARCH=x86_64
+export ARCH=x86_64 KERNVER=5.15.202
+
 git submodule update --init --recursive
+
 cd musl
 make -j8 install
 cd -
+
 path="musl/output"
 export PATH=$PWD/$path/bin:$PWD/$path/$ARCH/bin:$PATH
 export CCPREFIX=x86_64-linux-musl- HOSTCC=gcc
 unset path
+
 cd minz
 sh amalgamate.sh
 cd -
+
 cd usrl
 make
 cd -
-ln -sf ../musl/linux-5.15.202.orig kdev/linux-kernel
+
+ln -sf ../musl/linux-$KERNVER.orig kdev/linux-kernel
 cp -f cnfg/linux-515x.config kdev/linux-kernel/.config
 cd kdev/linux-kernel/
 make -j8 HOSTCC=gcc ARCH=x86_64 syncconfig
 make -j8 HOSTCC=gcc ARCH=x86_64
+cd -
+
 cd kdev
 make
 cd -
+
+cp musl/linux-$KERNVER.orig/arch/x86/boot/bzImage qemu/
+kmod="uchaos_dev.ko"
+gzip -9c $kmod > qemu/update/common/lib/modules/$kmod

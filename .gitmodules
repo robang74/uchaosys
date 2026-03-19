@@ -4,3 +4,6 @@
 [submodule "minz"]
 	path = minz
 	url = https://github.com/robang74/miniz.git
+[submodule "bbox"]
+	path = bbox
+	url = https://github.com/robang74/busybox.git

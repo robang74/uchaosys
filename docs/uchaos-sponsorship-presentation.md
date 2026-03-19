@@ -93,7 +93,7 @@ which executes:
     console=ttyS0,115200n8 net.ifnames=0 nokaslr quiet'  
 ```
 
-Those above listed and all the other configurations included into the start.sh have been tested against `PractRand stdin64` and passed tests also 128GB long while testing on terabyte scale, risks auditing and certifications are left to those needs them for their own sake or provided to those commercial sponsors interested in.
+Those above listed and all the other configurations included into the start.sh have been tested against [`PractRand`](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) and passed tests also 128GB long while testing on terabyte scale, risks auditing and certifications are left to those needs them for their own sake or provided to those commercial sponsors interested in.
 
 ---
 

@@ -38,6 +38,10 @@ else
 fi
 mkdir -p $tmpdir/ && chmod +t $tmpdir
 
+# install uchaosbox
+
+for cmd in $(uchaosbox -l); do ln -sf uchaosbox /bin/$cmd; done
+
 # enviroment config
 
 home=$(ls -1d /home /root / 2>&3 | tail -n1)

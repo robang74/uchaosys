@@ -14,7 +14,7 @@
 #include <libgen.h>
 
 #define PROGRAM_NAME "uchaosbox"
-#define VERSION      "v0.1.1"
+#define VERSION      "v0.1.2"
 
 #define DECLARE_MAIN(name) int name##_main(int argc, char **argv)
 
@@ -48,13 +48,18 @@ static command_t commands[] = {
     {NULL, NULL, NULL}
 };
 
+
+void print_list(const char *sep) {
+    for (int i = 0; commands[i].name != NULL; i++) {
+        printf(" %s%s", commands[i].name, (commands[i+1].name ? sep : "\n"));
+    }
+}
+
 void print_usage(void) {
     printf("\nUsage %s: %s [command] [args...]\n\n", VERSION, PROGRAM_NAME);
     printf("Built-in commands:\n ");
-    for (int i = 0; commands[i].name != NULL; i++) {
-        printf(" %s%s", commands[i].name, (commands[i+1].name ? "," : ""));
-    }
-    printf("\n\nUse '%s -v/-h' for version/help\n\n", PROGRAM_NAME);
+    print_list(",");
+    printf("\nUse '%s -v/-h' for version/help\n\n", PROGRAM_NAME);
 }
 
 int main(int argc, char **argv) {
@@ -75,6 +80,10 @@ int main(int argc, char **argv) {
         }
         if (strcmp(argv[1], "-h") == 0) {
             print_usage();
+            return 0;
+        }
+        if (strcmp(argv[1], "-l") == 0) {
+            print_list("");
             return 0;
         }
 

@@ -23,5 +23,5 @@ Reference architecture **x86_64**, footprint sizes:
 Running system, essential metrics, boot time & RAM:
 
 - `total time for being ready to user: 0.06 s`
-- `used memory including 2116 KB cpio: 3348 KB`
+- `used memory including 2856 KB cpio: 3468 KB`
 - `total memory by qemu-system-x86_64: 9360 KB`

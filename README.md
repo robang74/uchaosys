@@ -2,6 +2,8 @@
 
 uChaos minimal Linux **qemu** bootable system
 
+* [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md)
+
 ## information
 
 Following data are indicative and specific to [v0.1](https://github.com/robang74/uchaosys/releases/tag/v0.1) (66Kb)

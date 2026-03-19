@@ -18,9 +18,9 @@ Last but not least, this project provide the 2.3Mb Linux embedded system as the 
 
 ### Configuration
 
-In this peculiar system configuration uChaos replaces all the entropy source within the linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel.
+In this peculiar system configuration uChaos replaces all the entropy sources within the Linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel, as well.
 
-Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability of the uchaos and Linux crng randomness providers, both.
+Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability across reboots of the uchaos and Linux crng randomness providers, both.
 
 <br>
 

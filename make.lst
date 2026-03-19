@@ -36,13 +36,17 @@ export PATH=$PWD/$path/bin:$PWD/$path/$ARCH/bin:$PATH
 export CCPREFIX=x86_64-linux-musl- HOSTCC=gcc
 unset path
 
+# //////////////////////////////////////////////////////////////////////////////
+start=$(getnstime)
 cd minz
 sh amalgamate.sh
 cd -
-
 cd usrl
-make
+make -j$(nproc)
 cd -
+echo minz + usrl uchaosbox time: $(elapsedtm start)s
+unset start
+# //////////////////////////////////////////////////////////////////////////////
 
 ln -sf ../musl/linux-$KERNVER.orig kdev/linux-kernel
 cp -f cnfg/linux-515x.config kdev/linux-kernel/.config

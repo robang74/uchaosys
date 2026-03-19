@@ -10,6 +10,14 @@ Last but not least, this project provide the 2.3Mb Linux embedded system as the 
 
 <br>
 
+## Configuration
+
+In this peculiar system configuration uChaos replaces all the entropy source within the linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel.
+
+Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability of the uchaos and Linux crng randomness providers, both.
+
+<br>
+
 ## information
 
 Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (69Kb)
@@ -36,7 +44,9 @@ Running system, essential metrics:
 - `used memory including 2856 KB cpio: 3468 KB`
 - `total memory by qemu-system-x86_64: 9360 KB`
 
-### Components
+<br>
+
+## Components
 
 - **musl v1.2.15**, and related packages for the cross-compilation toolschain;
 
@@ -45,12 +55,6 @@ Running system, essential metrics:
 - **linux v5.15.202**, as the kernel from a very widely spread LTS branch;
 
 - **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
-
-### Configuration
-
-In this peculiar system configuration uChaos replaces all the entropy source within the linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel.
-
-Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability of the uchaos and Linux crng randomness providers, both.
 
 <br>
 

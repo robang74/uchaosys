@@ -71,9 +71,10 @@ if [ "$kimg" != "bzImage.515x" ]; then
 fi
 
 tmpdir=${3:-}
+test "$tmpdir" == "cpio" && tmpdir=""
 if [ ! -n "$tmpdir" ]; then
   tmpdir="cpio.tmp/"
-  trap "rm -rf $tmpdir; return 1" EXIT INT TERM
+  trap "rm -rf $tmpdir" EXIT INT TERM
   rm -rf $tmpdir
 fi
 

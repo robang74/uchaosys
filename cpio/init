@@ -11,6 +11,7 @@ export bttm=$(/bin/busybox date +%s%N)
 
 export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
 
+/bin/busybox mkdir -p /usr/bin /usr/sbin /var/log /tmp /proc /sys /dev /etc/init.d
 /bin/busybox --install
 
 # system uprising

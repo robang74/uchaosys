@@ -4,13 +4,13 @@ uChaos minimal Linux **qemu** bootable system
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md)
 
-This project is based on the previous case study `random.txt` in WIP, starting on 2026-01-26. Which leveraged the `bmls` testing bed for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
+This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
 
 <br>
 
 ## information
 
-Following data are indicative and specific to [v0.1](https://github.com/robang74/uchaosys/releases/tag/v0.1) (66Kb)
+Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (69Kb)
 
 Reference processor **i5-8365**, building times:
 

@@ -1,12 +1,12 @@
 ## uChaos: Technical Proposal for Commercial Sponsorship
 
-- (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>
+- (c) 2026, Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;
 
 ---
 
 ### Presentation of the uChaos Project
 
-The [`uchaos.c`](usrl/uchaos.c), [`uchaosd.c`](usrl/uchaosd.c) and [`uchaos_dev.c`](kdev/uchaos_dev.c) are a set of C-language coded solutions (MVP) among which the last one is a kernel device driver that recently developed within a month timeframe in which I did my own research about randomness.
+The [`uchaos.c`](usrl/uchaos.c), [`uchaosd.c`](usrl/uchaosd.c) and [`uchaos_dev.c`](kdev/uchaos_dev.c) are a set of **C** language coded solutions (MVP) among which the last one is a kernel device driver that recently developed within a month timeframe in which I did my own research about randomness.
 
 The comments are also half of the interesting part in terms of presentation. So, let me quickly recap what I found out:
 
@@ -60,7 +60,9 @@ In the above uChaos description list, self-sufficient refers to any real or virt
 
 ### Antagonist Testing uChaos in an Isolated VM
 
-- `KARGS=quiet QMSZE=32M QZERO=1 ZWARM=0 sh start.sh` which executes:
+- `KARGS=quiet QMSZE=32M QZERO=1 ZWARM=0 sh start.sh`
+
+which executes:
 
 ```sh
   qemu-system-x86_64 -m 32M -kernel bzImage -initrd initramfs.cpio.gz -nographic \
@@ -75,14 +77,16 @@ In the above uChaos description list, self-sufficient refers to any real or virt
 
 Instead the nearest configuration to the real-world use case in distributed infrastructures:
 
-- `KARGS=quiet QMSZE=2G QZERO=0 ZWARM=0 sh start.sh` which executes:
+- `KARGS=quiet QMSZE=2G QZERO=0 ZWARM=0 sh start.sh`
+
+which executes:
 
 ```sh
   qemu-system-x86_64 -m 2G -kernel bzImage -initrd initramfs.cpio.gz -nographic  \
   -vga none -display none -no-reboot -boot order=dc -name tinylnx -enable-kvm    \
-  -cpu host -machine accel=kvm -netdev user,id=net0,restrict=yes                 \
-  -device virtio-net-pci,netdev=net0 -append 'HOST=x86_64 root=/dev/ram0         \
-    init=/init console=ttyS0,115200n8 net.ifnames=0 nokaslr quiet'
+  -cpu host -machine accel=kvm -netdev user,id=net0,restrict=yes -device         \
+  virtio-net-pci,netdev=net0 -append 'HOST=x86_64 root=/dev/ram0 init=/init      \
+    console=ttyS0,115200n8 net.ifnames=0 nokaslr quiet'  
 ```
 
 Those above listed and all the other configurations included into the start.sh have been tested against `PractRand stdin64` and passed tests also 128GB long while testing on terabyte scale, risks auditing and certifications are left to those needs them for their own sake or provided to those commercial sponsors interested in.
@@ -99,4 +103,9 @@ In case your company could be seriously interested in participating and funding 
 
 The github platform is the natural 1st-channel of contact and at least granted as 3rd party intermediation but is not necessarily the best one in all the cases.
 
-Best regards, R-
+`--`<br>
+Best regards,<br>
+[Roberto A. Foglietta](https://www.linkedin.com/in/robertofoglietta/)<br>
++49.176.274.75.661<br>
++39.349.33.30.697
+

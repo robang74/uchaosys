@@ -26,7 +26,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (69Kb)
+Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (72Kb)
 
 Reference processor **i5-8365**, building times:
 

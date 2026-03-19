@@ -1,0 +1,64 @@
+#!/bin/sh
+
+for f in uchaos RNG_test; do
+  test ! -x /bin/$f -a -x /bin/$f.gz.sh && ln -sf $f.gz.sh /bin/$f
+done
+
+if ! grep -qe "UCTEST=0" /proc/cmdline; then ###################################
+
+if which uchaos >&3 && grep -q "UCTEST=1" /proc/cmdline; then
+  dmesg -r | head -c 8192 > d.txt
+  echo
+  echo "DEVEL TEST START"
+  echo
+  echo "Preliminary speed and stats check"
+  uchaos -SK512 < d.txt >/dev/null
+  str=$(date +%N)
+  printf "Generating randomness by $(uchaos -v 2>&1)\n\\_ Chunks: "
+  for n in $(seq 1 8); do uchaos -qqZ -M1 < d.txt >$n.dat;
+    printf "$n "; done
+  n=x2; printf "$n ... "; uchaos -qqS -M8 < d.txt >$n.dat
+  printf "%d Mtk\n\n" $(( ($(date +%N) - $str)/1000000 ))
+  cat *.dat | RNG_test stdin64 -tlshow 1024K
+  printf "Files: "; ls -1 *.dat | tr '\t\n' '  '; echo
+fi
+
+_rngtest() {
+  RNG_test.gz.sh stdin64 -tlshow 16M "$@" 2>&1|\
+  sed -e "s,error reading from file,$HLINE,";
+}
+
+HLINE=$(printf '-%.0s' $(seq 80))
+
+_dduchaos() { dd if=/dev/uchaos bs=8k "$@"; }
+_pgetentr() { cat /proc/sys/kernel/random/entropy_avail; }
+
+if uname -r | grep -qe "^5.15.202$" && which RNG_test.gz.sh >&3; then
+  printf "\n>>>>>>>>: Kernel entropy pool available: %d bits\n" $(_pgetentr)
+  grep -qe "UCTEST=2" /proc/cmdline && {
+    printf "UCTEST=3: testing /dev/uchaos in warm I/O reading test\n\n"
+    _dduchaos count=2k of=/dev/null 2>&1 | grep copied; echo
+    _dduchaos count=2k status=none | _rngtest
+  }
+  grep -qe "UCTEST=3" /proc/cmdline && {
+    printf "UCTEST=3: testing /dev/uchaos in cold RAM reading test\n\n"
+    _dduchaos count=2k of=/d.ata 2>&1 | grep copied; echo
+    _rngtest </d.ata
+  }
+  if test -r /lib/modules/uchaos_dev.ko; then
+    grep -qe "UCTEST=4" /proc/cmdline && {
+      printf "UCTEST=4: endless 'uchaos_dev.ko crng init' test, wait ...\n\n"
+      _dduchaos status=none | _rngtest;
+    }
+    grep -qe "UCTEST=5" /proc/cmdline && {
+      printf "UCTEST=5: endless '/dev/random' uchaos crng init' test, wait ...\n\n"
+      dd if=/dev/random bs=8k status=none | _rngtest;
+    }
+    grep -qe "UCTEST=6" /proc/cmdline && {
+      printf "UCTEST=6: endless '/dev/urandom' uchaos crng init' test, wait ...\n\n"
+      dd if=/dev/urandom bs=8k status=none | _rngtest;
+    }
+  fi
+fi
+
+fi #############################################################################

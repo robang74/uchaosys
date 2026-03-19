@@ -1,0 +1,3 @@
+VERSION="0.3.2"
+NAME="miniqemu linux"
+HOME_URL="https://github.com/robang74/bare-minimal-linux-system"

@@ -1,0 +1,33 @@
+#!/bin/env
+#
+# (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
+#
+
+export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
+
+exec 3>/dev/nul
+
+alias ll='ls -al'
+alias qq='reboot -f'
+export PS1='\u@\h:\w\$ '
+export KVERS=$(uname -r)
+
+rngtest() { /usr/bin/RNG_test stdin64 "$@"; }
+
+mod_load() {
+  test -n "${1:-}" || return 1
+  kmod=${1:-.};
+  if lsmod | grep "$kmod"; then rmmod $kmod && sleep 0.1; fi
+  modrpath="/lib/modules/$KVERS/$kmod"
+  test -r $modrpath.ko && modrpath="$modrpath.ko"
+  test -r $modrpath.ko.gz && modrpath="$modrpath.ko.gz"
+  command insmod $modrpath "$@";
+}
+
+mod_info() {
+  test -n "${1:-}" || return 1
+  modrpath="/lib/modules/$KVERS/$1"
+  test -r $modrpath.ko && modrpath="$modrpath.ko"
+  test -r $modrpath.ko.gz && modrpath="$modrpath.ko.gz"
+  command modinfo $modrpath
+}

@@ -1,0 +1,99 @@
+#!/bin/sh
+#
+# (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
+#
+export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
+
+exec 3>/dev/nul
+
+krnver=$(uname -r)
+mkdir -p /lib/modules;
+ln -sf /lib/modules /lib/modules/$krnver
+
+# temporary folder
+
+tmpdir="/dev/shm"
+mkdir -p $tmpdir/ && chmod +t $tmpdir
+TEXT=$(grep -E "MemAvailable:|MemTotal:" /proc/meminfo)
+if grep -qw tmpfs /proc/filesystems; then
+  ramsize=$(sed -ne "s/MemAvailable: *\([0-9]\+\) kB/\\1/p" /proc/meminfo)
+  shmsize="65536"; [ $ramsize -le 131072 ] && shmsize=$(( ramsize >> 2 ))
+  tmpdev=/dev/zram0;
+  sb=/sys/block/zram0
+  if [ -e $sb/reset ]; then
+    echo 1 > $sb/reset
+    echo ${shmsize}k > $sb/disksize
+    zsize=$(( $(cat $sb/disksize) >> 10 ))
+    shmsize=
+  else
+    tmpdev=tmpfs
+  fi
+  mount -o nosuid,nodev,${shmsize:+size=${shmsize}k} -t tmpfs $tmpdev $tmpdir
+  if grep -q " $tmpdir " /proc/mounts; then
+    echo "Temporary $tmpdir size is ${shmsize:-$zsize} kB of ${zsize:+Z}RAM"
+    echo "$TEXT" | sed -e "s,^,\t,"
+  fi
+else
+  echo "$TEXT"
+fi
+mkdir -p $tmpdir/ && chmod +t $tmpdir
+
+# enviroment config
+
+home=$(ls -1d /home /root / 2>&3 | tail -n1)
+
+export HOME=$home TMPDIR=$tmpdir GZTMPDIR=/tmp GZUNGZIP=/bin/zcat
+
+entrp=$(cat /proc/sys/kernel/random/entropy_avail)
+acnsl=$(sed '$s@.*[ /]@@' /sys/class/tty/console/active)
+HLINE=$(printf '-%.0s' $(seq 80))
+
+if test -r /lib/modules/uchaos_dev.ko; then
+  echo
+  echo "Module creates /dev/uchaos which can be initialised with 8-zeros"
+  printf "$HLINE\n\n"
+  modinfo /lib/modules/uchaos_dev.ko
+fi
+if grep "WRINIT" -q /proc/cmdline; then
+  if which uchaosbox >&3; then
+    printf "hashing...\n"
+    for i in $(seq 2); do
+      H1="uchaosbox prnt16 -n96" #; read -t 0.001 < /dev/$acnsl"
+      H2="uchaosbox mixtrd -tn16 '$H1' | md5sum" # uchaosbox uchaos -qqr7 -d3 -i1"
+      H3="$H3 "$(uchaosbox mixtrd -tn6 "$H2")
+    done
+    H3=$(echo "$H3" | md5sum | cut -d' ' -f1)
+    printf "kdevseed:       at 0.%09s, hash: 0x${H3:-(none)}\n" $(date +%N)
+    echo "$H3" >/dev/uchaos 2>&3
+    echo
+    echo ">>>>> Check for isolated VM: hashes and timings repeatibility across reboots"
+  fi
+fi
+
+dmesg -r | head -c 8192 > d.txt
+echo; uname -a | sed -e "s,\(x86_64\) x86_64 x86_64,\\1,"
+if echo $krnver | grep -qe "^5.15.20[0-9]$" && which uchaos >&3; then
+  test "$entrp" != "256" &&
+  uchaos -qZK1 -k /dev/random < d.txt | md5sum 2>&1 | grep . |\
+    sed -e "s,  -$, --> /dev/random by uChaos,"
+  pools=$(cat /proc/sys/kernel/random/poolsize)
+  entrq=$(cat /proc/sys/kernel/random/entropy_avail)
+  printf "\nActive console: %s, entropy: %d -> %d / %d bits\n" \
+      $acnsl $entrp $entrq $pools
+  dmesg | grep "random: crng init done"
+  grep -qe "UCTEST=" /proc/cmdline && sh /etc/uctests
+else
+  printf "Active console: %s, entropy: %d bits\n" $acnsl $entrp
+fi
+
+bnst=$(printf "0.%09d" $(( $(date +%s%N) - bttm )))
+bttm=$(dmesg | sed -ne "s,\[ *\([0-9.]*\)*\] Run /init .*,\\1,p" | head -c8)
+printf "\e[?7h
+      ===============================================
+      Welcome to Minimal Linux System for QEMU x86_64
+      Boot time %.03fs at /init + %.03fs at usr shell
+      Boot UUID: $(cat /proc/sys/kernel/random/boot_id)
+      ===============================================
+       type command 'reboot -f' to shutdown this VM
+\n" $bttm $bnst
+

@@ -1,6 +1,12 @@
 # uchaosys
 
-uChaos minimal Linux **qemu** bootable system
+`(c)` 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, text published under CC BY-NC-ND 4.0
+
+- &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
+
+<br>
+
+## uChaos minimal Linux **qemu** bootable system
 
 This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
 
@@ -10,7 +16,7 @@ Last but not least, this project provide the 2.3Mb Linux embedded system as the 
 
 <br>
 
-## Configuration
+### Configuration
 
 In this peculiar system configuration uChaos replaces all the entropy source within the linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel.
 
@@ -18,7 +24,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 <br>
 
-## information
+### information
 
 Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (69Kb)
 
@@ -46,7 +52,7 @@ Running system, essential metrics:
 
 <br>
 
-## Components
+### Components
 
 - **musl v1.2.15**, and related packages for the cross-compilation toolschain;
 
@@ -57,7 +63,3 @@ Running system, essential metrics:
 - **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
 
 <br>
-
----
-
-`(c)` 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, CC BY-NC-ND 4.0

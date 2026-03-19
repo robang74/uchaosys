@@ -1,6 +1,10 @@
 ## uChaos: Technical Proposal for Commercial Sponsorship
 
-- `(c)` 2026, Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;
+`(c)` 2026, Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;
+
+&nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project
+
+
 
 <br>
 

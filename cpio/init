@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
+#
+
+# Run /init time
+
+export bttm=$(/bin/busybox date +%s%N)
+
+# busybox install
+
+export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
+
+/bin/busybox --install
+
+# system uprising
+
+mount -t sysfs sysfs /sys
+echo Y > /sys/module/printk/parameters/time
+test -r /lib/modules/uchaos_dev.ko &&
+  insmod /lib/modules/uchaos_dev.ko badb_init=1
+
+mount -t proc procfs /proc
+grep -q uchaos_dev /proc/modules &&
+  while usleep 9999; do dmesg | grep -q "uchaos: kmod loop=" && break; done
+echo 3 >/proc/sys/kernel/printk
+
+mount -o size=16k,nosuid -t devtmpfs tmpfs /dev
+mkdir -p /dev/pts && mount -t devpts devpts /dev/pts
+
+# 2nd stage init
+
+printf "\e[?7hRun /init exec /linuxrc\n"
+
+chmod +x /etc/init.d/rcS
+touch /etc/fstab
+exec /linuxrc
+stty -echoctl
+echo
+echo "Emergency shell respowning because /linuxrc failed"
+echo
+while true; do /bin/sh; sleep 1; done

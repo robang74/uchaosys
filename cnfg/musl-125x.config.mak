@@ -1,7 +1,5 @@
 #
 # config.mak.dist - sample musl-cross-make configuration
-:q
-:q
 #
 # Copy to config.mak and edit as desired.
 #
@@ -9,8 +7,11 @@
 # There is no default TARGET; you must select one here or on the make
 # command line. Some examples:
 
+ARCH  ?= x86_64
+TARGET = $(ARCH)-linux-musl
+
 # TARGET = i486-linux-musl
-TARGET = x86_64-linux-musl
+# TARGET = x86_64-linux-musl
 # TARGET = arm-linux-musleabi
 # TARGET = arm-linux-musleabihf
 # TARGET = sh2eb-linux-muslfdpic
@@ -39,8 +40,8 @@ GCC_VER = 14.3.0
 MUSL_VER = 1.2.5
 GMP_VER = 6.3.0
 MPC_VER = 1.3.1
-MPFR_VER = 4.2.1
-ISL_VER = 0.26
+MPFR_VER = 4.2.2
+ISL_VER = 0.27
 LINUX_VER = 5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.

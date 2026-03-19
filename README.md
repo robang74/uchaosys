@@ -15,7 +15,7 @@ Reference processor **i5-8365**, building times:
 Reference architecture **x86_64**, footprint sizes:
 
 - `dev/build enviroment  size: 4726 MB`
-- `uncompressed cpio/    size: 2116 KB`
+- `uncompressed .cpio    size: 2056 KB`
 - `initramfs.cpio.gz     size:  980 KB`
 - `linux kernel image    size: 1388 KB`
 - `qemu bootable system  size: 2368 KB (2.31 MB)`

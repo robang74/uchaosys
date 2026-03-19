@@ -1,3 +1,6 @@
 [submodule "musl"]
 	path = musl
 	url = https://github.com/robang74/musl-cross-make.git
+[submodule "minz"]
+	path = minz
+	url = https://github.com/robang74/miniz.git

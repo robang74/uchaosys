@@ -60,7 +60,9 @@ Running system, essential metrics:
 
 - **linux v5.15.202**, as the kernel from a very widely spread LTS branch;
 
-- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
+- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver;
+
+- **PractRand RNG_test**, external [static](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) tool for testing randonmess quality.
 
 <br>
 

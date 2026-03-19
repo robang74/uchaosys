@@ -59,19 +59,10 @@ else
 fi
 test -r ${rfsimg}.gz && rfsimg="${rfsimg}.gz"
 
-if [ -n "$UCTEST" -a "${2:-}" = "" ]; then
-  kimg="bzImage.515x"
-else
-  kimg="${2:-bzImage}"
-  
-fi
-
-if [ "$kimg" != "bzImage.515x" ]; then
-  KARGS="quiet ${KARGS:-}"
-fi
+kimg="${2:-bzImage}"
 
 tmpdir=${3:-}
-test "$tmpdir" == "cpio" && tmpdir=""
+test "$tmpdir" = "cpio" && tmpdir=""
 if [ ! -n "$tmpdir" ]; then
   tmpdir="cpio.tmp/"
   trap "rm -rf $tmpdir" EXIT INT TERM

@@ -54,23 +54,38 @@ How does uChaos fit into a trust sovereignty by vendor/HW agnostic security stra
 
 - uChaos is not a finished commercial product but a minimum-viable-product (MVP) and it is ready for testing
 
-For testing **uChaos** on an isolated VM: 
+In the above uChaos description list, self-sufficient refers to any real or virtual machine in which the CPU or the KVM passthrough leaks entropy directly or indirectly by scheduler jittering, In a totally deterministic machine the output is totally predictable and its security relies only on the secrecy of the seeding. In absolute zero entropy special case, uchaos behaviour, requirements and vulnerability fallback to the Linux crng model.
 
-- `UCTEST=4 QMSZE=2G QZERO=0 ZWARM=0 sh start.sh "" bzImage.515x`
+---
 
-which executes:
+### Antagonist Testing uChaos in an Isolated VM
+
+- `KARGS=quiet QMSZE=32M QZERO=1 ZWARM=0 sh start.sh` which executes:
 
 ```sh
-  qemu-system-x86_64 -m 2G -kernel bzImage.515x -initrd initramfs.cpio.gz.new \
-  -nographic -vga none -display none -no-reboot -boot order=dc -name tinylnx  \
-  -enable-kvm -cpu host -machine accel=kvm -netdev user,id=net0,restrict=yes  \
-  -device virtio-net-pci,netdev=net0 -append 'UCTEST=4 HOST=x86_64 nokaslr    \
-  root=/dev/ram0 init=/init console=ttyS0,115200n8 net.ifnames=0'
+  qemu-system-x86_64 -m 32M -kernel bzImage -initrd initramfs.cpio.gz -nographic \
+  -vga none -display none -no-reboot -boot order=dc -name zroklnx -accel tcg     \
+  -cpu qemu64 -smp 1 -icount shift=0,sleep=off,align=off -serial mon:stdio       \ 
+  -net none -rtc base=2026-03-01,clock=vm,driftfix=none -nodefaults -append      \
+    'lpj=2000000 noapic nolapic clocksource=pit video=off nomodeset HOST=x86_64  \
+    root=/dev/ram0 init=/init console=ttyS0,115200n8 net.ifnames=0 nokaslr       \
+    deferred_probe_timeout=0 page_alloc.shuffle=0 memtest=0 random.trust_cpu=off \
+    mitigations=off quiet'
 ```
 
-The one above (the nearest to the real-world use case in distributed infrastructures) and all the other configurations included into the start.sh have been tested against `PractRand stdin64` and passed tests also 128GB long while testing on terabyte scale, risks auditing and certifications are left to those needs them for their own sake or provided to those commercial sponsors interested in.
+Instead the nearest configuration to the real-world use case in distributed infrastructures:
 
-In uchaos description list, self-sufficient refers to any real or virtual machine in which the CPU or the KVM passthrough leaks entropy directly or indirectly by scheduler jittering, In a totally deterministic machine the output is totally predictable and its security relies only on the secrecy of the seeding. In absolute zero entropy special case, uchaos behaviour, requirements and vulnerability fallback to the Linux crng model.
+- `KARGS=quiet QMSZE=2G QZERO=0 ZWARM=0 sh start.sh` which executes:
+
+```sh
+  qemu-system-x86_64 -m 2G -kernel bzImage -initrd initramfs.cpio.gz -nographic  \
+  -vga none -display none -no-reboot -boot order=dc -name tinylnx -enable-kvm    \
+  -cpu host -machine accel=kvm -netdev user,id=net0,restrict=yes                 \
+  -device virtio-net-pci,netdev=net0 -append 'HOST=x86_64 root=/dev/ram0         \
+    init=/init console=ttyS0,115200n8 net.ifnames=0 nokaslr quiet'
+```
+
+Those above listed and all the other configurations included into the start.sh have been tested against `PractRand stdin64` and passed tests also 128GB long while testing on terabyte scale, risks auditing and certifications are left to those needs them for their own sake or provided to those commercial sponsors interested in.
 
 ---
 

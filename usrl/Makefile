@@ -2,10 +2,11 @@
 #  Makefile for small static utilities built with musl-gcc
 # =============================================================================
 
-CC      := musl-gcc
-CFLAGS  := -static -s -flto -Os -Wall
-LDFLAGS := -static -s -flto
-STRIP   := strip --strip-all
+CCPREFIX ?= musl-
+CC       := $(CCPREFIX)gcc
+CFLAGS   := -static -s -flto -Os -Wall
+LDFLAGS  := -static -s -flto
+STRIP    := strip --strip-all
 
 STRIP_FLAGS += --remove-section=.comment --remove-section=.note*
 CFLAGS  += -ffunction-sections -fdata-sections
@@ -41,6 +42,7 @@ TARGETS_ALL := uchaosbox $(TARGETS)
 
 uchaosbox: uchaosbox.c $(OBJS)
 	$(CC) $(CFLAGS) $(EXTRA_FLAGS_ALL) $(LDFLAGS) $(EXTRA_SRCS) $(OBJS) -o $@ $<
+	$(STRIP) $(STRIP_FLAGS) $@
 	@du -k $@
 
 # The magic: it redefines 'main' for each module to be 'target_main'

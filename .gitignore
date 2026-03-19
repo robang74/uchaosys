@@ -8,3 +8,11 @@ kdev/*.cmd
 kdev/*.mod*
 kdev/*.o
 usrl/*.o
+cpio/bin
+cpio/lib
+cpio/linuxrc
+cpio/sbin
+cpio/usr
+cpio.cpio
+qemu/bzImage
+qemu/initramfs.cpio.gz

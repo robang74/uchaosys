@@ -92,4 +92,5 @@ chmod +x               cpio/init
 ln -sf bin/busybox     cpio/linuxrc
 ln -sf usr/sbin        cpio/sbin
 ln -sf usr/bin         cpio/bin
+ln -sf busybox         cpio/bin/sh
 

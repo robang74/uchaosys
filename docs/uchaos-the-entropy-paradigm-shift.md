@@ -14,7 +14,7 @@ Despite both referencing CPU behavior as their source, uChaos and jitterentropy 
 
 ### Notes to the AI's text from the uChaos human author
 
-1. uChaos doesn't abandon collection entirely, it started ignoring it to show that it was not necessary but last versions are also collecting it even if not in the paradigm of a pool to fill rather than a "fading memory" from the past. Like an electrical condenser this "vague memory of the past states" helps the engine to maintain a decent level of entropy bits per byte ratio despite CPU load conditions varying impacting the entropy flow.
+1. uChaos doesn't abandon collection entirely, it started ignoring it to show that it was not necessary but last versions are also collecting it even if not in the paradigm of a pool to fill rather than a "fading memory" from the past. Like an electrical capacitor this "vague memory of the past states" helps the engine to maintain a decent level of entropy bits per byte ratio despite CPU load conditions varying impacting the entropy flow.
 
 2. This aspect/narrative is more related to the use of cryptographic whitening hash function in Linux crng versus the use of a trivial murmur3-like hash function rather than the outcoming. In fact, when the virtual machine is isolated in such a way that zero entropy is available both the uChaos and Linux cnrg are predictable among identical condition reboots repeatability.
 

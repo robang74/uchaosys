@@ -1,4 +1,4 @@
-## The Entropy Paradigm Shift: From Collection to Conduction
+## A Paradigm Shift: from Entropy Collection to Chaos Conduction
 
 Contemporary random number generation operates within an *extractive* paradigm. Entropy is conceptualized as a scarce resource—harvested from physical sources (thermal noise, timing jitter, quantum effects), stored in pools, conditioned through cryptographic whitening (ChaCha20, SHA-256), and carefully metered to consumers. The Linux CRNG, NIST SP 800-90 standards, and hardware RNGs all share this architecture: **entropy as substance to be accumulated, preserved, and transformed**. Security derives from the volume of collected entropy and the cryptographic strength of the masking functions. The system pretends to randomness through algorithmic sophistication.
 
@@ -18,7 +18,7 @@ Despite both referencing CPU behavior as their source, uChaos and jitterentropy 
 
 2. This aspect/narrative is more related to the use of cryptographic whitening hash function in Linux crng versus the use of a trivial murmur3-like hash function rather than the outcoming. In fact, when the virtual machine is isolated in such a way that zero entropy is available both the uChaos and Linux cnrg are predictable among identical condition reboots repeatability.
 
-3. Therefore the "cryptographic theater" written above should be read as: for proving that chaos is a pre-existing fundamental intrinsic trait of a system, that there is even if it is not emergent or there is not (to-be-or-not-to-be), uChaos avoid altogether to use cryptographic functions, not because they are not useful, but because every weakness would be immediately exposed.
+3. Therefore the "cryptographic theater" written above should be read as: for proving that chaos is a pre-existing fundamental intrinsic trait of a system, that there is even if it is not emergent or there is not (to-be-or-not-to-be), uChaos avoid altogether to use cryptographic functions, not because they are not useful, but because every weakness would be immediately exposed without layers of cryptographic obfuscation.
 
 ---
 

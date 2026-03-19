@@ -2,9 +2,11 @@
 
 uChaos minimal Linux **qemu** bootable system
 
+This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
+
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md)
 
-This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
+Last but not least, this project provide the 2.3Mb Linux embedded system as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
 
 <br>
 
@@ -33,6 +35,16 @@ Running system, essential metrics:
 - `total time for being ready to user: 0.06 s`
 - `used memory including 2856 KB cpio: 3468 KB`
 - `total memory by qemu-system-x86_64: 9360 KB`
+
+### Components
+
+- **musl v1.2.15**, and related packages for the cross-compilation toolschain;
+
+- **busybox v1.38**, as the whole initramfs system component and user shell;
+
+- **linux v5.15.202**, as the kernel from a very widely spread LTS branch;
+
+- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
 
 <br>
 

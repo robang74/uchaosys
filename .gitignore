@@ -1,1 +1,7 @@
+kdev/linux-kernel
+kdev/Module.symvers
+kdev/modules.order
+kdev/*.cmd
+kdev/*.mod*
+kdev/*.o
 usrl/*.o

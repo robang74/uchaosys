@@ -11,14 +11,18 @@ export bttm=$(/bin/busybox date +%s%N)
 
 export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
 
-/bin/busybox mkdir -p /usr/bin /usr/sbin /var/log /tmp /proc /sys /dev /etc/init.d
-/bin/busybox --install
+/bin/busybox mkdir -p /dev /proc /sys /tmp /etc/init.d /var/log /root /home
+/bin/busybox --install -s
+touch /etc/fstab
+touch /etc/inittab
+touch /etc/init.d/rcS
+chmod +x /etc/init.d/rcS
 
 # system uprising
 
 mount -t sysfs sysfs /sys
 echo Y > /sys/module/printk/parameters/time
-test -r /lib/modules/uchaos_dev.ko &&
+test -r  /lib/modules/uchaos_dev.ko &&
   insmod /lib/modules/uchaos_dev.ko badb_init=1
 
 mount -t proc procfs /proc
@@ -31,12 +35,9 @@ mkdir -p /dev/pts && mount -t devpts devpts /dev/pts
 
 # 2nd stage init
 
-printf "\e[?7hRun /init exec /linuxrc\n"
-
-chmod +x /etc/init.d/rcS
-touch /etc/fstab
 exec /linuxrc
 stty -echoctl
+printf "\e[?7hRun /init exec /linuxrc\n"
 echo
 echo "Emergency shell respowning because /linuxrc failed"
 echo

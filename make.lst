@@ -88,11 +88,11 @@ mkdir -p               cpio/usr/bin/
 cp -f bbox/busybox     cpio/usr/bin/
 cp -f usrl/uchaosbox   cpio/usr/bin/
 
-mkdir -p               cpio/usr/sbin
 mkdir -p               cpio/var/log
 mkdir -p               cpio/tmp
 
 chmod +x               cpio/init
+ln -sf bin             cpio/usr/sbin
 ln -sf bin/busybox     cpio/linuxrc
 ln -sf usr/sbin        cpio/sbin
 ln -sf usr/bin         cpio/bin

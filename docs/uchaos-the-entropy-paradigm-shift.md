@@ -20,7 +20,7 @@ Despite both referencing CPU behavior as their source, uChaos and jitterentropy 
 
 3. Therefore the "cryptographic theater" written above should be read as: for proving that chaos is a pre-existing fundamental intrinsic trait of a system, that there is even if it is not emergent or there is not (to-be-or-not-to-be), uChaos avoid altogether to use cryptographic functions, not because they are not useful, but because every weakness would be immediately exposed without layers of cryptographic obfuscation.
 
-Last but not least, it is essential to underline that uChaos at the time of this text writing is a 6-weeks project developed by a single person while the randomness in kernel space is a decades long team collaboration project. Hence, same results in same conditions whatever confirmed, isn't something trivial to achieve.
+Last but not least, it is essential to underline that uChaos at the time of this text writing is a 7½-weeks long project developed by a single person while the randomness in kernel space is a decades long team collaboration project. Hence, same results in same conditions whatever confirmed, isn't something trivial to achieve.
 
 ---
 

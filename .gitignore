@@ -1,6 +1,9 @@
 kdev/linux-kernel
-kdev/Module.symvers
 kdev/modules.order
+kdev/Module.symvers
+kdev/uchaos_dev.ko.gz
+kdev/uchaos_dev.ko
+usrl/uchaosbox
 kdev/*.cmd
 kdev/*.mod*
 kdev/*.o

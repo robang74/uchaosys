@@ -4,7 +4,8 @@ uchaos minimal linux system
 
 ## information
 
-Reference processor i5-8635, building times:
+Reference processor i5-8365, building times:
 
 - musl building elapsed time: 1475s
-- minz + usrl uchaosbox time: 8s
+- linux kernel building time: 95s
+- uchaos proj compiling time: 9s

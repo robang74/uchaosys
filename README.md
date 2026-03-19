@@ -4,7 +4,7 @@ uChaos minimal Linux **qemu** bootable system
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md)
 
-This project is based on the previous case study `random.txt` in WIP and the `bmls` testing bed, starting on 2026-01-26.
+This project is based on the previous case study `random.txt` in WIP, starting on 2026-01-26. Which leveraged the `bmls` testing bed for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
 
 <br>
 

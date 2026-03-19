@@ -14,7 +14,7 @@
 #include <libgen.h>
 
 #define PROGRAM_NAME "uchaosbox"
-#define VERSION      "v0.1"
+#define VERSION      "v0.1.1"
 
 #define DECLARE_MAIN(name) int name##_main(int argc, char **argv)
 
@@ -36,6 +36,7 @@ typedef struct {
 
 static command_t commands[] = {
     {"uchaos",    uchaos_main,    "Descrizione per uchaos"},
+    {"uchaosd",   uchaos_main,    "Descrizione per uchaosd"},
     {"prnt16",    prnt16_main,    "Descrizione per prnt16"},
     {"strn64",    strn64_main,    "Descrizione per strn64"},
     {"strsum",    strsum_main,    "Descrizione per strsum"},
@@ -47,14 +48,13 @@ static command_t commands[] = {
     {NULL, NULL, NULL}
 };
 
-void print_usage(const char *progname) {
-    printf("Usage: %s [command] [args...]\n", progname);
+void print_usage(void) {
+    printf("\nUsage %s: %s [command] [args...]\n\n", VERSION, PROGRAM_NAME);
     printf("Built-in commands:\n ");
     for (int i = 0; commands[i].name != NULL; i++) {
         printf(" %s%s", commands[i].name, (commands[i+1].name ? "," : ""));
     }
-    printf("\n\nUse '%s -v' for version or '%s [cmd] --help'"\
-        " for command-specific help.\n\n", progname, progname);
+    printf("\n\nUse '%s -v/-h' for version/help\n\n", PROGRAM_NAME);
 }
 
 int main(int argc, char **argv) {
@@ -62,9 +62,9 @@ int main(int argc, char **argv) {
     char *cmd_name = basename(argv[0]);
 
     // 1. Controllo se invocato come uchaosbox direttamente
-    if (strcmp(cmd_name, "uchaosbox") == 0) {
+    if (strcmp(cmd_name, PROGRAM_NAME) == 0) {
         if (argc < 2) {
-            print_usage(cmd_name);
+            print_usage();
             return 1;
         }
         
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
             return 0;
         }
         if (strcmp(argv[1], "-h") == 0) {
-            print_usage(cmd_name);
+            print_usage();
             return 0;
         }
 

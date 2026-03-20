@@ -70,8 +70,9 @@ start=$(getnstime)
 cd minz
 sh amalgamate.sh
 cd -
-make -j$(nproc) -C usrl
 make dist -C kdev
+make -j$(nproc) -C usrl
+sh gzcmd.sh usrl/uchaosbox
 echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -94,8 +95,6 @@ mkdir -p               cpio/var/log/
 mkdir -p               cpio/lib/modules/
 mkdir -p               cpio/usr/bin/
 
-sh gzcmd.sh usrl/uchaosbox
-cp -f  uchaosbox.gz.sh cpio/usr/bin/
 cp -f  kdev/$kmod.gz   cpio/lib/modules/$kmod
 cp -f  bbox/busybox    cpio/usr/bin/
 
@@ -104,5 +103,7 @@ ln -sf bin/busybox     cpio/linuxrc
 ln -sf usr/sbin        cpio/sbin
 ln -sf usr/bin         cpio/bin
 ln -sf busybox         cpio/bin/sh
+
+mv -f  uchaosbox.gz.sh cpio/usr/bin/
 ln -sf uchaosbox.gz.sh cpio/usr/bin/uchaosbox
 

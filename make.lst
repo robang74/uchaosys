@@ -44,22 +44,19 @@ echo "musl building elapsed time: "$(elapsedtm start)s
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
-ln -sf ../$kdir kdev/linux-kernel
-cp -f cnfg/linux-$kver.config kdev/linux-kernel/.config
-cd kdev/linux-kernel/
-make -j8 HOSTCC=gcc ARCH=x86_64 syncconfig
-make -j8 HOSTCC=gcc ARCH=x86_64
-cd -
+lnxpath=kdev/linux-kernel
+ln -sf ../$kdir $lnxpath
+cp -f cnfg/linux-$kver.config $lnxpath/.config
+make -j8 HOSTCC=gcc ARCH=x86_64 -C $lnxpath syncconfig
+make -j8 HOSTCC=gcc ARCH=x86_64 -C $lnxpath
 echo "linux kernel building time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 test -r bbox/.config || cp $bcfg bbox/.config
-cd bbox
-make -j8 HOSTCC=gcc ARCH=x86_64 oldconfig
-make -j8 HOSTCC=gcc ARCH=x86_64
-cd -
+make -j8 HOSTCC=gcc ARCH=x86_64 -C bbox oldconfig
+make -j8 HOSTCC=gcc ARCH=x86_64 -C bbox
 echo "busybox custom making time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -68,12 +65,8 @@ start=$(getnstime)
 cd minz
 sh amalgamate.sh
 cd -
-cd usrl
-make -j$(nproc)
-cd -
-cd kdev
-make dist
-cd -
+make -j$(nproc) -C usrl
+make dist -C kdev
 echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////

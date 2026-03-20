@@ -4,9 +4,9 @@
 
 CCPREFIX ?= musl-
 CC       := $(CCPREFIX)gcc
-CFLAGS   := -static -s -flto -Os -Wall
+CFLAGS   := -static -s -flto -Os -Wall $(CCSYSROOT)
 LDFLAGS  := -static -s -flto
-STRIP    := strip --strip-all
+STRIP    := $(CCPREFIX)strip --strip-all
 
 STRIP_FLAGS += --remove-section=.comment --remove-section=.note*
 CFLAGS  += -ffunction-sections -fdata-sections

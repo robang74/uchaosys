@@ -25,35 +25,25 @@ zerokelv=0
 zerotest=0
 quietrun=0
 
-while [ $# -gt 0 ]; do
-  case "x$1" in
-    "x-u")
+while getopts "Zzuq" opt; do
+  case $opt in
+    u)
       imgupdte=1
-      shift
       ;;
-    "x-z")
+    z)
       zerokelv=1
-      shift
       ;;
-    "x-Z")
+    Z)
       zerotest=1
-      shift
       ;;
-    "x-q")
+    q)
       quietrun=1
-      shift
       ;;
     *)
       echo "Unknown flag, ignored: $1"
-      shift
       ;;
   esac
-done
-
-if [ $imgupdte -ne 0 ]; then
-  sh -c "cd ..; ./cpio.sh -c"
-  read -p ">>> Updated, press ENTER to continue " key
-fi
+done; shift $((OPTIND - 1))
 
 if [ $quietrun -ne 0 ]; then
   cmdlnx="quiet"
@@ -69,6 +59,11 @@ elif [ $zerokelv -ne 0 ]; then
   cmdlnx="UCTEST=${UCTEST:-1}"
 elif [ -n "$UCTEST" ]; then
   cmdlnx="UCTEST=$UCTEST"
+fi
+
+if [ $imgupdte -ne 0 ]; then
+  sh -c "cd ..; ./cpio.sh -c"
+  read -p ">>> Updated, press ENTER to continue " key
 fi
 
 # Preparing the QEMU virtual machine configuration #############################

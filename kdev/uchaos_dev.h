@@ -1,6 +1,7 @@
 /*
  * uchaos_dev.h - Character device for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
+ *
  */
 
 #define MAX_INPUT_SIZE (1024 << 3)

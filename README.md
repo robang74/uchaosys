@@ -72,7 +72,9 @@ Running system, essential metrics:
 
 - [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
 
-While PractRand `RNG_test` (2272 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression because the memory used by the system depends by the uncompressed initramfs thus by the `cpio` archive. In fact, `RNG_test.gz.sh` (900 KB) is 1372 KB lighter when compressed: the memory saving can host the whole bzImage. Indeed, `RNG_test` requires a lot of RAM for its working and under this perspective the gzcmd saving doesn't seem relevant anymore but the rationale behind `gzcmd.sh` remains and here is presented as a practical example.
+While PractRand `RNG_test` (2272 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
+
+The `RNG_test.gz.sh` (900 KB) is 1372 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
 
 <br>
 

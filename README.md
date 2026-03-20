@@ -52,9 +52,9 @@ Running a minimal system, the essential metrics:
 
 - `VM type: QMSZE=32M KARGS=quiet sh start.sh`
 - `total time for being ready to user: 0.067 s`
-- `total available memory in userland: 16622 KB`
-    - `host: 32768, qemu: -6304, boot: -2912 KB`
-    - `mlnx: 23552, zram: -4470, used: -2460 KB`
+- `total available memory in userland: 17432 KB`
+    - `host: 32768, zram: -4462, cpio: -2056 KB`
+    - `mlnx: 23552, used: -2460, buff:  -800 KB`
 
 It is interesting to note how memory is allocated.
 

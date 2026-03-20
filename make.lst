@@ -77,7 +77,7 @@ echo "uchaos proj compiling time: "$(elapsedtm start)s
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
-make -j8 -C prnd/ CCSYSROOT="-static" RNG_test
+make -j8 -C prnd/ CCSYSROOT="-static -mavx2" RNG_test
 echo "RNG_test static build time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////

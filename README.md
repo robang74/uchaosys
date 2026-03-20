@@ -57,7 +57,7 @@ Running a minimal system, the essential metrics:
     - `mlnx: 23552, used: -2460, buff:  -800 KB`
 
 It is interesting to note how memory is allocated¹.<br>
-¹ PractRand `RNG_test` not installed, size: 980 KB.
+¹ PractRand `RNG_test` not installed, size: 2288 KB.
 
 <br>
 

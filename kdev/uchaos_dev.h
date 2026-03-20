@@ -24,8 +24,8 @@
 #ifndef max_t
 #define max_t(t, x, y) ({ t   _x = (x);   t _y = (y); (_x > _y) ? _x : _y; })
 #endif
-#define align_t(t, x)  ({ u64 _x = (u64)(x); u64 _y = sizeof(t) << 3; \
-                                        ((_x + (1 << _y) -1) >> _y) << _y; })
+#define align_t(t, x)  ({ uintptr_t _m = sizeof(t) -1; \
+                                 (typeof(x))(((uintptr_t)(x) + _m) & ~_m); })
 
 #define murmul1 0xff51afd7ed558ccdULL
 #define murmul2 0xc4ceb9fe1a85ec53ULL

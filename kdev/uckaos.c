@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sched.h>
+#include <stdio.h>
 
 #define MAX_INPUT_SIZE (1024 << 3)
 
@@ -35,6 +36,8 @@
 #define ATOMIC_INIT(a) (a)
 #define ktime_get_ns get_nanos
 #define cpu_relax sched_yield
+#define signal_pending(a) (a)
+#define current false
 
 typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 

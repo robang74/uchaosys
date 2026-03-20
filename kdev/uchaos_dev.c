@@ -103,19 +103,6 @@ static DEFINE_MUTEX(uchaos_lock);
 
 // --- Fuctional Definitions ---
 
-#define MAX_INPUT_SIZE (1024 << 3)
-
-#define AB  (6)
-#define ABL (AB-3)        //  2 or  3
-#define ABN (1<<AB)       // 32 or 64
-#define ABX (ABN-1)       // 31 or 63
-#define ABx ((ABN>>1)-1)  // 15 or 31
-#define ABy ((ABN>>2)-1)  //  7 or 15
-#define ABz ((ABN>>3)-1)  //  3 or  7
-
-#define HASH_SEED 14695981039346656037ULL
-#define HASHSIZE (ABN >> 3)
-
 #if 0
 static const u8 primes64[20] = {  3, 61,  5, 59, 11, 53, 17, 47, 23, 41,
                                  19, 45, 29, 35, 31, 33, 13, 51,  7, 57 };
@@ -126,38 +113,12 @@ static const u8 primes64[20] = {  3, 61,  5, 59, 11, 53, 17, 47, 23, 41,
 
 // --- Fuctional Declarations ---
 
-typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
-
-static archul_t *kbuf = NULL; // Stack allocation, one char device only
-
 #define prtkinfo(x...) { if(verbosity) printk(KERN_INFO MODULE_NAME ": " x); }
 
 #define _CHK_LOOP_FAIL
 #include "uchaos_dev.h"
 
 // --- File Operations ---
-
-#define ABL_ALIGN(x) ( ( ( (archul_t)(x) + (1 << ABL) -1 ) >> ABL ) << ABL )
-
-static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
-    archul_t *p = __builtin_assume_aligned(kbuf, 8);
-    size_t sent;
-
-    if ( !len ) return 0;
-
-    len = (size_t)ABL_ALIGN( len );
-    len = min_t(size_t, len, MAX_INPUT_SIZE);
-
-    // Continuous loop to fill the user-requested buffer size
-    for (sent = 0; sent < len; sent += HASHSIZE) {
-        // Check for signals to remain non-blocking/interruptible
-        if (signal_pending(current))
-            break;
-        *p++ = djb2tum(HASH_SEED, loop_mult);
-    }
-
-    return sent;
-}
 
 static ssize_t dev_read(struct file *fp, char *ubuf, size_t len, loff_t *of)
 {

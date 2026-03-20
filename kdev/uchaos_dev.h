@@ -3,15 +3,44 @@
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
 
+#define MAX_INPUT_SIZE (1024 << 3)
+
+#define AB  (6)
+#define ABL (AB-3)        //  2 or  3
+#define ABN (1<<AB)       // 32 or 64
+#define ABX (ABN-1)       // 31 or 63
+#define ABx ((ABN>>1)-1)  // 15 or 31
+#define ABy ((ABN>>2)-1)  //  7 or 15
+#define ABz ((ABN>>3)-1)  //  3 or  7
+
 #define dtskew(x) (!x || (x)>>28) // 2^29 is the biggest 2^n before 1E9
 #define ONESEC msecs_to_jiffies(1 << 10)
 #define getprmx16(w) (5 + (((w) & ABy) << 1))
-#define abs_t(t, x) ({ t __x = (x); (__x < 0) ? -__x : __x; })
+
+#define abs_t(t, x)    ({ t   _x = (x);    (_x < 0) ? -_x : _x; })
+#ifndef min_t
+#define min_t(t, x, y) ({ t   _x = (x);   t _y = (y); (_x < _y) ? _x : _y; })
+#endif
+#ifndef max_t
+#define max_t(t, x, y) ({ t   _x = (x);   t _y = (y); (_x > _y) ? _x : _y; })
+#endif
+#define align_t(t, x)  ({ u64 _x = (u64)(x); u64 _y = sizeof(t) << 3; \
+                                        ((_x + (1 << _y) -1) >> _y) << _y; })
+
 #define murmul1 0xff51afd7ed558ccdULL
 #define murmul2 0xc4ceb9fe1a85ec53ULL
 #define rot1    47
 #define rot2    17
 #define rot3    13
+
+#define HASHSEED 14695981039346656037ULL
+#define HASHSIZE (ABN >> 3)
+
+typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
+
+#define ABL_ALIGN(x) align_t(archul_t, x)
+
+static archul_t *kbuf = NULL; // Stack allocation, one char device only
 
 /*
  * ATOMICITY ON A 1CPU vs SMP SYSTEM: the 'loop_failure' flag is read in many
@@ -48,7 +77,7 @@ static atomic_t loop_failure = ATOMIC_INIT(0);
 static archul_t djb2tum(archul_t seed, size_t num)
 {
     static unsigned long failure_jiff = 0;
-    static archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASH_SEED;
+    static archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASHSEED;
 
 #ifdef _PROVIDE_STATS
     static u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
@@ -208,6 +237,26 @@ enforcedquit:
     nhsh++;
 #endif
     return hsh;
+}
+
+static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
+    archul_t *p = __builtin_assume_aligned(kbuf, 8);
+    size_t sent;
+
+    if ( !len ) return 0;
+
+    len = (size_t)ABL_ALIGN( len );
+    len = min_t(size_t, len, MAX_INPUT_SIZE);
+
+    // Continuous loop to fill the user-requested buffer size
+    for (sent = 0; sent < len; sent += HASHSIZE) {
+        // Check for signals to remain non-blocking/interruptible
+        if (signal_pending(current))
+            break;
+        *p++ = djb2tum(HASHSEED, loop_mult);
+    }
+
+    return sent;
 }
 
 static inline void __init4_djb2tum(archul_t *ebuf) {

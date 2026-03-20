@@ -8,11 +8,14 @@
  * that it is doing uchaos_dev in kernel space as a module. For granting
  * as much as possible that the two are the same stuff, a common .h is
  * used in kernel space and userland, both. That .h shares the same code.
+ *
+ * Compile with: musl-gcc uckaos.c -O3 -o uckaos -I../usrl -s -static
  */
 
 #include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <sched.h>
 #include <stdio.h>
 
@@ -49,6 +52,10 @@ static int loop_mult = 1;
 #include "uchaos_dev.h"
  
 int main(int argc, char *argv[]) {
+    size_t len = 8;
     archul_t ebuf[4];
     __init4_djb2tum(ebuf);
+    
+    len = _unprotected_interuptible_kbuf_fill(len);
+    write(fileno(stdout), (u8 *)kbuf, len);
 }

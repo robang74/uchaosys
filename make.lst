@@ -29,16 +29,21 @@ unset path
 
 # //////////////////////////////////////////////////////////////////////////////
 
+start=$(getnstime)
 git submodule update --init --recursive
+dlcmd=$(grep -e DL_CMD musl/config.mak | cut -d# -f1 | cut -d= -f2)
+url="https://raw.githubusercontent.com/robang74/bare-minimal-linux-system"
+trg="refs/heads/main"
+$dlcmd gzcmd.sh $url/$trg/gzcmd.sh
+sh gzcmd.sh gzcmd
+echo "updating and download time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
+start=$(getnstime)
 test -r musl/config.mak || cp $MUSLCFGMAK musl/config.mak
 cp -arf cnfg/hashes musl/
-start=$(getnstime)
-cd musl
-make -j$(nproc) install
-cd -
+make -j$(nproc) install -C musl
 echo "musl building elapsed time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -71,18 +76,10 @@ echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
-dlcmd=$(grep -e DL_CMD musl/config.mak | cut -d# -f1 | cut -d= -f2)
-url="https://raw.githubusercontent.com/robang74/bare-minimal-linux-system"
-trg="refs/heads/main"
-$dlcmd gzcmd.sh $url/$trg/gzcmd.sh
-sh gzcmd.sh gzcmd.sh gzcmd
-
-# //////////////////////////////////////////////////////////////////////////////
-
 start=$(getnstime)
 make -j8 -C prnd/ CCSYSROOT="-static" RNG_test
-echo "RNG_test static build time: "$(elapsedtm start)s
 sh gzcmd.sh prnd/RNG_test
+echo "RNG_test static build time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -90,20 +87,22 @@ unset start
 
 cp -f $kdir/arch/$ARCH/boot/bzImage qemu/
 
-mkdir -p               cpio/lib/modules/
-cp -f kdev/$kmod.gz    cpio/lib/modules/$kmod
-mkdir -p               cpio/usr/bin/
-cp -f bbox/busybox     cpio/usr/bin/
-cp -f usrl/uchaosbox   cpio/usr/bin/
-mv *.gz.sh             cpio/usr/bin
-
-mkdir -p               cpio/var/log
-mkdir -p               cpio/tmp
-
 chmod +x               cpio/init
+
+mkdir -p               cpio/tmp/
+mkdir -p               cpio/var/log/
+mkdir -p               cpio/lib/modules/
+mkdir -p               cpio/usr/bin/
+
+sh gzcmd.sh usrl/uchaosbox
+cp -f  uchaosbox.gz.sh cpio/usr/bin/
+cp -f  kdev/$kmod.gz   cpio/lib/modules/$kmod
+cp -f  bbox/busybox    cpio/usr/bin/
+
 ln -sf bin             cpio/usr/sbin
 ln -sf bin/busybox     cpio/linuxrc
 ln -sf usr/sbin        cpio/sbin
 ln -sf usr/bin         cpio/bin
 ln -sf busybox         cpio/bin/sh
+ln -sf uchaosbox.gz.sh cpio/usr/bin/uchaosbox
 

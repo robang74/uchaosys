@@ -7,3 +7,6 @@
 [submodule "bbox"]
 	path = bbox
 	url = https://github.com/robang74/busybox.git
+[submodule "prnd"]
+	path = prnd
+	url = https://github.com/robang74/pracrand.git

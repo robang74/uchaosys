@@ -72,14 +72,12 @@ sh amalgamate.sh
 cd -
 make dist -C kdev
 make -j$(nproc) -C usrl
-sh gzcmd.sh usrl/uchaosbox
 echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 make -j8 -C prnd/ CCSYSROOT="-static" RNG_test
-sh gzcmd.sh prnd/RNG_test
 echo "RNG_test static build time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -96,6 +94,7 @@ mkdir -p               cpio/lib/modules/
 mkdir -p               cpio/usr/bin/
 
 cp -f  kdev/$kmod.gz   cpio/lib/modules/$kmod
+cp -f  usrl/uchaosbox  cpio/usr/bin/
 cp -f  bbox/busybox    cpio/usr/bin/
 
 ln -sf bin             cpio/usr/sbin
@@ -103,7 +102,4 @@ ln -sf bin/busybox     cpio/linuxrc
 ln -sf usr/sbin        cpio/sbin
 ln -sf usr/bin         cpio/bin
 ln -sf busybox         cpio/bin/sh
-
-mv -f  uchaosbox.gz.sh cpio/usr/bin/
-ln -sf uchaosbox.gz.sh cpio/usr/bin/uchaosbox
 

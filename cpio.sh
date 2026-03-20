@@ -24,8 +24,8 @@ while true; do
       find . -mindepth 1 -printf "%P\n" | sort | cpio -o -H newc \
         --reproducible --owner 0:0 | tee ../cpio.cpio | $zcmd -9nc > ../$cpiofl
       cd - >/dev/null
-      mv -f $cpiofl qemu/
-      du -ks qemu/$cpiofl | sed -e "s/\t/ KB /"
+      du -ks $cpiofl | sed -e "s/\t/ KB /"
+      test -d qemu/ && mv -f $cpiofl qemu/
   else
       echo
       echo "Usage: cpio.sh -e|-c|-d [file [dir]]"

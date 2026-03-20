@@ -80,6 +80,8 @@ While PractRand `RNG_test` (2272 KB) is indispensable for testing, the `gzcmd.sh
 
 The `RNG_test.gz.sh` (900 KB) is 1372 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
 
+However, using gzcmd executables make sense only when a storage is available. Otherwise there are two copies in RAM, at least. After all, `gzcmd.sh` exists as an alternative to compressed archives and initramfs is nothing else than a compressed `cpio` archive.
+
 <br>
 
 ### Abstract

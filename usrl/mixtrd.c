@@ -19,6 +19,7 @@
 #include <spawn.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <string.h>
 #include <stdint.h>
 #include <getopt.h>
@@ -26,7 +27,7 @@
 #ifdef _USE_STDBUF
 #else
 #include <pty.h>        // forkpty() in musl only
-#include <utmp.h> 
+#include <utmp.h>
 #endif
 
 #define PROGRAM_NAME "mixtrd"
@@ -45,7 +46,8 @@
 
 #define NS E9
 #define BFLN 32
-unsigned char prtnano = 0;
+static unsigned char prtnano = 0;
+
 static inline void prt_nanos(unsigned char a, unsigned char b) {
     static char first = 1;
     unsigned char buf[BFLN], len;
@@ -60,14 +62,13 @@ static inline void prt_nanos(unsigned char a, unsigned char b) {
     } else {
         len = snprintf((char *)buf, BFLN, "\n%c%ld.%09ld%c\n", a, nanos / NS, nanos % NS, b);
     }
-    if(len > BFLN-1) len = BFLN-1;
-    buf[BFLN-1] = 0;
+    if(len > BFLN-1) { len = BFLN-1; } buf[len] = 0;
 
 #if 0
     fprintf(stdout, "%s", buf);
     fflush(stdout);
 #else
-    write(fileno(stdout), buf, len);
+    write(STDOUT_FILENO, buf, len);
 #endif
 
     return;
@@ -116,10 +117,16 @@ void *spawn_and_mix(void *arg) {
         return NULL;
     }
 
-    if (pid == 0) {
+    if (pid == 0) { // child proccess
         execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
         perror("execl /bin/sh -c");
         _exit(127);
+    }
+
+    struct termios tios;
+    if (tcgetattr(pipefd[0], &tios) == 0) { // parent process
+        cfmakeraw(&tios); // disable ONLCR, ECHO, ICANON, ecc.
+        tcsetattr(pipefd[0], TCSANOW, &tios);
     }
 #endif
 
@@ -131,7 +138,7 @@ void *spawn_and_mix(void *arg) {
     while ((n = read(pipefd[0], &ch, 1)) > 0) {
         // write() è atomica se la stringa è corta, ma il mixing avviene
         // tra i vari thread che chiamano read()
-        if(write(STDOUT_FILENO, &ch, 1) < 0) {
+        if(write(STDOUT_FILENO, &ch, 1)  < 0) {
             perror("write");
             break;
         }
@@ -215,13 +222,15 @@ int main(int argc, char *argv[]) {
     }
 
 /* ************************************************************************** */
+#if 0
     if (fork() != 0) _exit(0);
     setsid();
     if (fork() != 0) _exit(0);
+#endif
 /* ************************************************************************** */
 
     const char *cmd = argv[optind];
-    
+
     (void)get_nanos(); // Inizializzazione di start
 
     // Make parent's own stdout unbuffered (helps when we mix writes)

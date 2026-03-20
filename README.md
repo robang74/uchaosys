@@ -30,7 +30,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-Following data are indicative and specific to [v0.6.1](https://github.com/robang74/uchaosys/releases/tag/v0.6.1) (87Kb) which is the initial tagged version in this repository and define the footprint of the embedded system.
+Following data are indicative and specific to [v0.6.1](https://github.com/robang74/uchaosys/releases/tag/v0.6.1) (87 KB) which is the initial tagged version in this repository and define the footprint of the embedded system.
 
 Reference processor **i5-8365**, building times:
 
@@ -42,7 +42,7 @@ Reference processor **i5-8365**, building times:
 
 Reference architecture **x86_64**, footprint sizes:
 
-- `dev/build enviroment  size: 4726 MB`
+- `dev/build enviroment  size: 4728 MB (4.74 GB)`
 - `uncompressed .cpio    size: 2056 KB`
 - `initramfs.cpio.gz     size:  980 KB`
 - `linux kernel image    size: 1388 KB`
@@ -56,7 +56,8 @@ Running a minimal system, the essential metrics:
     - `host: 32768, zram: -4462, cpio: -2056 KB`
     - `mlnx: 23552, used: -2460, buff:  -800 KB`
 
-It is interesting to note how memory is allocated.
+It is interesting to note how memory is allocated¹.<br>
+¹ PractRand `RNG_test` not installed, size: 980 KB.
 
 <br>
 

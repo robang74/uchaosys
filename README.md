@@ -48,11 +48,15 @@ Reference architecture **x86_64**, footprint sizes:
 - `linux kernel image    size: 1388 KB`
 - `qemu bootable system  size: 2368 KB (2.31 MB)`
 
-Running system, essential metrics:
+Running a minimal system, the essential metrics:
 
-- `total time for being ready to user: 0.06 s`
-- `used memory including 2856 KB cpio: 3468 KB`
-- `total memory by qemu-system-x86_64: 9360 KB`
+- `VM type: QMSZE=32M KARGS=quiet sh start.sh`
+- `total time for being ready to user: 0.067 s`
+- `total available memory in userland: 16622 KB`
+    - `host: 32768, qemu: -6304, boot: -2912 KB`
+    - `mlnx: 23552, zram: -4470, used: -2460 KB`
+
+It is interesting to note how memory is allocated.
 
 <br>
 

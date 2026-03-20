@@ -71,6 +71,12 @@ echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
+start=$(getnstime)
+make -j8 -C prnd/ CCSYSROOT="-static" RNG_test
+echo "RNG_test static build time: "$(elapsedtm start)s
+
+# //////////////////////////////////////////////////////////////////////////////
+
 unset start
 
 cp -f $kdir/arch/$ARCH/boot/bzImage qemu/

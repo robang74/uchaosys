@@ -16,7 +16,7 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md)
 
-Last but not least, this project provide the 2.3Mb Linux embedded system as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
+Last but not least, this project provide a **micro 2.3Mb Linux embedded system** (footprint including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
 
 <br>
 
@@ -38,7 +38,7 @@ Reference processor **i5-8365**, building times:
 - `linux kernel building time:   95 s`
 - `busybox custom making time:   17 s`
 - `uchaos proj compiling time:    9 s`
-- `system building total time: 1596 s (26m 36s)`
+- `system building total time: 1596 s  (26m 36s)`
 
 Reference architecture **x86_64**, footprint sizes:
 
@@ -51,7 +51,7 @@ Reference architecture **x86_64**, footprint sizes:
 Running a minimal system, the essential metrics:
 
 - `VM type: QMSZE=32M KARGS=quiet sh start.sh`
-- `total time for being ready to user: 0.067 s`
+- `total time for being ready to user: 0.067 s `**!!!**
 - `total available memory in userland: 17432 KB`
     - `host: 32768, zram: -4462, cpio: -2056 KB`
     - `mlnx: 23552, used: -2460, buff:  -800 KB`

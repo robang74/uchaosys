@@ -56,8 +56,8 @@ Running a minimal system, the essential metrics:
     - `host: 32768, zram: -4462, cpio: -2056 KB`
     - `mlnx: 23552, used: -2460, buff:  -800 KB`
 
-It is interesting to note how memory is allocated¹.<br>
-¹ PractRand `RNG_test` not installed, size: 2288 KB.
+It is interesting to note how the memory is allocated&hairsp;¹.<br>
+¹ without `RNG_test` installed which size is 2.23 MB.
 
 <br>
 

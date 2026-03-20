@@ -18,19 +18,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <stdio.h>
-
-#define MAX_INPUT_SIZE (1024 << 3)
-
-#define AB  (6)
-#define ABL (AB-3)        //  2 or  3
-#define ABN (1<<AB)       // 32 or 64
-#define ABX (ABN-1)       // 31 or 63
-#define ABx ((ABN>>1)-1)  // 15 or 31
-#define ABy ((ABN>>2)-1)  //  7 or 15
-#define ABz ((ABN>>3)-1)  //  3 or  7
-
-#define HASH_SEED 14695981039346656037ULL
-#define HASHSIZE (ABN >> 3)
+#include <stdlib.h>
 
 #define u8  uint8_t
 #define u32 uint32_t
@@ -42,20 +30,36 @@
 #define signal_pending(a) (a)
 #define current false
 
-typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
-
 static int min_delta = 3;
 static int init_runs = 7;
 static int loop_mult = 1;
 
 #include "getnanos.h"
 #include "uchaos_dev.h"
- 
+
+static void *kbufptr = NULL;
+
 int main(int argc, char *argv[]) {
-    size_t len = 8;
-    archul_t ebuf[4];
-    __init4_djb2tum(ebuf);
-    
+    size_t len = sizeof(archul_t) << 2;
+
+    if(len > MAX_INPUT_SIZE) {
+        fprintf(stderr, "\n\n>>> BUG: len = %zu > max = %zu\n\n",
+            (size_t)len, (size_t)MAX_INPUT_SIZE);
+    }
+
+    kbufptr = malloc(MAX_INPUT_SIZE + HASHSIZE);
+    if(!kbufptr) {
+        perror("malloc");
+        return -1;
+    }
+    kbuf = align_t(archul_t, kbufptr);
+
+    __init4_djb2tum(kbuf);
+    write(fileno(stdout), (u8 *)kbuf, len);
+
     len = _unprotected_interuptible_kbuf_fill(len);
     write(fileno(stdout), (u8 *)kbuf, len);
+
+    free(kbufptr);
+    return 0;
 }

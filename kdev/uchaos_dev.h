@@ -17,15 +17,15 @@
 #define ONESEC msecs_to_jiffies(1 << 10)
 #define getprmx16(w) (5 + (((w) & ABy) << 1))
 
-#define abs_t(t, x)    ({ t   _x = (x);    (_x < 0) ? -_x : _x; })
+#define abs_t(t, x)    ({ t _x = (x);             (t)((_x < 0) ? -_x : _x); })
 #ifndef min_t
-#define min_t(t, x, y) ({ t   _x = (x);   t _y = (y); (_x < _y) ? _x : _y; })
+#define min_t(t, x, y) ({ t _x = (x); t _y = (y); (t)((_x < _y) ? _x : _y); })
 #endif
 #ifndef max_t
-#define max_t(t, x, y) ({ t   _x = (x);   t _y = (y); (_x > _y) ? _x : _y; })
+#define max_t(t, x, y) ({ t _x = (x); t _y = (y); (t)((_x > _y) ? _x : _y); })
 #endif
 #define align_t(t, x)  ({ uintptr_t _m = sizeof(t) -1; \
-                                 (typeof(x))(((uintptr_t)(x) + _m) & ~_m); })
+                                  (typeof(x))(((uintptr_t)(x) + _m) & ~_m); })
 
 #define murmul1 0xff51afd7ed558ccdULL
 #define murmul2 0xc4ceb9fe1a85ec53ULL

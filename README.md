@@ -30,7 +30,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-Following data are indicative and specific to [v0.6.1](https://github.com/robang74/uchaosys/releases/tag/v0.6.1) (87 KB) which is the reference tagged version on the `main` branch from which is forked the branch [`v061`](https://github.com/robang74/uchaosys/tree/v061) which defines the footprint of the embedded system.
+The data reported below are indicative and specific to [v0.6.1](https://github.com/robang74/uchaosys/releases/tag/v0.6.1) (87 KB). Which is the reference tagged version on the `main` branch from which the branch [`v061`](https://github.com/robang74/uchaosys/tree/v061) has been forked. Which branch `v061` has the goal to define the footprint of the embedded system.
 
 Reference processor **i5-8365**, building times:
 

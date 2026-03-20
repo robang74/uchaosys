@@ -751,18 +751,7 @@ static inline uint32_t readblocks(int fd, uint8_t *buf, uint32_t *nblks) {
 
 /* ** main & its supporters ************************************************* */
 
-// Funzione per ottenere il tempo in nanosecondi
-static uint64_t get_nanos(void) {
-    static uint64_t start = 0;
-    struct timespec ts;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    if (!start) {
-        start = (uint64_t)ts.tv_sec * E9 + ts.tv_nsec;
-        return start;
-    }
-    return ((uint64_t)ts.tv_sec * E9 + ts.tv_nsec) - start;
-}
+#include "getnanos.h"
 
 static inline void usage(const char *name, const char *cmdn, const uint8_t qlvl) {
     perr("\n"\

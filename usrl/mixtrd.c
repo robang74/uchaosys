@@ -33,26 +33,15 @@
 #define VERSION      "v0.5.4"
 
 #define AVGV 127.5
-#define E3 1000L
-#define E6 1000000L
-#define E9 1000000000L
+#define E3 1000
+#define E6 1000000
+#define E9 1000000000
 #define MAX_READ_SIZE 16384
 #define ABS(a) ((a<0)?-(a):(a))
 #define MIN(a,b) ((a<b)?(a):(b))
 #define MAX(a,b) ((a>b)?(a):(b))
 
-// Funzione per ottenere il tempo in nanosecondi
-static uint64_t get_nanos(void) {
-    static uint64_t start = 0;
-    struct timespec ts;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    if (!start) {
-        start = (uint64_t)ts.tv_sec * E9 + ts.tv_nsec;
-        return start;
-    }
-    return ((uint64_t)ts.tv_sec * E9 + ts.tv_nsec) - start;
-}
+#include "getnanos.h"
 
 #define NS E9
 #define BFLN 32

@@ -25,7 +25,7 @@ zerokelv=0
 zerotest=0
 quietrun=0
 
-while getopts "Zzuq" opt; do
+while getopts "Zzuqm:w" opt; do
   case $opt in
     u)
       imgupdte=1
@@ -38,6 +38,12 @@ while getopts "Zzuq" opt; do
       ;;
     q)
       quietrun=1
+      ;;
+    m)
+      QMSZE=$OPTARG
+      ;;
+    w)
+      ZWARM=1
       ;;
     *)
       echo "Unknown flag, ignored: $1"
@@ -52,10 +58,10 @@ else
 fi
 
 if [ $zerotest -ne 0 ]; then
-  export QZERO=1 QMSZE=256M UCTEST=${UCTEST:-1}
+  export QZERO=1 QMSZE=${QMSZE:-256M} UCTEST=${UCTEST:-1}
   cmdlnx="UCTEST=${UCTEST:-1}"
 elif [ $zerokelv -ne 0 ]; then
-  export QZERO=1 QMSZE=256M UCTEST=${UCTEST:-0}
+  export QZERO=1 QMSZE=${QMSZE:-256M} UCTEST=${UCTEST:-0}
   cmdlnx="UCTEST=${UCTEST:-1}"
 elif [ -n "$UCTEST" ]; then
   cmdlnx="UCTEST=$UCTEST"

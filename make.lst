@@ -71,9 +71,18 @@ echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
+dlcmd=$(grep -e DL_CMD musl/config.mak | cut -d# -f1 | cut -d= -f2)
+url="https://raw.githubusercontent.com/robang74/bare-minimal-linux-system"
+trg="refs/heads/main"
+$dlcmd gzcmd.sh $url/$trg/gzcmd.sh
+sh gzcmd.sh gzcmd.sh gzcmd
+
+# //////////////////////////////////////////////////////////////////////////////
+
 start=$(getnstime)
 make -j8 -C prnd/ CCSYSROOT="-static" RNG_test
 echo "RNG_test static build time: "$(elapsedtm start)s
+sh gzcmd.sh prnd/RNG_test
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -86,6 +95,7 @@ cp -f kdev/$kmod.gz    cpio/lib/modules/$kmod
 mkdir -p               cpio/usr/bin/
 cp -f bbox/busybox     cpio/usr/bin/
 cp -f usrl/uchaosbox   cpio/usr/bin/
+mv *.gz.sh             cpio/usr/bin
 
 mkdir -p               cpio/var/log
 mkdir -p               cpio/tmp

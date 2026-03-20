@@ -30,7 +30,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (72Kb)
+Following data are indicative and specific to [v0.6](https://github.com/robang74/uchaosys/releases/tag/v0.6) (72Kb) which is the initial tagged version in this repository and define the footprint of the embedded system.
 
 Reference processor **i5-8365**, building times:
 
@@ -71,6 +71,8 @@ Running system, essential metrics:
 - [dL1](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) &dash; **PractRand RNG_test**, external static tool for testing randonmess quality 
 
 - [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
+
+While PractRand `RNG_test` (2272 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression because the memory used by the system depends by the uncompressed initramfs thus by the `cpio` archive. In fact, `RNG_test.gz.sh` (900 KB) is 1372 KB lighter when compressed: the memory saving can host the whole bzImage. Indeed, `RNG_test` requires a lot of RAM for its working and under this perspective the gzcmd saving doesn't seem relevant anymore but the rationale behind `gzcmd.sh` remains and here is presented as a practical example.
 
 <br>
 

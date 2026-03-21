@@ -95,3 +95,18 @@ clean:
 		$(MAKE) -C $$dir clean || true; \
 	done
 
+# target: distclean ////////////////////////////////////////////////////////////
+# This removes files that the script normally protects with 'test' or 'if' logic
+distclean: clean
+	@echo "Removing custom configuration files and links"
+# Protected by: test -r musl/config.mak
+	rm -f musl/config.mak
+# Protected by: test -e $lnxpath
+	rm -f $(LNXPATH)
+# Protected by: test -r $lnxpath/.config
+	rm -f $(KDIR)/.config
+# Protected by: test -r bbox/.config
+	rm -f bbox/.config
+# Additional cleanup for symlinks created in kdev
+	rm -f kdev/linux-kernel
+

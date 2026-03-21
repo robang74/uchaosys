@@ -75,6 +75,7 @@ rngtest:
 
 # target: install //////////////////////////////////////////////////////////////
 install:
+	cp -arf cpio $(TMPD)/
 	mkdir -p $(TMPD)/tmp/ $(TMPD)/var/log/ $(TMPD)/lib/modules/ $(TMPD)/usr/bin/
 	cp -Lf $(KIMG) qemu/
 	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)

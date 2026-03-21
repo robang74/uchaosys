@@ -261,10 +261,10 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
 }
 
 static inline void __init4_djb2tum(archul_t *ebuf) {
-    ebuf[0] = ktime_get_ns();
+    ebuf[0] = murmux3(ktime_get_ns());
     ebuf[0] = djb2tum(ebuf[0], loop_mult * init_runs);
     // by default settings, the previous call with init_runs brings in variance
-    ebuf[1] = ktime_get_ns();
+    ebuf[1] = knuthmx(ktime_get_ns());
     ebuf[1] = djb2tum(ebuf[1], loop_mult);
     // by default settings, further calls with loop_mult have a smaller variance
     ebuf[2] = djb2tum(0,       loop_mult);

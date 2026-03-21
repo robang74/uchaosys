@@ -35,10 +35,10 @@ The data reported below are indicative and specific for the reference tagged ver
 Reference processor **i5-8365**, building times:
 
 - `musl building elapsed time: 1021 s`&hairsp;¹
-- `linux kernel building time:  117 s`
+- `linux kernel building time:  118 s`
 - `busybox custom making time:   15 s`
 - `uchaos proj compiling time:    8 s`
-- `system building total time: 1092 s  (18m 38s)`&hairsp;²
+- `system building total time: 1162 s  (19m 36s)`&hairsp;²
 
 Reference architecture **x86_64**, footprint sizes:
 

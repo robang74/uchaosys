@@ -30,7 +30,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific to [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (88 KB). Which is the reference tagged version on the `main` branch from which the branch [`v062`](https://github.com/robang74/uchaosys/tree/v062) (99 KB) has been forked. Which branch `v061` has the goal to define the footprint of the embedded system.
+The data reported below are indicative and specific to [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2). Which is the reference tagged version on the `main` branch from which the branch [`v062`](https://github.com/robang74/uchaosys/tree/v062) (101 KB) has been forked. Which branch `v061` has the goal to define the footprint of the embedded system.
 
 Reference processor **i5-8365**, building times:
 
@@ -57,7 +57,7 @@ Running a minimal system, the essential metrics:
     - `mlnx: 23548, used: -2404, buff: -1468 KB`
 
 It is interesting to note how the memory is allocated&hairsp;².<br>
-² without `RNG_test` installed which size is 2.23 MB.
+² without `RNG_test` installed which size is 2.23 MB.<br>
 ¹ without accounting sources download variable time.
 
 <br>

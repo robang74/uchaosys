@@ -35,6 +35,8 @@ if false; then
   for dir in musl bbox kdev usrl prnd $lnxpath; do
     make clean -C $dir &
   done
+  rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio cpio/
+  git checkout cpio/
   wait
 fi
 
@@ -45,8 +47,8 @@ git submodule update --init --recursive
 dlcmd=$(grep -e DL_CMD musl/config.mak | cut -d# -f1 | cut -d= -f2)
 url="https://raw.githubusercontent.com/robang74/bare-minimal-linux-system"
 trg="refs/heads/main"
-$dlcmd gzcmd.sh $url/$trg/gzcmd.sh
-sh gzcmd.sh gzcmd.sh gzcmd
+$dlcmd gzcmd.sh $url/$trg/gzcmd.sh &&
+  sh gzcmd.sh gzcmd.sh gzcmd
 echo "updating and download time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -55,6 +57,7 @@ start=$(getnstime)
 test -r musl/config.mak || cp $MUSLCFGMAK musl/config.mak
 cp -arf cnfg/hashes musl/
 make -j$ncpu -C musl install
+du -ms musl/output/
 echo "musl building elapsed time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -64,7 +67,8 @@ ln -sf ../$kdir $lnxpath
 cp -f cnfg/linux-$kver.config $lnxpath/.config
 opts="HOSTCC=gcc ARCH=$ARCH -C $lnxpath CROSS_COMPILE=${CCPREFIX}"
 make -j$ncpu $opts syncconfig
-make -j$ncpu $opts bzImage
+make -j$ncpu $opts bzImage modules_prepare
+du -k $kdir/arch/$ARCH/boot/bzImage
 echo "linux kernel building time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -74,6 +78,7 @@ test -r bbox/.config || cp $bcfg bbox/.config
 opts="HOSTCC=gcc ARCH=$ARCH -C bbox CROSS_COMPILE=${CCPREFIX}"
 make -j$ncpu $opts oldconfig
 make -j$ncpu $opts busybox
+du -k bbox/busybox
 echo "busybox custom making time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -81,15 +86,18 @@ echo "busybox custom making time: "$(elapsedtm start)s
 start=$(getnstime)
 cd minz
 sh amalgamate.sh
-cd -
-make -j$ncpu -C kdev CCPREFIX=${CCPREFIX} dist
-make -j$ncpu -C usrl CCPREFIX=${CCPREFIX} ucahosbox
+cd ..
+ln -sf $kdir/ kdev
+make -j$ncpu -C kdev CROSS_COMPILE=${CCPREFIX} dist
+make -j$ncpu -C usrl CCPREFIX=${CCPREFIX} uchaosbox
+du -k kdev/$kmod.gz
 echo "uchaos proj compiling time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 make -j$ncpu -C prnd/ CCSYSROOT="-static -mavx2" CCPREFIX=${CCPREFIX} RNG_test
+du -k prnd/RNG_test
 echo "RNG_test static build time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////

@@ -21,14 +21,19 @@ test -r bzImage || ln -sf bzImage.orig bzImage
 # Command line flags management
 
 imgupdte=0
+updtquit=0
 zerokelv=0
 zerotest=0
 quietrun=0
 
-while getopts "Zzuqm:w" opt; do
+while getopts "ZzuUqm:w" opt; do
   case $opt in
     u)
       imgupdte=1
+      ;;
+    U)
+      imgupdte=1
+      updtquit=1
       ;;
     z)
       zerokelv=1
@@ -69,6 +74,11 @@ fi
 
 if [ $imgupdte -ne 0 ]; then
   sh -c "cd ..; ./cpio.sh -c"
+  if [ $updtquit -ne 0 ]; then
+    cp -f $(find ../musl -name bzImage -type f) .
+    du -k bzImage | sed -e "s/\t/ KB /"
+    exit 0
+  fi
   read -p ">>> Updated, press ENTER to continue " key
 fi
 

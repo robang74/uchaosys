@@ -4,7 +4,7 @@ MODULE_NAME := uchaos_dev
 obj-m += $(MODULE_NAME).o
 
 # Add GDB flags to force symbol generation during compilation
-# EXTRA_CFLAGS += -g -O0 -Wall
+EXTRA_CFLAGS += -g0 -O2 -Wall
 
 KERNVER ?= $(shell uname -r)
 

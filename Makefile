@@ -109,6 +109,8 @@ veryclean: clean
 	rm -f bbox/.config
 # Additional cleanup for symlinks created in kdev
 	rm -f kdev/linux-kernel
+# Remove all the hashes added, as well
+	rm -f musl/$(shell cd cnfg; ls -1 hashes/*)
 
 # target: buildall /////////////////////////////////////////////////////////////
 buildall: toolchain bzImage busybox uchaos install

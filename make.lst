@@ -108,12 +108,14 @@ if false; then
   wait
 else
 # target: install //////////////////////////////////////////////////////////////
+  sh cpio.sh -c
+
   mkdir -p               $tmpd/tmp/
   mkdir -p               $tmpd/var/log/
   mkdir -p               $tmpd/lib/modules/
   mkdir -p               $tmpd/usr/bin/
 
-  cp -f  $kimg           qemu/
+  cp -Lf $kimg           qemu/
 
   cp -f  kdev/$kmod.gz   $tmpd/lib/modules/$kmod
   cp -f  usrl/uchaosbox  $tmpd/usr/bin/

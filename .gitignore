@@ -9,6 +9,7 @@ kdev/*.mod*
 kdev/*.o
 usrl/*.o
 gzcmd.sh
+gzcmd.gz.sh
 cpio/bin
 cpio/lib
 cpio/linuxrc

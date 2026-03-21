@@ -119,15 +119,17 @@ void *spawn_and_mix(void *arg) {
 
     if (pid == 0) { // child proccess
         execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
-        perror("execl /bin/sh -c");
-        _exit(127);
-    }
+        perror("execl");
+        _exit(EXIT_FAILURE);
+    } // parent process
 
     struct termios tios;
-    if (tcgetattr(pipefd[0], &tios) == 0) { // parent process
-        cfmakeraw(&tios); // disable ONLCR, ECHO, ICANON, ecc.
-        tcsetattr(pipefd[0], TCSANOW, &tios);
+    int ret = tcgetattr(pipefd[0], &tios);
+    if(!ret) {
+        cfmakeraw(&tios); // disable ONLCR, ECHO, ICANON, etc.
+        ret = tcsetattr(pipefd[0], TCSANOW, &tios);
     }
+    if(ret) { perror("tcmodattr"); kill(pid, 1); _exit(EXIT_FAILURE); }
 #endif
 
     pthread_barrier_wait(&barrier); // The aim is to sync the output producers
@@ -135,10 +137,10 @@ void *spawn_and_mix(void *arg) {
     // Lettura a basso livello
     ssize_t n;
     unsigned char ch;
-    while ((n = read(pipefd[0], &ch, 1)) > 0) {
+    while ((n = read(pipefd[0], &ch, 1)) == 1) {
         // write() è atomica se la stringa è corta, ma il mixing avviene
         // tra i vari thread che chiamano read()
-        if(write(STDOUT_FILENO, &ch, 1)  < 0) {
+        if(write(STDOUT_FILENO, &ch, 1) != 1) {
             perror("write");
             break;
         }

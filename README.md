@@ -38,7 +38,7 @@ Reference processor **i5-8365**, building times:
 - `linux kernel building time:  117 s`
 - `busybox custom making time:   15 s`
 - `uchaos proj compiling time:    8 s`
-- `system building total time: 1092 s  (18m 12s)`
+- `system building total time: 1092 s  (18m 38s)`&hairsp;²
 
 Reference architecture **x86_64**, footprint sizes:
 
@@ -56,8 +56,9 @@ Running a minimal system, the essential metrics:
     - `host: 32768, zram: -4724, cpio:  -736 KB`
     - `mlnx: 23548, used: -2404, buff: -1468 KB`
 
-It is interesting to note how the memory is allocated&hairsp;².<br>
-² without `RNG_test` installed which size is 2.23 MB.<br>
+It is interesting to note how the memory is allocated&hairsp;³.<br>
+³ without `RNG_test` installed which size is 2.23 MB.<br>
+² not the sum but elapsed time from `make buildall`.<br>
 ¹ without accounting sources download variable time.
 
 <br>

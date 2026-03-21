@@ -4,33 +4,37 @@
 #
 
 # Settings /////////////////////////////////////////////////////////////////////
-ARCH       ?= x86_64
-NCPU       := $(shell nproc)
-MUSLCFGMAK := cnfg/musl-125x.config.mak
-BBOX_CFG   := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
+ARCH        ?= x86_64
+
+NCPU        := $(shell nproc)
+MUSLCFGMAK  := cnfg/musl-125x.config.mak
+BBOX_CFG    := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 
 # Extract kernel version from config
-KERNVER    := $(shell grep "LINUX_VER" $(MUSLCFGMAK) | cut -d\# -f1 | tr -dc 0-9. | tail -n1)
-KVER_SHORT := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
+KERNVER     := $(shell grep "LINUX_VER" $(MUSLCFGMAK) | cut -d\# -f1 | tr -dc 0-9. | tail -n1)
+KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 
 # Paths
-KDIR       := musl/linux-$(KERNVER).orig
-KIMG       := $(KDIR)/arch/$(ARCH)/boot/bzImage
-LNXPATH    := kdev/linux-kernel
-CCPREFIX   := $(ARCH-linux-musl-)
-TMPD       := cpio.tmp
-KMOD       := uchaos_dev.ko
+KDIR        := musl/linux-$(KERNVER).orig
+KIMG        := $(KDIR)/arch/$(ARCH)/boot/bzImage
+LNXPATH     := kdev/linux-kernel
+CCPREFIX    := $(ARCH)-linux-musl-
+TMPD        := cpio.tmp
+KMOD        := uchaos_dev.ko
 
 # Tools and Options
-HOSTCC     := gcc
-CC         := $(CCPREFIX)gcc
-OPTS       := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
-GZCMD_REPO := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
-GZCMD_PATH := refs/heads/main
+HOSTCC      := gcc
+CC          := $(CCPREFIX)gcc
+OPTS        := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
+GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
+GZCMD_PATH  := refs/heads/main
+
+path        := musl/output
+export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
 .PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean
 
-all: toolchain bzImage busybox uchaos rngtest install
+all: sources toolchain bzImage busybox uchaos rngtest install
 
 # target: sources //////////////////////////////////////////////////////////////
 sources:
@@ -38,40 +42,56 @@ sources:
 	# Fetching gzcmd logic
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
 	sh gzcmd.sh gzcmd.sh gzcmd
+	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
-toolchain: sources
+toolchain:
 	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
 	cp -arf cnfg/hashes musl/
 	$(MAKE) -j$(NCPU) -C musl install
-	du -ms musl/output/
+	@echo
+	tar czf musl-output.tar.gz musl/output/
+	du -ms musl-output.tar.gz musl/output/
+	@echo
 
 # target: bzImage //////////////////////////////////////////////////////////////
 bzImage:
 	@test -e $(LNXPATH) || ln -sf ../$(KDIR) $(LNXPATH)
 	@test -r $(LNXPATH)/.config || cp -f cnfg/linux-$(KVER_SHORT).config $(KDIR)/.config
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) syncconfig modules_prepare bzImage modules
-	du -Lk $(KIMG)
+	@echo
+	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
+	du -Lk  $(KIMG)
+	@echo
 
 # target: busybox //////////////////////////////////////////////////////////////
 busybox:
 	@test -r bbox/.config || cp $(BBOX_CFG) bbox/.config
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
+	@echo
+	file bbox/busybox
 	du -k bbox/busybox
+	@echo
 
 # target: uchaos ///////////////////////////////////////////////////////////////
 uchaos:
-	cd minz && sh amalgamate.sh
 	ln -sf $(KDIR)/ kdev
+	cd minz; sh amalgamate.sh; cd ..
 	$(MAKE) -j$(NCPU) -C kdev $(OPTS) dist
 	$(MAKE) -j$(NCPU) -C usrl $(OPTS) uchaosbox
-	du -k kdev/$(KMOD).gz
+	@echo
+	file kdev/$(KMOD).gz | sed -e s/\",/\"\\n/ -e s/n,/n\\n/
+	du -k   kdev/$(KMOD).gz
+	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
 rngtest:
 	$(MAKE) -j$(NCPU) -C prnd/ CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX) RNG_test
+	@echo
+	file prnd/RNG_test
 	du -k prnd/RNG_test
+	@echo
 
 # target: install //////////////////////////////////////////////////////////////
 install:
@@ -88,6 +108,9 @@ install:
 	ln -sf usr/sbin $(TMPD)/sbin
 	ln -sf usr/bin $(TMPD)/bin
 	ln -sf busybox $(TMPD)/bin/sh
+	@echo
+	du -ks  $(TMPD)
+	@echo
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:

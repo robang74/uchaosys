@@ -5,6 +5,8 @@
 
 exec 3>/dev/null
 
+# Functions ////////////////////////////////////////////////////////////////////
+
 getvarval() {
   grep "$1" $MUSLCFGMAK | cut -d# -f1 | tr -dc 0-9. | tail -n1;
 }
@@ -13,6 +15,8 @@ elapsedns() { echo $((  $(getnstime) - $1 )); }
 elapsedus() { echo $(( ($(elapsedns    $1) + 500) / 1000 )); }
 elapsedms() { echo $(( ($(elapsedus    $1) + 500) / 1000 )); }
 elapsedtm() { echo $(( ($(elapsedms    $1) + 500) / 1000 )); }
+
+# Settings /////////////////////////////////////////////////////////////////////
 
 export MUSLCFGMAK=cnfg/musl-125x.config.mak
 
@@ -32,7 +36,7 @@ unset path
 
 opts="HOSTCC=gcc ARCH=$ARCH CROSS_COMPILE=${CCPREFIX} CCPREFIX=${CCPREFIX}"
 
-# //////////////////////////////////////////////////////////////////////////////
+# target: sources //////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 git submodule update --init --recursive
@@ -43,7 +47,7 @@ $dlcmd gzcmd.sh $url/$trg/gzcmd.sh &&
   sh gzcmd.sh gzcmd.sh gzcmd
 echo "updating and download time: "$(elapsedtm start)s
 
-# //////////////////////////////////////////////////////////////////////////////
+# target: toolchain ////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 test -r musl/config.mak || cp $MUSLCFGMAK musl/config.mak
@@ -52,7 +56,7 @@ eval make -j$ncpu -C musl install
 du -ms musl/output/
 echo "musl building elapsed time: "$(elapsedtm start)s
 
-# //////////////////////////////////////////////////////////////////////////////
+# target: bzImage //////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 test -e $lnxpath || ln -sf ../$kdir $lnxpath
@@ -61,7 +65,7 @@ eval make -j$ncpu $opts -C $lnxpath syncconfig modules_prepare bzImage modules
 du -Lk $kimg
 echo "linux kernel building time: "$(elapsedtm start)s
 
-# //////////////////////////////////////////////////////////////////////////////
+# target: busybox //////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 test -r bbox/.config || cp $bcfg bbox/.config
@@ -70,7 +74,7 @@ eval make -j$ncpu $opts -C bbox busybox
 du -k bbox/busybox
 echo "busybox custom making time: "$(elapsedtm start)s
 
-# //////////////////////////////////////////////////////////////////////////////
+# target: uchaos ///////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 cd minz
@@ -82,7 +86,7 @@ eval make -j$ncpu -C usrl $opts uchaosbox
 du -k kdev/$kmod.gz
 echo "uchaos proj compiling time: "$(elapsedtm start)s
 
-# //////////////////////////////////////////////////////////////////////////////
+# target: rngtest //////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 make -j$ncpu -C prnd/ CCSYSROOT="-static -mavx2" CCPREFIX=${CCPREFIX} RNG_test
@@ -92,12 +96,10 @@ echo "RNG_test static build time: "$(elapsedtm start)s
 # //////////////////////////////////////////////////////////////////////////////
 
 unset start opts kopts
-
-# //////////////////////////////////////////////////////////////////////////////
-
 tmpd=cpio.tmp
 
 if false; then
+# target: clean ////////////////////////////////////////////////////////////////
   rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $tmpd
   for dir in musl bbox kdev usrl prnd $lnxpath; do
     eval make -C $dir clean &
@@ -105,6 +107,7 @@ if false; then
   cp -arf cpio           $tmpd
   wait
 else
+# target: install //////////////////////////////////////////////////////////////
   mkdir -p               $tmpd/tmp/
   mkdir -p               $tmpd/var/log/
   mkdir -p               $tmpd/lib/modules/

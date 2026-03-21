@@ -5,7 +5,7 @@
 
 action=${1:-}
 cpiofl=${2:-initramfs.cpio.gz}
-tmpdir=${3:-cpio}
+tmpdir=${3:-cpio.tmp}
 
 zcmd="gzip"; which pigz >/dev/null && zcmd="pigz"
 

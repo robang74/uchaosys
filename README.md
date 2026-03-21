@@ -30,20 +30,20 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific to [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2). Which is the reference tagged version on the `main` branch from which the branch [`v062`](https://github.com/robang74/uchaosys/tree/v062) (101 KB) has been forked. Which branch `v061` has the goal to define the footprint of the embedded system.
+The data reported below are indicative and specific for the reference tagged version [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (repository archive size: 101 KB).
 
 Reference processor **i5-8365**, building times:
 
-- `musl building elapsed time:  970 s`&hairsp;¹
-- `linux kernel building time:  158 s`
-- `busybox custom making time:   18 s`
-- `uchaos proj compiling time:    9 s`
+- `musl building elapsed time: 1021 s`&hairsp;¹
+- `linux kernel building time:  117 s`
+- `busybox custom making time:   15 s`
+- `uchaos proj compiling time:    8 s`
 - `system building total time: 1092 s  (18m 12s)`
 
 Reference architecture **x86_64**, footprint sizes:
 
-- `dev/build enviroment  size: 4730 MB (4.73 GB)`
-- `uncompressed .cpio    size:  736 KB`
+- `dev/build enviroment  size: 4824 MB (4.71 GB)`
+- `uncompressed .cpio    size:  644 KB`
 - `initramfs.cpio.gz     size:  416 KB`
 - `linux kernel image    size: 1328 KB`
 - `qemu bootable system  size: 1744 KB (1.70 MB)`
@@ -80,7 +80,7 @@ It is interesting to note how the memory is allocated&hairsp;².<br>
 
 While PractRand `RNG_test` (2288 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
 
-The `RNG_test.gz.sh` (906 KB) is 1372 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
+The `RNG_test.gz.sh` (906 KB) is 1366 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
 
 However, using gzcmd executables make sense only when a storage is available. Otherwise there are two copies in RAM, at least. After all, `gzcmd.sh` exists as an alternative to compressed archives and initramfs is nothing else than a compressed `cpio` archive.
 

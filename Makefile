@@ -109,7 +109,7 @@ install:
 	ln -sf usr/bin $(TMPD)/bin
 	ln -sf busybox $(TMPD)/bin/sh
 	@echo
-	du -ks  $(TMPD)
+	cd qemu; sh start.sh -U; cd ..
 	@echo
 
 # target: clean ////////////////////////////////////////////////////////////////

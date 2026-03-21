@@ -66,7 +66,7 @@ DL_CMD = wget -c -O
 
 # Recommended options for smaller build for deploying binaries:
 
-COMMON_CONFIG += CFLAGS="-g0 -Os" CXXFLAGS="-g0 -Os" LDFLAGS="-s"
+COMMON_CONFIG += CFLAGS="-g0 -O2" CXXFLAGS="-g0 -O2" LDFLAGS="-s"
 
 # Options you can add for faster/simpler build at the expense of features:
 

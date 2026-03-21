@@ -23,22 +23,14 @@ kmod="uchaos_dev.ko"
 bcfg=$(ls -1 cnfg/busybox-*.config | tail -n1)
 kver=$(echo $KERNVER | tr -dc 0-9 | head -c3)x
 kdir="musl/linux-$KERNVER.orig"
+kimg=$kdir/arch/$ARCH/boot/bzImage
 lnxpath="kdev/linux-kernel"
 ncpu=$(nproc)
 export PATH=$PWD/$path/bin:$PWD/$path/$ARCH/bin:$PATH
 export CCPREFIX=$ARCH-linux-musl- HOSTCC=gcc
 unset path
 
-# //////////////////////////////////////////////////////////////////////////////
-
-if false; then
-  for dir in musl bbox kdev usrl prnd $lnxpath; do
-    make clean -C $dir &
-  done
-  rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio cpio/
-  git checkout cpio/
-  wait
-fi
+opts="HOSTCC=gcc ARCH=$ARCH CROSS_COMPILE=${CCPREFIX} CCPREFIX=${CCPREFIX}"
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -56,28 +48,25 @@ echo "updating and download time: "$(elapsedtm start)s
 start=$(getnstime)
 test -r musl/config.mak || cp $MUSLCFGMAK musl/config.mak
 cp -arf cnfg/hashes musl/
-make -j$ncpu -C musl install
+eval make -j$ncpu -C musl install
 du -ms musl/output/
 echo "musl building elapsed time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
-ln -sf ../$kdir $lnxpath
-cp -f cnfg/linux-$kver.config $lnxpath/.config
-opts="HOSTCC=gcc ARCH=$ARCH -C $lnxpath CROSS_COMPILE=${CCPREFIX}"
-make -j$ncpu $opts syncconfig
-make -j$ncpu $opts bzImage modules_prepare
-du -k $kdir/arch/$ARCH/boot/bzImage
+test -e $lnxpath || ln -sf ../$kdir $lnxpath
+test -r $lnxpath/.config || cp -f cnfg/linux-$kver.config $kdir/.config
+eval make -j$ncpu $opts -C $lnxpath syncconfig modules_prepare bzImage modules
+du -Lk $kimg
 echo "linux kernel building time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
 start=$(getnstime)
 test -r bbox/.config || cp $bcfg bbox/.config
-opts="HOSTCC=gcc ARCH=$ARCH -C bbox CROSS_COMPILE=${CCPREFIX}"
-make -j$ncpu $opts oldconfig
-make -j$ncpu $opts busybox
+eval make -j$ncpu $opts -C bbox oldconfig
+eval make -j$ncpu $opts -C bbox busybox
 du -k bbox/busybox
 echo "busybox custom making time: "$(elapsedtm start)s
 
@@ -88,8 +77,8 @@ cd minz
 sh amalgamate.sh
 cd ..
 ln -sf $kdir/ kdev
-make -j$ncpu -C kdev CROSS_COMPILE=${CCPREFIX} dist
-make -j$ncpu -C usrl CCPREFIX=${CCPREFIX} uchaosbox
+eval make -j$ncpu -C kdev $opts dist
+eval make -j$ncpu -C usrl $opts uchaosbox
 du -k kdev/$kmod.gz
 echo "uchaos proj compiling time: "$(elapsedtm start)s
 
@@ -102,24 +91,37 @@ echo "RNG_test static build time: "$(elapsedtm start)s
 
 # //////////////////////////////////////////////////////////////////////////////
 
-unset start opts
+unset start opts kopts
 
-cp -f $kdir/arch/$ARCH/boot/bzImage qemu/
+# //////////////////////////////////////////////////////////////////////////////
 
-chmod +x               cpio/init
+tmpd=cpio.tmp
 
-mkdir -p               cpio/tmp/
-mkdir -p               cpio/var/log/
-mkdir -p               cpio/lib/modules/
-mkdir -p               cpio/usr/bin/
+if false; then
+  rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $tmpd
+  for dir in musl bbox kdev usrl prnd $lnxpath; do
+    eval make -C $dir clean &
+  done
+  cp -arf cpio           $tmpd
+  wait
+else
+  mkdir -p               $tmpd/tmp/
+  mkdir -p               $tmpd/var/log/
+  mkdir -p               $tmpd/lib/modules/
+  mkdir -p               $tmpd/usr/bin/
 
-cp -f  kdev/$kmod.gz   cpio/lib/modules/$kmod
-cp -f  usrl/uchaosbox  cpio/usr/bin/
-cp -f  bbox/busybox    cpio/usr/bin/
+  cp -f  $kimg           qemu/
 
-ln -sf bin             cpio/usr/sbin
-ln -sf bin/busybox     cpio/linuxrc
-ln -sf usr/sbin        cpio/sbin
-ln -sf usr/bin         cpio/bin
-ln -sf busybox         cpio/bin/sh
+  cp -f  kdev/$kmod.gz   $tmpd/lib/modules/$kmod
+  cp -f  usrl/uchaosbox  $tmpd/usr/bin/
+  cp -f  bbox/busybox    $tmpd/usr/bin/
+
+  chmod +x               $tmpd/init
+
+  ln -sf bin             $tmpd/usr/sbin
+  ln -sf bin/busybox     $tmpd/linuxrc
+  ln -sf usr/sbin        $tmpd/sbin
+  ln -sf usr/bin         $tmpd/bin
+  ln -sf busybox         $tmpd/bin/sh
+fi
 

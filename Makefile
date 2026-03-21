@@ -95,9 +95,9 @@ clean:
 		$(MAKE) -C $$dir clean || true; \
 	done
 
-# target: distclean ////////////////////////////////////////////////////////////
+# target: veryclean ////////////////////////////////////////////////////////////
 # This removes files that the script normally protects with 'test' or 'if' logic
-distclean: clean
+veryclean: clean
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
@@ -109,4 +109,10 @@ distclean: clean
 	rm -f bbox/.config
 # Additional cleanup for symlinks created in kdev
 	rm -f kdev/linux-kernel
+
+# target: buildall /////////////////////////////////////////////////////////////
+buildall: toolchain bzImage busybox uchaos install
+
+# target: buildsys /////////////////////////////////////////////////////////////
+buildsys: bzImage busybox uchaos install
 

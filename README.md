@@ -32,34 +32,29 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 The data reported below are indicative and specific for the reference tagged version [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (repository in .zip archive size: 103 KB).
 
-Reference processor **i5-8365**, building times:
-
-- `musl building elapsed time: 1021 s`&hairsp;¹
-- `linux kernel building time:  118 s`
-- `busybox custom making time:   15 s`
-- `uchaos proj compiling time:    8 s`
-- `system building total time: 1162 s  (19m 36s)`&hairsp;²
-
 Reference architecture **x86_64**, footprint sizes:
 
-- `dev/build enviroment  size: 4824 MB (4.71 GB)`
-- `uncompressed .cpio    size:  644 KB`
+- `dev/build enviroment  size: 4802 MB (4.69 GB)`
+- `uncompressed .cpio    size:  676 KB`
 - `initramfs.cpio.gz     size:  416 KB`
-- `linux kernel image    size: 1328 KB`
-- `qemu bootable system  size: 1744 KB (1.70 MB)`
+- `linux kernel image    size: 1384 KB`
+- `qemu bootable system  size: 1800 KB (1.76 MB)`&hairsp;¹
 
 Running a minimal system, the essential metrics:
 
-- `VM type: QMSZE=32M KARGS=quiet sh start.sh`
-- `total time for being ready to user: 0.056 s `**!!!**
-- `total available memory in userland: 18856 KB`
-    - `host: 32768, zram: -4724, cpio:  -736 KB`
-    - `mlnx: 23548, used: -2404, buff: -1468 KB`
+- `VM type: sh start.sh -q -m 32`
+- `total time for being ready to user: 0.054 s `**!!!**
+- `total available memory in userland: 18804 KB`
+    - `host: 32768, zram: -4707, cpio:  -676 KB`
+    - `mlnx: 23548, used: -2420, buff: -1504 KB`
 
-It is interesting to note how the memory is allocated&hairsp;³.<br>
-³ without `RNG_test` installed which size is 2.23 MB.<br>
-² not the sum but elapsed time from `make buildall`.<br>
-¹ without accounting sources download variable time.
+Reference processor **i5-8365**, building times:
+
+- `system building total time: 994 s (16m 34s)`&hairsp;²
+
+It is interesting to note how the memory is allocated&hairsp;.<br>
+¹ without `RNG_test` installed which size is 2.23 MB.<br>
+² without accounting sources download variable time.
 
 <br>
 

@@ -16,7 +16,7 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) (2026-03-16)
 
-Last but not least, this project provide a **micro 2.31 MB Linux embedded system** (footprint including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
+Last but not least, this project provide a **micro 1.70 MB Linux embedded system** (footprint v0.6.2 including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
 
 <br>
 
@@ -30,34 +30,36 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific to [v0.6.1](https://github.com/robang74/uchaosys/releases/tag/v0.6.1) (88 KB). Which is the reference tagged version on the `main` branch from which the branch [`v061`](https://github.com/robang74/uchaosys/tree/v061) (99 KB) has been forked. Which branch `v061` has the goal to define the footprint of the embedded system.
+The data reported below are indicative and specific for the reference tagged version [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (repository archive size: 101 KB).
 
 Reference processor **i5-8365**, building times:
 
-- `musl building elapsed time: 1475 s`
-- `linux kernel building time:   95 s`
-- `busybox custom making time:   17 s`
-- `uchaos proj compiling time:    9 s`
-- `system building total time: 1596 s  (26m 36s)`
+- `musl building elapsed time: 1021 s`&hairsp;¹
+- `linux kernel building time:  118 s`
+- `busybox custom making time:   15 s`
+- `uchaos proj compiling time:    8 s`
+- `system building total time: 1162 s  (19m 36s)`&hairsp;²
 
 Reference architecture **x86_64**, footprint sizes:
 
-- `dev/build enviroment  size: 4728 MB (4.74 GB)`
-- `uncompressed .cpio    size: 2056 KB`
-- `initramfs.cpio.gz     size:  980 KB`
-- `linux kernel image    size: 1388 KB`
-- `qemu bootable system  size: 2368 KB (2.31 MB)`
+- `dev/build enviroment  size: 4824 MB (4.71 GB)`
+- `uncompressed .cpio    size:  644 KB`
+- `initramfs.cpio.gz     size:  416 KB`
+- `linux kernel image    size: 1328 KB`
+- `qemu bootable system  size: 1744 KB (1.70 MB)`
 
 Running a minimal system, the essential metrics:
 
 - `VM type: QMSZE=32M KARGS=quiet sh start.sh`
-- `total time for being ready to user: 0.067 s `**!!!**
-- `total available memory in userland: 17432 KB`
-    - `host: 32768, zram: -4462, cpio: -2056 KB`
-    - `mlnx: 23552, used: -2460, buff:  -800 KB`
+- `total time for being ready to user: 0.056 s `**!!!**
+- `total available memory in userland: 18856 KB`
+    - `host: 32768, zram: -4724, cpio:  -736 KB`
+    - `mlnx: 23548, used: -2404, buff: -1468 KB`
 
-It is interesting to note how the memory is allocated&hairsp;¹.<br>
-¹ without `RNG_test` installed which size is 2.23 MB.
+It is interesting to note how the memory is allocated&hairsp;³.<br>
+³ without `RNG_test` installed which size is 2.23 MB.<br>
+² not the sum but elapsed time from `make buildall`.<br>
+¹ without accounting sources download variable time.
 
 <br>
 
@@ -77,9 +79,9 @@ It is interesting to note how the memory is allocated&hairsp;¹.<br>
 
 - [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
 
-While PractRand `RNG_test` (2272 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
+While PractRand `RNG_test` (2288 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
 
-The `RNG_test.gz.sh` (900 KB) is 1372 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
+The `RNG_test.gz.sh` (906 KB) is 1366 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
 
 However, using gzcmd executables make sense only when a storage is available. Otherwise there are two copies in RAM, at least. After all, `gzcmd.sh` exists as an alternative to compressed archives and initramfs is nothing else than a compressed `cpio` archive.
 

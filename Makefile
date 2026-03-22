@@ -46,6 +46,8 @@ sources:
 
 # target: toolchain ////////////////////////////////////////////////////////////
 toolchain:
+	@echo "Sync and drop caches, ^C to skip root password"
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
 	cp -arf cnfg/hashes musl/
 	$(MAKE) -j$(NCPU) -C musl install

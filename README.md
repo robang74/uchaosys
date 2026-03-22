@@ -48,9 +48,9 @@ Reference architecture **x86_64**, footprint sizes:
 - `linux kernel image    size: 1328 KB`
 - `qemu bootable system  size: 1744 KB (1.70 MB)`
 
-Running a minimal system, the essential metrics:
+Running this minimal system, the essential metrics:
 
-- `VM type: QMSZE=32M KARGS=quiet sh start.sh`
+- `CPU single-pipeline KVM: sh start.sh -q -m 32`
 - `total time for being ready to user: 0.056 s `**!!!**
 - `total available memory in userland: 18856 KB`
     - `host: 32768, zram: -4724, cpio:  -736 KB`

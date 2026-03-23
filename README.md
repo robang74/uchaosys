@@ -16,7 +16,7 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) (2026-03-16)
 
-Last but not least, this project provide a **micro 1.70 MB Linux embedded system** (footprint v0.6.2 including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
+Last but not least, this project provide a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
 
 <br>
 
@@ -30,12 +30,13 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific for the reference tagged version [v0.6.3](https://github.com/robang74/uchaosys/releases/tag/v0.6.3) (repository in .zip archive size: 103 KB) which adopts the all-static policy (footprints: +3% sys, +1% musl).
+The data reported below are indicative and specific for the reference tagged version [v0.6.3](https://github.com/robang74/uchaosys/releases/tag/v0.6.3) which adopts the all-static policy (footprints: +3% sys, +1% musl).
 
 Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time: 1010 s  (16m 50s)`&hairsp;¹
 - `dev/build enviroment  size: 4889 MB (4.77 GB)`
+- `repository .zip copy  size:  102 KB`
 
 Reference architecture **x86_64**, system footprint:
 

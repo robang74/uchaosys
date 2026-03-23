@@ -16,7 +16,7 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) (2026-03-16)
 
-Last but not least, this project provide a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
+Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
 
 <br>
 

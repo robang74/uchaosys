@@ -30,31 +30,32 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific for the reference tagged version [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (repository in .zip archive size: 103 KB).
+The data reported below are indicative and specific for the reference tagged version [v0.6.3](https://github.com/robang74/uchaosys/releases/tag/v0.6.3) (repository in .zip archive size: 103 KB) which adopts the all-static policy (footprints: +3% sys, +1% musl).
 
-Reference architecture **x86_64**, footprint sizes:
+Reference processor **i5-8365**, toolchain metrics:
 
-- `dev/build enviroment  size: 4802 MB (4.69 GB)`
-- `uncompressed .cpio    size:  676 KB`
+- `system building total time: 1010 s  (16m 50s)`&hairsp;¹
+- `dev/build enviroment  size: 4889 MB (4.77 GB)`
+
+Reference architecture **x86_64**, system footprint:
+
+- `uncompressed .cpio    size:  664 KB`
 - `initramfs.cpio.gz     size:  416 KB`
 - `linux kernel image    size: 1384 KB`
-- `qemu bootable system  size: 1800 KB (1.76 MB)`&hairsp;¹
+- `qemu bootable system  size: 1800 KB (1.76 MB)`&hairsp;²
 
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
 - `total time for being ready to user: 0.054 s `**!!!**
 - `total available memory in userland: 18804 KB`
-    - `host: 32768, zram: -4707, cpio:  -676 KB`
-    - `mlnx: 23548, used: -2420, buff: -1504 KB`
-
-Reference processor **i5-8365**, building times:
-
-- `system building total time: 994 s (16m 34s)`&hairsp;²
+    - `host: 32768, zram: -4722, cpio:  -664 KB`
+    - `mlnx: 23548, used: -2408, buff: -1460 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
-¹ without `RNG_test` installed which size is 2.23 MB.<br>
-² without accounting sources download variable time.
+
+¹ without accounting sources download variable time.<br>
+² without `RNG_test` for which .cpio size +2.28 MB.
 
 <br>
 

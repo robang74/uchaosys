@@ -15,6 +15,7 @@ KERNVER     := $(shell grep "LINUX_VER" $(MUSLCFGMAK) | cut -d\# -f1 | tr -dc 0-
 KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 
 # Paths
+VDIR        := virt
 KDIR        := musl/linux-$(KERNVER).orig
 KIMG        := $(KDIR)/arch/$(ARCH)/boot/bzImage
 LNXPATH     := kdev/linux-kernel
@@ -101,7 +102,7 @@ rngtest:
 install:
 	cp -arf cpio $(TMPD)/
 	mkdir -p $(TMPD)/tmp/ $(TMPD)/var/log/ $(TMPD)/lib/modules/ $(TMPD)/usr/bin/
-	cp -Lf $(KIMG) qemu/
+	cp -Lf $(KIMG) $(VDIR)/
 	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)
 	cp -Lf usrl/uchaosbox $(TMPD)/usr/bin/
 	cp -Lf bbox/busybox $(TMPD)/usr/bin/
@@ -113,7 +114,7 @@ install:
 	ln -sf usr/bin $(TMPD)/bin
 	ln -sf busybox $(TMPD)/bin/sh
 	@echo
-	cd qemu; sh start.sh -U; cd ..
+	cd $(VDIR); sh start.sh -U; cd ..
 	@echo
 
 # target: clean ////////////////////////////////////////////////////////////////
@@ -149,5 +150,5 @@ buildsys: bzImage busybox uchaos install
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu:
 	@echo Prepare and start the KVM 32MB machine
-	cd qemu; sh start.sh -q -m 32
+	cd virt; sh start.sh -q -m 32
 

@@ -15,6 +15,7 @@ cpio/lib
 cpio/linuxrc
 cpio/sbin
 cpio/usr
+cpio.tmp
 cpio.cpio
-qemu/bzImage
-qemu/initramfs.cpio.gz
+virt/bzImage
+virt/initramfs.cpio.gz

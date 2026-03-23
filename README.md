@@ -96,3 +96,28 @@ It is essential to underline that uChaos at the time of this text writing is a 7
 Last but not least, the chaos engine is **exactly** the same in kernel and user spaces: the same [uchaos_dev.h](kdev/uchaos_dev.h) translated in userspace by trivial macros. It compiles twice, and the two binaries never misalign: same file, same code. Audited once, it runs everywhere.
 
 <br>
+
+## Quick Start
+
+```sh
+git clone https://github.com/robang74/uchaosys.git
+cd uchaosys
+time make sources
+time make buildall
+make runqemu
+```
+
+The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.
+
+- [uchaosys binary snapshot for qemu x86_64](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)
+
+Considering that the system footprint is below 2MB, offering a binary sample makes sense independently from the outages. This snapshot is not supposed to be updated often, therefore refers to the above project link.
+
+<br>
+
+### License
+
+The overall license for the uChaoSys binaries is dependent on the system components thus the GPLv2 is the reference as the most demanding license among those involved as long as "GPLv2 or later" means GPLv2 as an option.
+
+<br>
+

@@ -18,22 +18,27 @@ test -r $url_name ||
 mkdir -p $src_dir $bin_dir
 $infl_cmd $url_name -C $src_dir --strip-components=1
 
-cd $src_dir
-out_dir="$PWD/output"
+#cd $src_dir
+out_dir="$PWD/$bin_dir"
 
-path=$PWD/../musl/output
+path=$PWD/musl/output
 export PATH=$path/bin:$path/$ARCH/bin:$PATH
 
 export ARCH=x86_64
-export CFLAGS="-O1 -march=native -flto -fno-plt -fno-plt -fPIE -pipe -static"
-export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-export LDFLAGS="--static -flto -fno-plt -Wl,--gc-sections"
+#export CFLAGS="-O1 -march=native -flto -fno-plt -fno-plt -fPIE -pipe -static -s"
+#export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
+#export LDFLAGS="--static -flto -fno-plt -Wl,--gc-sections"
 
+mkdir -p build; cd build
+../$src_dir/configure --disable-bsd-user --disable-guest-agent --enable-strip --disable-werror --disable-gcrypt --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter --disable-attr --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --enable-fdt --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi --disable-vnc-jpeg --disable-lzo --disable-curses --disable-libnfs --disable-numa --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen --disable-xen-pci-passthrough --enable-kvm --enable-system --disable-tools --disable-docs --extra-cflags="-s" # --static
+
+if false; then
 CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
   --static \
   --prefix=$out_dir \
   --target-list=x86_64-softmmu \
-  --with-devices-x86_64=default \
+  --with-devices-x86_64=minikvm \
+  --without-default-devices \
   --enable-kvm \
   --enable-tcg \
   --enable-lto \
@@ -76,10 +81,66 @@ CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
   --disable-crypto-afalg \
   --disable-usb-redir \
   --disable-libusb
-
-if make -j$(nproc) qemu-system-x86_64; then
-  cd .. 
-  cp -f  $out_dir/bin/qemu-* $bin_dir
-  du -k $bin_dir/qemu-*
+fi
+if false; then
+CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
+  --static \
+  --prefix=$out_dir \
+  --target-list=x86_64-softmmu \
+  --with-devices-x86_64=minikvm \
+  --enable-kvm \
+  --enable-tcg \
+  --enable-lto \
+  --enable-strip \
+  --audio-drv-list= \
+  --disable-libudev       # ← new: kills -ludev
+  --disable-curl \
+  --disable-libssh \
+  --disable-mpath \
+  --disable-glusterfs \
+  --disable-iscsi \
+  --disable-rbd \
+  --disable-numa \
+  --disable-usb           # ← aggressive: no USB redirection/hotplug
+  --disable-bpf \
+  --disable-seccomp \
+  --disable-replication \
+  --disable-live-block-migration \
+  --disable-migration \
+  --disable-tcg-interpreter \
+  --disable-tools \
+  --disable-capstone \
+  --disable-guest-agent \
+  --disable-qom-cast-debug \
+  --disable-stack-protector \
+  --disable-gcrypt \
+  --disable-gnutls \
+  --disable-selinux \
+  --disable-libudev       # duplicate ok, harmless
+  --disable-libssh        # duplicate ok
+  --disable-slirp \
+  --disable-vde \
+  --disable-netmap \
+  --disable-xen \
+  --disable-brlapi \
+  --disable-vhost-crypto \
+  --disable-vhost-user \
+  --disable-vhost-vdpa \
+  --disable-sdl \
+  --disable-gtk \
+  --disable-opengl \
+  --disable-spice \
+  --disable-docs \
+  --disable-nettle \
+  --disable-auth-pam \
+  --disable-crypto-afalg \
+  --disable-usb-redir \
+  --disable-libusb \
+  --enable-fdt            # for microvm (you already decided this)
+fi
+if make -j$(nproc) qemu-system-$ARCH; then
+  cd ..
+  cp -f build/qemu-system-$ARCH $bin_dir
+  du -k $bin_dir/qemu-system-$ARCH
 fi
 

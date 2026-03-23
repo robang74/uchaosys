@@ -29,7 +29,7 @@ OPTS        := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
 
-path        := musl/output
+path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
 .PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean
@@ -89,7 +89,8 @@ uchaos:
 
 # target: rngtest //////////////////////////////////////////////////////////////
 rngtest:
-	$(MAKE) -j$(NCPU) -C prnd/ CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX) RNG_test
+	$(MAKE) -j$(NCPU) $(OPTS) -C prnd/ RNG_test \
+	  CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX)
 	@echo
 	file prnd/RNG_test
 	du -k prnd/RNG_test
@@ -118,7 +119,7 @@ install:
 clean:
 	rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $(TMPD)
 	for dir in musl bbox kdev usrl prnd $(LNXPATH); do \
-		$(MAKE) -C $$dir clean || true; \
+		$(MAKE) ARCH=$(ARCH) -C $$dir clean || true; \
 	done
 
 # target: veryclean ////////////////////////////////////////////////////////////

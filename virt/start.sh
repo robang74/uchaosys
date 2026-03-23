@@ -9,8 +9,6 @@ kimg="bzImage"
 rfsimg="initramfs.cpio"
 qemubin="qemu-system-x86_64"
 
-#export PATH=$PWD/../qemu/srcs/output/bin/:$PATH
-
 test -r ${rfsimg}.gz && rfsimg="${rfsimg}.gz"
 rfsdir=$(echo "$rfsimg" | sed 's/\.cpio\.gz//;s/\.cpio//')
 
@@ -96,6 +94,7 @@ if [ "${QZERO:-0}" = "0" ]; then
   qaccel="-enable-kvm -cpu host,migratable=off,+invtsc"
   netisl="-netdev user,id=net0,restrict=yes"
   if false; then
+    export PATH=$PWD/../qemu/bin/:$PATH
     qaccel="$qaccel -M microvm,accel=kvm,x-option-roms=off,pit=off,pic=off,rtc=off,acpi=off"
     netisl="$netisl -device virtio-net-device,netdev=net0"
   else

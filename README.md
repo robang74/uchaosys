@@ -68,7 +68,7 @@ It is interesting to note how the memory is allocated&hairsp;.<br>
 
 - **linux v5.15.202**, as the kernel from a very widely spread LTS branch;
 
-- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver;.
+- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
 
 #### External tools 
 

@@ -38,8 +38,9 @@ all: sources toolchain bzImage busybox uchaos rngtest install
 
 # target: sources //////////////////////////////////////////////////////////////
 sources:
+  @echo Wait downloading sources ...
 	git submodule update --init --recursive
-	# Fetching gzcmd logic
+	$(MAKE) -j$(NCPU) -C musl extract_all
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
 	sh gzcmd.sh gzcmd.sh gzcmd
 	@echo
@@ -50,7 +51,7 @@ toolchain:
 	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
 	cp -arf cnfg/hashes musl/
-	$(MAKE) -j$(NCPU) -C musl install
+	make -C musl extract_all -C musl install
 	@echo
 	tar czf musl-output.tar.gz musl/output/
 	du -ms musl-output.tar.gz musl/output/

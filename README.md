@@ -65,7 +65,7 @@ It is interesting to note how the memory is allocated&hairsp;³.<br>
 
 ### Components
 
-- **musl v1.2.15**, and related packages for the cross-compilation toolschain;
+- **musl v1.2.15**, and related packages for the cross-compilation toolchain;
 
 - **busybox v1.38**, as the whole initramfs system component and user shell;
 

@@ -35,7 +35,7 @@ The data reported below are indicative and specific for the reference tagged ver
 Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time: 1010 s  (16m 50s)`&hairsp;¹
-- `dev/build enviroment  size: 4889 MB (4.77 GB)`
+- `dev/build environment size: 4889 MB (4.77 GB)`
 - `repository .zip copy  size:  102 KB`
 
 Reference architecture **x86_64**, system footprint:

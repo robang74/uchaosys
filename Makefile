@@ -29,7 +29,7 @@ OPTS        := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
 
-path        := musl/output
+path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
 .PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean
@@ -38,17 +38,20 @@ all: sources toolchain bzImage busybox uchaos rngtest install
 
 # target: sources //////////////////////////////////////////////////////////////
 sources:
+	@echo Wait downloading sources ...
 	git submodule update --init --recursive
-	# Fetching gzcmd logic
+	$(MAKE) -j$(NCPU) -C musl extract_all
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
 	sh gzcmd.sh gzcmd.sh gzcmd
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
 toolchain:
+	@echo "Sync and drop caches, ^C to skip root password"
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
 	cp -arf cnfg/hashes musl/
-	$(MAKE) -j$(NCPU) -C musl install
+	make -C musl install
 	@echo
 	tar czf musl-output.tar.gz musl/output/
 	du -ms musl-output.tar.gz musl/output/
@@ -87,7 +90,8 @@ uchaos:
 
 # target: rngtest //////////////////////////////////////////////////////////////
 rngtest:
-	$(MAKE) -j$(NCPU) -C prnd/ CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX) RNG_test
+	$(MAKE) -j$(NCPU) $(OPTS) -C prnd/ RNG_test \
+	  CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX)
 	@echo
 	file prnd/RNG_test
 	du -k prnd/RNG_test
@@ -116,7 +120,7 @@ install:
 clean:
 	rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $(TMPD)
 	for dir in musl bbox kdev usrl prnd $(LNXPATH); do \
-		$(MAKE) -C $$dir clean || true; \
+		$(MAKE) ARCH=$(ARCH) -C $$dir clean || true; \
 	done
 
 # target: veryclean ////////////////////////////////////////////////////////////
@@ -141,4 +145,9 @@ buildall: toolchain bzImage busybox uchaos install
 
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys: bzImage busybox uchaos install
+
+# target: runqemu //////////////////////////////////////////////////////////////
+runqemu:
+	@echo Prepare and start the KVM 32MB machine
+	cd qemu; sh start.sh -q -m 32
 

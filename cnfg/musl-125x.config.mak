@@ -23,7 +23,7 @@ TARGET = $(ARCH)-linux-musl
 # can safely be installed in the same location. Some examples:
 
 # OUTPUT = /opt/cross
-# OUTPUT = /usr/local
+# OUTPUT = $(CURDIR)/static
 
 # By default, latest supported release versions of musl and the toolchain
 # components are used. You can override those here, but the version selected
@@ -65,12 +65,24 @@ DL_CMD = wget -c -O
 # COMMON_CONFIG += CC="i486-linux-musl-gcc -static --static" CXX="i486-linux-musl-g++ -static --static"
 
 # Recommended options for smaller build for deploying binaries:
+# COMMON_CONFIG += CFLAGS="-g0 -Os" CXXFLAGS="-g0 -Os" LDFLAGS="-s"
+# Compressed size is 13% less than -O2 and, surprisingly, buildall +4% faster
 
-COMMON_CONFIG += CFLAGS="-g0 -O2" CXXFLAGS="-g0 -O2" LDFLAGS="-s"
+# Compiles a toolchain for being faster in doing its works, but bigger size
+# COMMON_CONFIG += CFLAGS="-g0 -O2" CXXFLAGS="-g0 -O2" LDFLAGS="-s"
+# Pipe can increase the compilation speed of +6%, but it is sensitive:
+# COMMON_CONFIG += CFLAGS="-g0 -O2 -pipe" CXXFLAGS="-g0 -O2 -pipe" LDFLAGS="-s"
+# Definetely avoid -O3 because a single mistake in a toolchain avalanches
+
+GCC_FLAGS := "-g0 -O1 -pipe -static"
+COMMON_CONFIG +=   CFLAGS=$(GCC_FLAGS)
+COMMON_CONFIG += CXXFLAGS=$(GCC_FLAGS)
+COMMON_CONFIG +=  LDFLAGS="-s --static"
 
 # Options you can add for faster/simpler build at the expense of features:
 
 COMMON_CONFIG += --disable-nls
+
 GCC_CONFIG += --disable-libquadmath --disable-decimal-float
 GCC_CONFIG += --disable-libitm
 GCC_CONFIG += --disable-fixed-point

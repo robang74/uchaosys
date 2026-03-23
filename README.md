@@ -30,36 +30,32 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific for the reference tagged version [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (repository in .zip archive size: 103 KB).
+The data reported below are indicative and specific for the reference tagged version [v0.6.3](https://github.com/robang74/uchaosys/releases/tag/v0.6.3) (repository in .zip archive size: 103 KB) which adopts the all-static policy (footprints: +3% sys, +1% musl).
 
-Reference processor **i5-8365**, building times:
+Reference processor **i5-8365**, toolchain metrics:
 
-- `musl building elapsed time: 1021 s`&hairsp;¹
-- `linux kernel building time:  118 s`
-- `busybox custom making time:   15 s`
-- `uchaos proj compiling time:    8 s`
-- `system building total time: 1162 s  (19m 36s)`&hairsp;²
+- `system building total time: 1010 s  (16m 50s)`&hairsp;¹
+- `dev/build enviroment  size: 4889 MB (4.77 GB)`
 
-Reference architecture **x86_64**, footprint sizes:
+Reference architecture **x86_64**, system footprint:
 
-- `dev/build enviroment  size: 4824 MB (4.71 GB)`
-- `uncompressed .cpio    size:  644 KB`
+- `uncompressed .cpio    size:  664 KB`
 - `initramfs.cpio.gz     size:  416 KB`
-- `linux kernel image    size: 1328 KB`
-- `qemu bootable system  size: 1744 KB (1.70 MB)`
+- `linux kernel image    size: 1384 KB`
+- `qemu bootable system  size: 1800 KB (1.76 MB)`&hairsp;²
 
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.056 s `**!!!**
-- `total available memory in userland: 18856 KB`
-    - `host: 32768, zram: -4724, cpio:  -736 KB`
-    - `mlnx: 23548, used: -2404, buff: -1468 KB`
+- `total time for being ready to user: 0.054 s `**!!!**
+- `total available memory in userland: 18804 KB`
+    - `host: 32768, zram: -4722, cpio:  -664 KB`
+    - `mlnx: 23548, used: -2408, buff: -1460 KB`
 
-It is interesting to note how the memory is allocated&hairsp;³.<br>
-³ without `RNG_test` installed which size is 2.23 MB.<br>
-² not the sum but elapsed time from `make buildall`.<br>
-¹ without accounting sources download variable time.
+It is interesting to note how the memory is allocated&hairsp;.<br>
+
+¹ without accounting sources download variable time.<br>
+² without `RNG_test` for which .cpio size +2.28 MB.
 
 <br>
 
@@ -100,3 +96,28 @@ It is essential to underline that uChaos at the time of this text writing is a 7
 Last but not least, the chaos engine is **exactly** the same in kernel and user spaces: the same [uchaos_dev.h](kdev/uchaos_dev.h) translated in userspace by trivial macros. It compiles twice, and the two binaries never misalign: same file, same code. Audited once, it runs everywhere.
 
 <br>
+
+## Quick Start
+
+```sh
+git clone https://github.com/robang74/uchaosys.git
+cd uchaosys
+time make sources
+time make buildall
+make runqemu
+```
+
+The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.
+
+- [uchaosys binary snapshot for qemu x86_64](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)
+
+Considering that the system footprint is below 2MB, offering a binary sample makes sense independently from the outages. This snapshot is not supposed to be updated often, therefore refers to the above project link.
+
+<br>
+
+### License
+
+The overall license for the uChaoSys binaries is dependent on the system components thus the GPLv2 is the reference as the most demanding license among those involved as long as "GPLv2 or later" means GPLv2 as an option.
+
+<br>
+

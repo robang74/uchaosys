@@ -91,7 +91,7 @@ nograp="-nographic -vga none -display none"
 
 if [ "${QZERO:-0}" = "0" ]; then
   boxnme="-name tinylnx"
-  qaccel="-enable-kvm -cpu host -machine accel=kvm"
+  qaccel="-enable-kvm -cpu host,migratable=off,+invtsc -machine accel=kvm"
   netisl="-netdev user,id=net0,restrict=yes -device virtio-net-pci,netdev=net0"
 else
   echo
@@ -111,6 +111,9 @@ else
 fi
 
 cmdlnx="-append '$cmdlnx ${KARGS:-}'"
+
+# disable this line if it creates trouble because ulimit -l isn't friendly
+qaccel="$qaccel -overcommit mem-lock=on"
 
 cmd="$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
               -no-reboot -boot order=dc ${boxnme:-} ${qaccel:-} ${netisl:-} \

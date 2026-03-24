@@ -18,3 +18,20 @@ cd uchaosys/qemu
 git switch devl
 sh make.sh veryclean sources
 ```
+
+---
+
+### Rationale
+
+The debloating here presented is a quick hack that removes the CXL support without introducing a `--disable-cxl` parameter that `configure` can deal acting upon a value on a specific define like `CONFIG_ENABLE_CXL`. Which implies that the proposed hack is for testing only.
+
+#### Impact
+
+- You won't find a CXL device in a typical workstation, laptop, or embedded system.
+
+Compute Express Link (CXL) is an open standard interconnect for high-speed, high capacity CPU-to-device and CPU-to-memory connections, designed for high performance data center computers. The CXL specification 1.0 and 1.1 were released in 2019, based on PCIe 5.0 bus protocol support which allows the host CPU to access shared memory on accelerator devices with a cache coherent protocol.
+
+CXL is designed for high performance data center computers Wikipedia, and the first real-world CPU support arrived with Intel Sapphire Rapids and AMD Zen 4 EPYC "Genoa" and "Bergamo" in 2021 Wikipedia — both server-class parts.
+
+PCIe 5.0 on consumer/desktop platforms only started appearing with Intel 12th/13th gen and AMD Ryzen 7000, but even then those platforms don't expose CXL — the CPU has the PHY but the ecosystem (CXL memory expanders, accelerators) remains entirely a datacenter story.
+

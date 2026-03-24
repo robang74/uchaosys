@@ -13,11 +13,20 @@ infl_cmd="tar -xzf"
 bin_dir="bin"
 src_dir="src"
 
-if false; then
+if [ "${1:-}" = "clean" ]; then
+  rm -rf build/
+elif [ "${1:-}" = "veryclean" ]; then
+  rm -rf build/ src/
+  test "${2:-}" = "" && exit
+  shift
+fi
+
+if [ "${1:-}" = "sources" ]; then
   test -r $url_name ||
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
   $infl_cmd $url_name -C $src_dir --strip-components=1
+  cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
 fi
 
 #cd $src_dir
@@ -191,8 +200,11 @@ CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
 fi
 if make -j$(nproc) qemu-system-$ARCH; then
   cd ..
-  cp -f build/qemu-system-$ARCH src/qboot.rom ../virt
+  cp -f build/qemu-system-$ARCH src/pc-bios/qboot.rom ../virt
   cd ..
+  echo
+  virt/qemu-system-x86_64 -M help
+  strip -s virt/qemu-system-x86_64
   du -k virt/qemu-system-$ARCH virt/qboot.rom
 fi
 

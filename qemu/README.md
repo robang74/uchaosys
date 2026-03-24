@@ -23,7 +23,7 @@ sh make.sh veryclean sources
 
 ### Rationale
 
-The debloating here presented is a quick hack that removes the CXL support without introducing a `--disable-cxl` parameter that `configure` can deal acting upon a value on a specific define like `CONFIG_ENABLE_CXL`. Which implies that the proposed hack is for testing only.
+The debloating here presented is a quick hack that removes the CXL support without introducing a `--disable-cxl` parameter that `configure` can deal acting upon a value on a specific define like `CONFIG_DISNABLE_CXL` but passed by `-D_DISABLE_CXL` in `--extra-cflags`. Which implies that the proposed hack is for testing only.
 
 #### Impact
 

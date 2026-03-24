@@ -88,7 +88,7 @@ out_dir="$PWD/$bin_dir"
 
 path="$PWD/../musl/output"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-export CFLAGS="-O1 -march=native -flto -fno-plt -falign-functions=32 -pipe -s"
+export CFLAGS="-O1 -march=x86-64-v3 -mtune=generic -flto -fno-plt -falign-functions=32 -pipe -s"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 -s"
 
@@ -111,7 +111,7 @@ mlib="/usr/lib/${ARCH}-linux-musl"
 #echo $(find /usr/lib/ -name libpcre\*.a | cut -d/ -f5 )
 #for i in c z m pcre slirp glibc-2.0; do
 #pcre16 pcre2-16 pcrecpp pcre pcreposix pcre32 pcre2-posix pcre2-8 pcre2-32
-for i in z c_nonshared pcre pcreposix pcre32 pcre2-posix pcre2-8; do
+for i in pthread z; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 printf "\n$LIBA\n\n"; read key
@@ -132,9 +132,11 @@ printf "\n$LIBA\n\n"; read key
   --disable-tcg-interpreter \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS $LIBA" \
+  --extra-ldflags="$LDFLAGS -no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $LIBA" \
   --extra-cflags="$CFLAGS" || exit
 
+#  --extra-ldflags="$LDFLAGS -no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries -Wl,-z,nocopyreloc -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-Bstatic -lz -lm -Wl,-Bdynamic"
+#-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries -Wl,--whole-archive $LIBA -Wl,--no-whole-archive -Wl,-Bstatic -lz -Wl,-Bdynamic" \
 #--extra-ldflags="-static -no-pie -Wl,--push-state,-Bstatic -lslirp -lglib-2.0 -lpcre2-8 -lz -Wl,--pop-state" -fPIE -Wl,-z,nocopyreloc
 #  --extra-ldflags="$LDFLAGS -s -L$path/ -L$path/../ -B$path/ -B$path/../ -fno-PIE $LIBA -L/usr/lib" \
 #  --extra-cflags="$CFLAGS -I$path/ -I$path/../ -I$path/../gcc-14.3.0.orig/zlib -s" || exit

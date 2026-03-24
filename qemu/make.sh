@@ -88,16 +88,16 @@ out_dir="$PWD/$bin_dir"
 path=$PWD/musl/output
 export PATH=$path/bin:$path/$ARCH/bin:$PATH
 export ARCH=x86_64
-#export CFLAGS="-O1 -march=native -flto -fno-plt -fPIE -falign-functions -pipe -static -s"
-#export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-#export LDFLAGS="--static -flto -fno-plt -Wl,--gc-sections -falign-functions"
+export CFLAGS="-O1 -march=native -flto -fno-plt -fPIE -falign-functions=32 -pipe"
+export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
+export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions"
 
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
 mkdir -p build; cd build
-CFLAGS="-O1 -march=native -pipe -falign-functions=32" ../$src_dir/configure \
+../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
   --without-default-features \
@@ -109,11 +109,11 @@ CFLAGS="-O1 -march=native -pipe -falign-functions=32" ../$src_dir/configure \
   --enable-vhost-net \
   --enable-slirp \
   --enable-strip \
-  --disable-lto \
+  --enable-lto \
   --enable-fdt \
-  --extra-cflags="-s" || exit
-# --extra-cflags="-s -static -fno-semantic-interposition"
-# --extra-ldflags="--static"
+  --disable-zstd --disable-lzo --disable-bzip2 \
+  --disable-docs --disable-tools --disable-guest-agent \
+  --extra-ldflags="$LDFLAGS -s" --extra-cflags="$CFLAGS -s" || exit
 
 ################################################################################
 

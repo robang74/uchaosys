@@ -2,12 +2,12 @@
 # No i440fx, no extra junk
 
 # Machines / Boards
-CONFIG_PC=n
+# CONFIG_PC=n
 CONFIG_Q35=y
 CONFIG_MICROVM=y
 
 # Required bus and devices
-CONFIG_PCI=n
+CONFIG_PCI=y
 CONFIG_VIRTIO_PCI=y
 CONFIG_VIRTIO_NET=y
 CONFIG_VIRTIO_BLK=y

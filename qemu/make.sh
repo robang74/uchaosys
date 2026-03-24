@@ -41,6 +41,14 @@ export ARCH=x86_64
 
 mkdir -p build; cd build
 ../$src_dir/configure \
+  --enable-kvm \
+  --enable-system \
+  --target-list=x86_64-softmmu \
+  --disable-tools \
+  --disable-docs \
+  --extra-cflags="-s" || exit
+
+if false ; then
   --disable-bsd-user \
   --disable-guest-agent \
   --enable-strip \
@@ -87,11 +95,12 @@ mkdir -p build; cd build
   --disable-xen-pci-passthrough \
   --enable-kvm \
   --enable-system \
-  --without-default-devices \
+  --target-list=x86_64-softmmu \
+  --with-devices-x86_64=minikvm \
   --disable-tools \
   --disable-docs \
-  --extra-cflags="-s" # --static"
-
+  --extra-cflags="-s" || exit
+fi
 if false; then
 CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
   --static \

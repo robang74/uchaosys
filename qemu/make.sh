@@ -13,24 +13,75 @@ infl_cmd="tar -xzf"
 bin_dir="bin"
 src_dir="src"
 
-test -r $url_name ||
-  $dwnl_cmd -c $url_site/$url_path/$url_name
-mkdir -p $src_dir $bin_dir
-$infl_cmd $url_name -C $src_dir --strip-components=1
+if false; then
+  test -r $url_name ||
+    $dwnl_cmd -c $url_site/$url_path/$url_name
+  mkdir -p $src_dir $bin_dir
+  $infl_cmd $url_name -C $src_dir --strip-components=1
+fi
 
 #cd $src_dir
 out_dir="$PWD/$bin_dir"
 
 path=$PWD/musl/output
 export PATH=$path/bin:$path/$ARCH/bin:$PATH
-
 export ARCH=x86_64
 #export CFLAGS="-O1 -march=native -flto -fno-plt -fno-plt -fPIE -pipe -static -s"
 #export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 #export LDFLAGS="--static -flto -fno-plt -Wl,--gc-sections"
 
 mkdir -p build; cd build
-../$src_dir/configure --disable-bsd-user --disable-guest-agent --enable-strip --disable-werror --disable-gcrypt --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter --disable-attr --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --enable-fdt --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi --disable-vnc-jpeg --disable-lzo --disable-curses --disable-libnfs --disable-numa --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen --disable-xen-pci-passthrough --enable-kvm --enable-system --disable-tools --disable-docs --extra-cflags="-s" # --static
+../$src_dir/configure \
+  --disable-bsd-user \
+  --disable-guest-agent \
+  --enable-strip \
+  --disable-werror \
+  --disable-gcrypt \
+  --disable-debug-info \
+  --disable-debug-tcg \
+  --disable-tcg-interpreter \
+  --disable-attr \
+  --disable-brlapi \
+  --disable-linux-aio \
+  --disable-bzip2 \
+  --disable-cap-ng \
+  --disable-curl \
+  --enable-fdt \
+  --disable-glusterfs \
+  --disable-gnutls \
+  --disable-nettle \
+  --disable-gtk \
+  --disable-rdma \
+  --disable-libiscsi \
+  --disable-vnc-jpeg \
+  --disable-lzo \
+  --disable-curses \
+  --disable-libnfs \
+  --disable-numa \
+  --disable-opengl \
+  --disable-rbd \
+  --disable-vnc-sasl \
+  --disable-sdl \
+  --disable-seccomp \
+  --disable-smartcard \
+  --disable-snappy \
+  --disable-spice \
+  --disable-libusb \
+  --disable-usb-redir \
+  --disable-vde \
+  --disable-vhost-net \
+  --disable-virglrenderer \
+  --disable-virtfs \
+  --disable-vnc \
+  --disable-vte \
+  --disable-xen \
+  --disable-xen-pci-passthrough \
+  --enable-kvm \
+  --enable-system \
+  --without-default-devices \
+  --disable-tools \
+  --disable-docs \
+  --extra-cflags="-s" # --static"
 
 if false; then
 CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
@@ -140,7 +191,8 @@ CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
 fi
 if make -j$(nproc) qemu-system-$ARCH; then
   cd ..
-  cp -f build/qemu-system-$ARCH $bin_dir
-  du -k $bin_dir/qemu-system-$ARCH
+  cp -f build/qemu-system-$ARCH src/qboot.rom ../virt
+  cd ..
+  du -k virt/qemu-system-$ARCH virt/qboot.rom
 fi
 

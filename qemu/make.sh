@@ -45,49 +45,16 @@ export ARCH=x86_64
 # both should be available because they contributes jittering in different ways
 mkdir -p build; cd build
 CFLAGS="-O1 -march=native -pipe" ../$src_dir/configure \
-  --enable-kvm \
-  --enable-system \
-  --enable-strip \
-  --disable-werror \
   --audio-drv-list= \
-  --disable-gcrypt \
-  --disable-debug-info \
-  --disable-debug-tcg \
-  --disable-tcg-interpreter \
-  --disable-attr \
-  --disable-brlapi \
-  --disable-linux-aio \
-  --disable-bzip2 \
-  --disable-cap-ng \
-  --disable-curl \
+  --without-default-features \
   --target-list=x86_64-softmmu \
+  --enable-kvm \
+  --enable-tcg \
+  --enable-system \
   --enable-vhost-net \
   --enable-slirp \
-  --disable-tools \
-  --disable-docs \
+  --enable-strip \
   --enable-fdt \
-  --disable-glusterfs \
-  --disable-gnutls \
-  --disable-nettle \
-  --disable-gtk \
-  --disable-rdma \
-  --disable-libiscsi \
-  --disable-vnc-jpeg \
-  --disable-lzo \
-  --disable-curses \
-  --disable-libnfs \
-  --disable-numa \
-  --disable-opengl \
-  --disable-rbd \
-  --disable-vnc-sasl \
-  --disable-sdl \
-  --disable-seccomp \
-  --disable-smartcard \
-  --disable-snappy \
-  --disable-spice \
-  --disable-libusb \
-  --disable-usb-redir \
-  --disable-vde \
   --extra-cflags="-s" || exit
 
 if false ; then

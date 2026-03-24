@@ -2,6 +2,7 @@
 #
 # (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
 #
+################################################################################
 
 url_site="https://github.com/robang74/qemu"
 url_path="/archive/refs/tags/"
@@ -21,16 +22,15 @@ elif [ "${1:-}" = "veryclean" ]; then
   shift
 fi
 
+################################################################################
+
 if [ "${1:-}" = "sources" ]; then
   test -r $url_name ||
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
   $infl_cmd $url_name -C $src_dir --strip-components=1
-fi
-cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
-
-sed -e '/cxl\.c/d' -e '/cxl-stub/d' -i $src_dir/hw/acpi/meson.build
-patch -p1 << EOF
+  sed -e '/cxl\.c/d' -e '/cxl-stub/d' -i $src_dir/hw/acpi/meson.build
+  patch -p1 << EOF
 --- a/$src_dir/hw/i386/acpi-build.c	2026-03-24 14:23:37.852944753 +0100
 +++ b/$src_dir/hw/i386/acpi-build.c	2026-03-24 14:26:02.097386643 +0100
 @@ -839,7 +839,8 @@ static void build_acpi0017(Aml *table)
@@ -78,10 +78,11 @@ patch -p1 << EOF
                  /* pxb bridges do not have ACPI PCI Hot-plug enabled */
                  acpi_dsdt_add_host_bridge_methods(dev, true);
 EOF
-read
-grep -A5 -B5 "disabled for minimal build" hw/i386/acpi-build.c
+fi
+cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
 
-#cd $src_dir
+################################################################################
+
 out_dir="$PWD/$bin_dir"
 
 path=$PWD/musl/output
@@ -114,144 +115,8 @@ CFLAGS="-O1 -march=native -pipe -falign-functions=32" ../$src_dir/configure \
 # --extra-cflags="-s -static -fno-semantic-interposition"
 # --extra-ldflags="--static"
 
-if false ; then
-  --disable-bsd-user \
-  --disable-guest-agent \
-  --enable-strip \
-  --disable-werror \
+################################################################################
 
-  --disable-gcrypt \
-  --disable-debug-info \
-  --disable-debug-tcg \
-  --disable-tcg-interpreter \
-  --disable-attr \
-  --disable-brlapi \
-  --disable-linux-aio \
-  --disable-bzip2 \
-  --disable-cap-ng \
-  --disable-curl \
-
-  --disable-vhost-net \
-  --disable-virglrenderer \
-  --disable-virtfs \
-  --disable-vnc \
-  --disable-vte \
-  --disable-xen \
-  --disable-xen-pci-passthrough \
-  --enable-kvm \
-  --enable-system \
-  --target-list=x86_64-softmmu \
-  --with-devices-x86_64=minikvm \
-  --disable-tools \
-  --disable-docs \
-  --extra-cflags="-s" || exit
-fi
-if false; then
-CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
-  --static \
-  --prefix=$out_dir \
-  --target-list=x86_64-softmmu \
-  --with-devices-x86_64=minikvm \
-  --without-default-devices \
-  --enable-kvm \
-  --enable-tcg \
-  --enable-lto \
-  --enable-strip \
-  --enable-vhost-net \
-  --audio-drv-list= \
-  --disable-tcg-interpreter \
-  --disable-tools \
-  --disable-capstone \
-  --disable-guest-agent \
-  --disable-qom-cast-debug \
-  --disable-stack-protector \
-  --disable-gcrypt \
-  --disable-gnutls \
-  --disable-selinux \
-  --disable-libudev \
-  --disable-libssh \
-  --disable-user \
-  --disable-slirp \
-  --disable-curl \
-  --disable-vnc \
-  --disable-vde \
-  --disable-netmap \
-  --disable-xen \
-  --disable-brlapi \
-  --disable-fdt \
-  --disable-vhost-crypto \
-  --disable-vhost-user \
-  --disable-vhost-vdpa \
-  --disable-sdl \
-  --disable-gtk \
-  --disable-opengl \
-  --disable-spice \
-  --disable-docs \
-  --disable-gcrypt \
-  --disable-nettle \
-  --disable-gnutls \
-  --disable-auth-pam \
-  --disable-vhost-crypto \
-  --disable-crypto-afalg \
-  --disable-usb-redir \
-  --disable-libusb
-fi
-if false; then
-CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" ./configure \
-  --static \
-  --prefix=$out_dir \
-  --target-list=x86_64-softmmu \
-  --with-devices-x86_64=minikvm \
-  --enable-kvm \
-  --enable-tcg \
-  --enable-lto \
-  --enable-strip \
-  --audio-drv-list= \
-  --disable-libudev       # ← new: kills -ludev
-  --disable-curl \
-  --disable-libssh \
-  --disable-mpath \
-  --disable-glusterfs \
-  --disable-iscsi \
-  --disable-rbd \
-  --disable-numa \
-  --disable-usb           # ← aggressive: no USB redirection/hotplug
-  --disable-bpf \
-  --disable-seccomp \
-  --disable-replication \
-  --disable-live-block-migration \
-  --disable-migration \
-  --disable-tcg-interpreter \
-  --disable-tools \
-  --disable-capstone \
-  --disable-guest-agent \
-  --disable-qom-cast-debug \
-  --disable-stack-protector \
-  --disable-gcrypt \
-  --disable-gnutls \
-  --disable-selinux \
-  --disable-libudev       # duplicate ok, harmless
-  --disable-libssh        # duplicate ok
-  --disable-slirp \
-  --disable-vde \
-  --disable-netmap \
-  --disable-xen \
-  --disable-brlapi \
-  --disable-vhost-crypto \
-  --disable-vhost-user \
-  --disable-vhost-vdpa \
-  --disable-sdl \
-  --disable-gtk \
-  --disable-opengl \
-  --disable-spice \
-  --disable-docs \
-  --disable-nettle \
-  --disable-auth-pam \
-  --disable-crypto-afalg \
-  --disable-usb-redir \
-  --disable-libusb \
-  --enable-fdt            # for microvm (you already decided this)
-fi
 if make -j$(nproc) qemu-system-$ARCH; then
   cd ..
   cp -f build/qemu-system-$ARCH src/pc-bios/qboot.rom ../virt

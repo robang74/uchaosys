@@ -94,14 +94,13 @@ nograp="-nographic -vga none -display none"
 if [ "${QZERO:-0}" = "0" ]; then
   boxnme="-name tinylnx"
   qaccel="-enable-kvm -cpu host,migratable=off,+invtsc"
-  netisl="-netdev user,id=net0,restrict=yes"
-  if false; then
-    export PATH=$PWD/../qemu/bin/:$PATH
-    qaccel="$qaccel -M microvm,accel=kvm,x-option-roms=off,pit=off,pic=off,rtc=off,acpi=off"
-    netisl="$netisl -device virtio-net-device,netdev=net0"
-  else
+# netisl="-netdev user,id=net0,restrict=yes"
+  if $qemubin -M help | grep -q q35; then
     qaccel="$qaccel -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc"
-    netisl="$netisl -device virtio-net-pci,netdev=net0"
+#   netisl="$netisl -device virtio-net-pci,netdev=net0"
+  else
+    qaccel="$qaccel -M microvm,accel=kvm,x-option-roms=off,pit=off,pic=off,rtc=off,acpi=off"
+#   netisl="$netisl -device virtio-net-device,netdev=net0"
   fi
 else
   echo

@@ -1,37 +1,42 @@
-# Minimal config: only q35 and microvm + virtio basics
-# No i440fx, no extra junk
+# Ultra-minimal config for q35 + microvm only
+# Works with --without-default-devices --without-default-features
+# https://static.sched.com/hosted_files/kvmforum2019/c6/kvmforum19-bloat.pdf
 
-# Machines / Boards
-# CONFIG_PC=n
+################################################################################
 CONFIG_Q35=y
-CONFIG_MICROVM=y
+# Hardware necessary support
+  CONFIG_IVSHMEM=y
+# CONFIG_PC=y      # this is the key one, enabled by Q35
+# CONFIG_PC_PCI=y
+# CONFIG_ACPI_ICH9=y
+# CONFIG_ACPI_X86=y
+# Disable everything that pulls CXL isn't possible
+# CONFIG_ACPI_NVDIMM=y
+# CONFIG_ACPI_VMGENID=y
+# CONFIG_ACPI_HMAT=y
+# CONFIG_ACPI_ERST=y
+# CONFIG_ACPI_CXL=y
+  #CONFIG_PXB=y
+# CONFIG_PCI=y
+# CONFIG_PCI_BRIDGE=y
+  #CONFIG_PCI_EXPRESS_Q35=y
+  #CONFIG_MSI_NONBROKEN=y
+# CONFIG_ICH9_LPC=y
+  CONFIG_ACPI_CXL=y # <-- this is the source of the problem
 
-# Required bus and devices
-CONFIG_PCI=y
-CONFIG_VIRTIO_PCI=y
-CONFIG_VIRTIO_NET=y
-CONFIG_VIRTIO_BLK=y
-CONFIG_VHOST_NET=y
+################################################################################
+# CONFIG_MICROVM=y
+# # Core bus + devices you want
+# CONFIG_VIRTIO_PCI=y
+# CONFIG_VIRTIO_NET=y
+# CONFIG_VIRTIO_BLK=y
+# CONFIG_VIRTIO_MMIO=y
+# CONFIG_VIRTIO_SCSI=y
+# CONFIG_VIRTIO_SERIAL=y
+# CONFIG_VIRTIO_BALLOON=y
+# # Other common sources of missing symbols / bloat
+# CONFIG_VIRTIO_INPUT=n
+# CONFIG_VIRTIO_GPU=n
+# CONFIG_VIRTIO_RNG=n
+# CONFIG_VIRTIO_CRYPTO=n
 
-# Disable everything else aggressively
-CONFIG_I440FX=n
-CONFIG_ISAPC=n
-CONFIG_NITRO_ENCLAVE=n
-CONFIG_AMD_IOMMU=n
-CONFIG_APPLESMC=n
-CONFIG_FDC=n
-CONFIG_HPET=n
-CONFIG_HYPERV=n
-CONFIG_IPMI=n
-CONFIG_QXL=n
-CONFIG_SEV=n
-CONFIG_SGA=n
-CONFIG_TDX=n
-CONFIG_TEST_DEVICES=n
-CONFIG_TPM=n
-CONFIG_VTD=n
-CONFIG_SGX=n
-CONFIG_USB=n
-CONFIG_HOTPLUG=n
-CONFIG_MPATH=n
-CONFIG_NUMA=n

@@ -83,26 +83,43 @@ cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
 
 ################################################################################
 
+export ARCH="x86_64"
 out_dir="$PWD/$bin_dir"
 
-path=$PWD/musl/output
-export PATH=$path/bin:$path/$ARCH/bin:$PATH
-export ARCH=x86_64
-export CFLAGS="-O1 -march=native -flto -fno-plt -fPIE -falign-functions=32 -pipe"
-export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions"
+path="$PWD/../musl/output"
+export PATH="$path/bin:$path/$ARCH/bin:$PATH"
+#export CFLAGS="-O1 -march=native -flto -fno-plt -falign-functions=32 -pipe"
+#export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
+#export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions"
+
+# -fPIE -Wl,-z,nocopyreloc --prefix=$path/bin/$ARCH-linux-musl- \
 
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
 mkdir -p build; cd build
+
+#export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
+#export CC="${CROSS_COMPILE}gcc"
+#export LD="${CROSS_COMPILE}ld"
+#export AR="${CROSS_COMPILE}ar"
+#export NM="${CROSS_COMPILE}nm"
+
+glib="/usr/lib/${ARCH}-linux-gnu"
+mlib="/usr/lib/${ARCH}-linux-musl"
+
+#for i in c z m pcre slirp glibc-2.0; do
+for i in z; do
+  LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
+done
+printf "\n$LIBA\n\n"; read key
 ../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
   --without-default-features \
-  --target-list=x86_64-softmmu \
-  --with-devices-x86_64=minikvm \
+  --target-list=$ARCH-softmmu \
+  --with-devices-$ARCH=minikvm \
   --enable-kvm \
   --enable-tcg \
   --enable-system \
@@ -113,17 +130,23 @@ mkdir -p build; cd build
   --enable-fdt \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS -s" --extra-cflags="$CFLAGS -s" || exit
+  --extra-ldflags="$LDFLAGS -s $LIBA" \
+  --extra-cflags="$CFLAGS -s" || exit
+
+#  --extra-ldflags="$LDFLAGS -s -L$path/ -L$path/../ -B$path/ -B$path/../ -fno-PIE $LIBA -L/usr/lib" \
+#  --extra-cflags="$CFLAGS -I$path/ -I$path/../ -I$path/../gcc-14.3.0.orig/zlib -s" || exit
 
 ################################################################################
 
 if make -j$(nproc) qemu-system-$ARCH; then
   cd ..
-  cp -f build/qemu-system-$ARCH src/pc-bios/qboot.rom ../virt
+  cp -f build/qemu-system-$ARCH ../virt
   cd ..
   echo
-  virt/qemu-system-x86_64 -M help
-  strip -s virt/qemu-system-x86_64
+  ldd virt/qemu-system-$ARCH
+  @echo $LIBA | tr ' ' \\n
+  virt/qemu-system-$ARCH -M help
+  strip -s virt/qemu-system-$ARCH
   du -k virt/qemu-system-$ARCH virt/qboot.rom
 fi
 

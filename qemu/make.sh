@@ -88,9 +88,9 @@ out_dir="$PWD/$bin_dir"
 
 path="$PWD/../musl/output"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-#export CFLAGS="-O1 -march=native -flto -fno-plt -falign-functions=32 -pipe"
-#export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-#export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions"
+export CFLAGS="-O1 -march=native -flto -fno-plt -falign-functions=32 -pipe -s"
+export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
+export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 -s"
 
 # -fPIE -Wl,-z,nocopyreloc --prefix=$path/bin/$ARCH-linux-musl- \
 
@@ -108,9 +108,10 @@ mkdir -p build; cd build
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-
+#echo $(find /usr/lib/ -name libpcre\*.a | cut -d/ -f5 )
 #for i in c z m pcre slirp glibc-2.0; do
-for i in z pcre; do
+#pcre16 pcre2-16 pcrecpp pcre pcreposix pcre32 pcre2-posix pcre2-8 pcre2-32
+for i in z c_nonshared pcre pcreposix pcre32 pcre2-posix pcre2-8; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 printf "\n$LIBA\n\n"; read key
@@ -131,9 +132,10 @@ printf "\n$LIBA\n\n"; read key
   --disable-tcg-interpreter \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS -s $LIBA -no-pie -B$glib/ -L$glib/" \
-  --extra-cflags="$CFLAGS -s -O1 -march=native -falign-functions=32" || exit
+  --extra-ldflags="$LDFLAGS $LIBA" \
+  --extra-cflags="$CFLAGS" || exit
 
+#--extra-ldflags="-static -no-pie -Wl,--push-state,-Bstatic -lslirp -lglib-2.0 -lpcre2-8 -lz -Wl,--pop-state" -fPIE -Wl,-z,nocopyreloc
 #  --extra-ldflags="$LDFLAGS -s -L$path/ -L$path/../ -B$path/ -B$path/../ -fno-PIE $LIBA -L/usr/lib" \
 #  --extra-cflags="$CFLAGS -I$path/ -I$path/../ -I$path/../gcc-14.3.0.orig/zlib -s" || exit
 
@@ -145,7 +147,7 @@ if make -j$(nproc) qemu-system-$ARCH; then
   cd ..
   echo
   ldd virt/qemu-system-$ARCH
-  @echo $LIBA | tr ' ' \\n
+  echo $LIBA | tr ' ' \\n
   virt/qemu-system-$ARCH -M help
   strip -s virt/qemu-system-$ARCH
   du -k virt/qemu-system-$ARCH virt/qboot.rom

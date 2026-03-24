@@ -65,6 +65,18 @@ patch -p1 << EOF
      }
  
      acpi_add_table(table_offsets, tables_blob);
+--- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
++++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
+@@ -149,7 +149,8 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
+             aml_append(dev, aml_name_decl("_CRS", crs));
+ 
+             if (is_cxl) {
+-                build_cxl_osc_method(dev);
++                //RAF: disabled for minimal build
++                //build_cxl_osc_method(dev);
+             } else {
+                 /* pxb bridges do not have ACPI PCI Hot-plug enabled */
+                 acpi_dsdt_add_host_bridge_methods(dev, true);
 EOF
 read
 grep -A5 -B5 "disabled for minimal build" hw/i386/acpi-build.c

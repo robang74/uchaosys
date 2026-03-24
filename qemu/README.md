@@ -1,4 +1,4 @@
-## Experimental hacked u-footprint QEMU edition
+### Experimental hacked u-footprint QEMU edition
 
 In 2019, RedHat presented the minimal footprint QEMU at **31MB for the Q35 machine with KVM** support. I tested a similar configuration and I found out that it was not less than 28MB. In these six years they did a good job in reducing 10% of the minimal footprint.
 
@@ -8,9 +8,13 @@ I did a "trick of mine", possibly two, and the minimal footprint to have a x86-6
 
 ![image](red-hat-kvm-2019-qemu-footprint.png)
 
+---
+
 ### Quick Start
 
 ```sh
 git clone https://github.com/robang74/uchaosys.git
-cd uchaosys/qemu && sh make.sh veryclean sources
+cd uchaosys/qemu
+git switch devl
+sh make.sh veryclean sources
 ```

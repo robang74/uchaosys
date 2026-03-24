@@ -27,6 +27,7 @@ KMOD        := uchaos_dev.ko
 HOSTCC      := gcc
 CC          := $(CCPREFIX)gcc
 OPTS        := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
+OPTS        += CFLAGS_EXTRA="-falign-functions=32"
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
 

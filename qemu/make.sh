@@ -33,47 +33,51 @@ if [ "${1:-}" = "sources" ]; then
   patch -p1 << EOF
 --- a/$src_dir/hw/i386/acpi-build.c	2026-03-24 14:23:37.852944753 +0100
 +++ b/$src_dir/hw/i386/acpi-build.c	2026-03-24 14:26:02.097386643 +0100
-@@ -839,7 +839,8 @@ static void build_acpi0017(Aml *table)
+@@ -839,7 +839,9 @@ static void build_acpi0017(Aml *table)
      method = aml_method("_STA", 0, AML_NOTSERIALIZED);
      aml_append(method, aml_return(aml_int(0x0B)));
      aml_append(dev, method);
 -    build_cxl_dsm_method(dev);
-+    //RAF: disabled for minimal build
-+    //build_cxl_dsm_method(dev);
++ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
++    build_cxl_dsm_method(dev);
++ #endif
  
      aml_append(scope, dev);
      aml_append(table, scope);
-@@ -1014,7 +1015,8 @@ build_dsdt(GArray *table_data, BIOSLinke
+@@ -1014,7 +1015,9 @@ build_dsdt(GArray *table_data, BIOSLinke
                  aml_append(aml_pkg, aml_eisaid("PNP0A08"));
                  aml_append(aml_pkg, aml_eisaid("PNP0A03"));
                  aml_append(dev, aml_name_decl("_CID", aml_pkg));
 -                build_cxl_osc_method(dev);
-+                //RAF: disabled for minimal build
-+                //build_cxl_osc_method(dev);
++ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
++                build_cxl_osc_method(dev);
++ #endif
              } else if (pci_bus_is_express(bus)) {
                  aml_append(dev, aml_name_decl("_HID", aml_eisaid("PNP0A08")));
                  aml_append(dev, aml_name_decl("_CID", aml_eisaid("PNP0A03")));
-@@ -2072,8 +2074,9 @@ void acpi_build(AcpiBuildTables *tables,
+@@ -2072,8 +2074,10 @@ void acpi_build(AcpiBuildTables *tables,
                            x86ms->oem_id, x86ms->oem_table_id);
      }
      if (pcms->cxl_devices_state.is_enabled) {
 -        cxl_build_cedt(table_offsets, tables_blob, tables->linker,
 -                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
-+        //RAF: disabled for minimal build
-+        //cxl_build_cedt(table_offsets, tables_blob, tables->linker,
-+        //               x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
++ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
++        cxl_build_cedt(table_offsets, tables_blob, tables->linker,
++                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
++ #endif
      }
  
      acpi_add_table(table_offsets, tables_blob);
 --- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
 +++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
-@@ -149,7 +149,8 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
+@@ -149,7 +119,9 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
              aml_append(dev, aml_name_decl("_CRS", crs));
  
              if (is_cxl) {
 -                build_cxl_osc_method(dev);
-+                //RAF: disabled for minimal build
-+                //build_cxl_osc_method(dev);
++ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
++                build_cxl_osc_method(dev);
++ #endif
              } else {
                  /* pxb bridges do not have ACPI PCI Hot-plug enabled */
                  acpi_dsdt_add_host_bridge_methods(dev, true);
@@ -114,7 +118,7 @@ mlib="/usr/lib/${ARCH}-linux-musl"
 for i in pthread z; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-printf "\n$LIBA\n\n"; read key
+printf "\n$LIBA\n\n"
 ../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
@@ -133,7 +137,7 @@ printf "\n$LIBA\n\n"; read key
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
   --extra-ldflags="$LDFLAGS -no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $LIBA" \
-  --extra-cflags="$CFLAGS" || exit
+  --extra-cflags="$CFLAGS -D_DISABLE_CXL" || exit
 
 #  --extra-ldflags="$LDFLAGS -no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries -Wl,-z,nocopyreloc -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-Bstatic -lz -lm -Wl,-Bdynamic"
 #-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries -Wl,--whole-archive $LIBA -Wl,--no-whole-archive -Wl,-Bstatic -lz -Wl,-Bdynamic" \

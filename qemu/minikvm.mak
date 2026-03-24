@@ -25,18 +25,18 @@ CONFIG_Q35=y
   CONFIG_ACPI_CXL=y # <-- this is the source of the problem
 
 ################################################################################
-# CONFIG_MICROVM=y
-# # Core bus + devices you want
-# CONFIG_VIRTIO_PCI=y
-# CONFIG_VIRTIO_NET=y
-# CONFIG_VIRTIO_BLK=y
-# CONFIG_VIRTIO_MMIO=y
-# CONFIG_VIRTIO_SCSI=y
-# CONFIG_VIRTIO_SERIAL=y
-# CONFIG_VIRTIO_BALLOON=y
-# # Other common sources of missing symbols / bloat
-# CONFIG_VIRTIO_INPUT=n
-# CONFIG_VIRTIO_GPU=n
-# CONFIG_VIRTIO_RNG=n
-# CONFIG_VIRTIO_CRYPTO=n
+CONFIG_MICROVM=y
+# Core bus + devices you want
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VIRTIO_MMIO=y
+CONFIG_VIRTIO_SCSI=y
+CONFIG_VIRTIO_SERIAL=y
+CONFIG_VIRTIO_BALLOON=y
+# Other common sources of missing symbols / bloat
+CONFIG_VIRTIO_INPUT=n
+CONFIG_VIRTIO_GPU=n
+CONFIG_VIRTIO_RNG=n
+CONFIG_VIRTIO_CRYPTO=n
 

@@ -110,7 +110,7 @@ glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
 
 #for i in c z m pcre slirp glibc-2.0; do
-for i in z; do
+for i in z pcre; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 printf "\n$LIBA\n\n"; read key
@@ -128,10 +128,11 @@ printf "\n$LIBA\n\n"; read key
   --enable-strip \
   --enable-lto \
   --enable-fdt \
+  --disable-tcg-interpreter \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS -s $LIBA" \
-  --extra-cflags="$CFLAGS -s" || exit
+  --extra-ldflags="$LDFLAGS -s $LIBA -no-pie -B$glib/ -L$glib/" \
+  --extra-cflags="$CFLAGS -s -O1 -march=native -falign-functions=32" || exit
 
 #  --extra-ldflags="$LDFLAGS -s -L$path/ -L$path/../ -B$path/ -B$path/../ -fno-PIE $LIBA -L/usr/lib" \
 #  --extra-cflags="$CFLAGS -I$path/ -I$path/../ -I$path/../gcc-14.3.0.orig/zlib -s" || exit

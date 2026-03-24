@@ -35,15 +35,26 @@ out_dir="$PWD/$bin_dir"
 path=$PWD/musl/output
 export PATH=$path/bin:$path/$ARCH/bin:$PATH
 export ARCH=x86_64
-#export CFLAGS="-O1 -march=native -flto -fno-plt -fno-plt -fPIE -pipe -static -s"
+#export CFLAGS="-O1 -march=native -flto -fno-plt -fPIE -pipe -static -s"
 #export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 #export LDFLAGS="--static -flto -fno-plt -Wl,--gc-sections"
 
+# slirp is for user-emulated network, while vhost is for the passtrough:
+# - user-mode networking (stack TCP/IP emulated by QEMU)
+# - kernel-level acceleration (passthrough-like via TAP)
+# both should be available because they contributes jittering in different ways
 mkdir -p build; cd build
-../$src_dir/configure \
+CFLAGS="-O1 -march=native -pipe" ../$src_dir/configure \
   --enable-kvm \
   --enable-system \
+  --enable-strip \
+  --disable-werror \
+  --disable-debug-info \
+  --disable-debug-tcg \
+  --disable-tcg-interpreter \
   --target-list=x86_64-softmmu \
+  --enable-vhost-net \
+  --enable-slirp \
   --disable-tools \
   --disable-docs \
   --extra-cflags="-s" || exit

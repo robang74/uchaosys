@@ -9,6 +9,8 @@ kimg="bzImage"
 rfsimg="initramfs.cpio"
 qemubin="qemu-system-x86_64"
 
+export PATH=.:$PATH
+
 test -r ${rfsimg}.gz && rfsimg="${rfsimg}.gz"
 rfsdir=$(echo "$rfsimg" | sed 's/\.cpio\.gz//;s/\.cpio//')
 

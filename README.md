@@ -85,7 +85,7 @@ However, using gzcmd executables make sense only when a storage is available. Ot
 
 ### Abstract
 
-In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal crng once) by loading the module which needs [to hack the kernel internals](docs/linux-kernel-internals-hacking.png) because backport fix from 6.x left a corner case uncovered.
+In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal crng once) by loading the module which needs [to hack the kernel internals](https://raw.githubusercontent.com/robang74/uchaosys/refs/heads/devl/docs/linux-kernel-internals-hacking.png) because backport fix from 6.x left a corner case uncovered.
 
 It is worth to underline that this choice is not suggested as per a standard case use of uChaos but it is necessary for testing uChaos/crng duo excluding every possible internal source of interference: if it doesn't fail, it isn't because other sources of entropy are supplying.
 

@@ -13,6 +13,7 @@ infl_cmd="tar -xzf"
 
 bin_dir="bin"
 src_dir="src"
+dst_dir="../virt"
 
 if [ "${1:-}" = "clean" ]; then
   rm -rf build/
@@ -21,6 +22,8 @@ elif [ "${1:-}" = "veryclean" ]; then
   test "${2:-}" = "" && exit
   shift
 fi
+# A recursive deletion upon a variable argument is risky, define it later 
+bld_dir="build"
 
 ################################################################################
 
@@ -92,17 +95,16 @@ out_dir="$PWD/$bin_dir"
 
 path="$PWD/../musl/output"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-export CFLAGS="-O1 -march=x86-64-v3 -mtune=generic -flto -fno-plt -falign-functions=32 -pipe -s"
+CFLAGS="-O1 -march=x86-64-v3 -mtune=generic -flto -fno-plt -falign-functions=32 -pipe -s"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 -s"
-
-# -fPIE -Wl,-z,nocopyreloc --prefix=$path/bin/$ARCH-linux-musl- \
+LDFLAGS="-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
+export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 -s $LDFLAGS"
 
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
-mkdir -p build; cd build
+mkdir -p $bld_dir; cd $bld_dir
 
 #export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
 #export CC="${CROSS_COMPILE}gcc"
@@ -112,13 +114,10 @@ mkdir -p build; cd build
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-#echo $(find /usr/lib/ -name libpcre\*.a | cut -d/ -f5 )
-#for i in c z m pcre slirp glibc-2.0; do
-#pcre16 pcre2-16 pcrecpp pcre pcreposix pcre32 pcre2-posix pcre2-8 pcre2-32
 for i in pthread z; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-printf "\n$LIBA\n\n"
+printf "\nStatic libraries found:$LIBA\n\n"
 ../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
@@ -136,26 +135,36 @@ printf "\n$LIBA\n\n"
   --disable-tcg-interpreter \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS -no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $LIBA" \
+  --extra-ldflags="$LDFLAGS $LIBA" \
   --extra-cflags="$CFLAGS -D_DISABLE_CXL" || exit
-
-#  --extra-ldflags="$LDFLAGS -no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries -Wl,-z,nocopyreloc -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-Bstatic -lz -lm -Wl,-Bdynamic"
-#-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries -Wl,--whole-archive $LIBA -Wl,--no-whole-archive -Wl,-Bstatic -lz -Wl,-Bdynamic" \
-#--extra-ldflags="-static -no-pie -Wl,--push-state,-Bstatic -lslirp -lglib-2.0 -lpcre2-8 -lz -Wl,--pop-state" -fPIE -Wl,-z,nocopyreloc
-#  --extra-ldflags="$LDFLAGS -s -L$path/ -L$path/../ -B$path/ -B$path/../ -fno-PIE $LIBA -L/usr/lib" \
-#  --extra-cflags="$CFLAGS -I$path/ -I$path/../ -I$path/../gcc-14.3.0.orig/zlib -s" || exit
 
 ################################################################################
 
-if make -j$(nproc) qemu-system-$ARCH; then
-  cd ..
-  cp -f build/qemu-system-$ARCH ../virt
-  cd ..
+shft() { sed -e "s/^/\t/"; }
+roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
+qbin="qemu-system-$ARCH"
+if make -j$(nproc) $qbin; then
+  echo "=============================="
   echo
-  ldd virt/qemu-system-$ARCH
-  echo $LIBA | tr ' ' \\n
-  virt/qemu-system-$ARCH -M help
-  strip -s virt/qemu-system-$ARCH
-  du -k virt/qemu-system-$ARCH virt/qboot.rom
+  echo " Building path:\n\t$PWD"
+  cd ..
+  cp -f $bld_dir/$qbin $dst_dir 
+  for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
+  cd $dst_dir
+  echo
+  echo " Dynamic libraries involved:"
+  ldd ./$qbin
+  echo
+  echo " Static  libraries involved:"
+  echo  $LIBA | tr ' ' \\n | shft
+  echo
+  strip -s $qbin
+  echo " Supported machines are:"
+  ./$qbin -M help | grep -ve "^Supported" | shft
+  echo
+  echo " Hacked qemu footprint:"
+  printf "\t$(du -k $qbin)\n"
+  sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
+  printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
 fi
 

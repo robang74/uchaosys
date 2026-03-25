@@ -132,7 +132,8 @@ LIBA="$LIBA $PWD/../slirp/libslirp.a"
 for i in pthread z m c_nonshared glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-LIBA="$LIBA $(find /usr -name libpcre\*.a | tr '\n' ' ')"
+pcre=$(find /usr -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
+LIBA="$LIBA $pcre"
 printf "\nStatic libraries found:\n\t"$LIBA"\n\n"
 
 CFLAGS="" LDFLAGS="" ../$src_dir/configure \
@@ -157,14 +158,17 @@ CFLAGS="" LDFLAGS="" ../$src_dir/configure \
 
 ################################################################################
 
-shft() { sed -e "s/^/\t/"; }
+shft() { sed -e "s/^/\t/" -e "s,$tdir/,,"; }
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
+pdir=$PWD
+
 if ! make -j$(nproc) $qbin; then
   echo "Retry for static linking ... "
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
   ${CC:-cc} -m64 @$qbin.rsp || exit $?
 fi
+
 echo "==============================="
 echo
 echo " Building path:\n\t$PWD"
@@ -174,10 +178,13 @@ for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
 cd $dst_dir
 echo
 echo " Dynamic libraries involved:"
-ldd ./$qbin
+ldd ./$qbin 2>&1 | grep "not a dynamic" && {
+  printf "\tgetpwuid getpwnam_r getpwuid_r getpwnam %s\n" \
+    "initgroups gethostbyname getaddrinfo"
+}
 echo
 echo " Static  libraries involved:"
-echo  $LIBA | tr ' ' \\n | shft
+echo $LIBA | tr ' ' \\n | sort | shft
 echo
 strip -s $qbin
 echo " Supported machines are:"

@@ -22,7 +22,7 @@ elif [ "${1:-}" = "veryclean" ]; then
   test "${2:-}" = "" && exit
   shift
 fi
-# A recursive deletion upon a variable argument is risky, define it later 
+# A recursive deletion upon a variable argument is risky, define it later
 bld_dir="build"
 
 ################################################################################
@@ -44,7 +44,7 @@ if [ "${1:-}" = "sources" ]; then
 + #ifndef _DISABLE_CXL //RAF: disable for a minimal build
 +    build_cxl_dsm_method(dev);
 + #endif
- 
+
      aml_append(scope, dev);
      aml_append(table, scope);
 @@ -1014,7 +1015,9 @@ build_dsdt(GArray *table_data, BIOSLinke
@@ -69,13 +69,13 @@ if [ "${1:-}" = "sources" ]; then
 +                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
 + #endif
      }
- 
+
      acpi_add_table(table_offsets, tables_blob);
 --- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
 +++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
 @@ -149,7 +119,9 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
              aml_append(dev, aml_name_decl("_CRS", crs));
- 
+
              if (is_cxl) {
 -                build_cxl_osc_method(dev);
 + #ifndef _DISABLE_CXL //RAF: disable for a minimal build
@@ -95,10 +95,10 @@ out_dir="$PWD/$bin_dir"
 
 path="$PWD/../musl/output"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 -mtune=generic -flto -fno-plt -falign-functions=32 -pipe -s"
+CFLAGS="-O1 -march=x86-64-v3 -flto -fno-plt -falign-functions=32 -pipe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 LDFLAGS="-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 -s $LDFLAGS"
+export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
 
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
@@ -114,11 +114,11 @@ mkdir -p $bld_dir; cd $bld_dir
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-for i in pthread z; do
+for i in pthread z m c_nonshared glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 printf "\nStatic libraries found:$LIBA\n\n"
-../$src_dir/configure \
+CFLAGS="" LDFLAGS="" ../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
   --without-default-features \
@@ -129,42 +129,47 @@ printf "\nStatic libraries found:$LIBA\n\n"
   --enable-system \
   --enable-vhost-net \
   --enable-slirp \
-  --enable-strip \
   --enable-lto \
   --enable-fdt \
-  --disable-tcg-interpreter \
+  --disable-attr --disable-cap-ng \
+  --disable-tcg-interpreter --disable-auth-pam \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS $LIBA" \
-  --extra-cflags="$CFLAGS -D_DISABLE_CXL" || exit
+  --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS" \
+  --extra-ldflags="$LDFLAGS -no-pie -fPIC $PWD/libm_ifix.o $LIBA $(find $PWD -name libslirp.a) $(find /usr -name libpcre\*.a) -static" || exit $?
+
+#   --extra-ldflags="$LDFLAGS -no-pie $PWD/libm_ifix.o $PWD/libslirp.a /usr/lib/x86_64-linux-gnu/libc_nonshared.a /usr/lib/x86_64-linux-gnu/libglib-2.0.a /usr/lib/x86_64-linux-gnu/libpcre2-8.a /usr/lib/x86_64-linux-gnu/libpcre.a  " \
 
 ################################################################################
 
 shft() { sed -e "s/^/\t/"; }
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
-if make -j$(nproc) $qbin; then
-  echo "=============================="
-  echo
-  echo " Building path:\n\t$PWD"
-  cd ..
-  cp -f $bld_dir/$qbin $dst_dir 
-  for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
-  cd $dst_dir
-  echo
-  echo " Dynamic libraries involved:"
-  ldd ./$qbin
-  echo
-  echo " Static  libraries involved:"
-  echo  $LIBA | tr ' ' \\n | shft
-  echo
-  strip -s $qbin
-  echo " Supported machines are:"
-  ./$qbin -M help | grep -ve "^Supported" | shft
-  echo
-  echo " Hacked qemu footprint:"
-  printf "\t$(du -k $qbin)\n"
-  sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
-  printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
+if ! make -j$(nproc) $qbin; then
+  echo "Retry for static linking ... "
+  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
+  ${CC:-cc} -m64 @$qbin.rsp || exit $?
 fi
+echo "==============================="
+echo
+echo " Building path:\n\t$PWD"
+cd ..
+cp -f $bld_dir/$qbin $dst_dir
+for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
+cd $dst_dir
+echo
+echo " Dynamic libraries involved:"
+ldd ./$qbin
+echo
+echo " Static  libraries involved:"
+echo  $LIBA | tr ' ' \\n | shft
+echo
+strip -s $qbin
+echo " Supported machines are:"
+./$qbin -M help | grep -ve "^Supported" | shft
+echo
+echo " Hacked qemu footprint:"
+printf "\t$(du -k $qbin)\n"
+sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
+printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
 

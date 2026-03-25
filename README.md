@@ -117,7 +117,15 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 ### Hacked μ-qemu
 
-Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this project also provides the option of compiling a special [footprint reduced](qemu/) edition of the `qemu-system-x86_64` binary (6044 KB) which uses a subset of ROMs (488 KB). It is worth to notice that, despite this custom **qemu v10.2.2** is still a dynamically compiled instance, the whole uChaSys + μ-qemu package occupy less than 10MB on an uncompressed file-system storage (8.14 MB, plus shared system libraries).
+Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this project also provides the option of compiling a special [footprint reduced](qemu/) edition of the `qemu-system-x86_64` binary (8188 KB) which uses a subset of ROMs (488 KB).
+
+> FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4), 
+> GZIP: 3099857 (3027 Kb, 37 %), GZSH: v0.1.6
+
+> FILE: 'RNG_test.gz.sh', HEAD: 1384 (4), 
+> GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
+
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by `gzcmd.sh` in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains under 6 MB.
 
 <br>
 

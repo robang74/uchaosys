@@ -125,7 +125,7 @@ Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this pr
 > FILE: 'RNG_test.gz.sh', HEAD: 1384 (4), 
 > GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
 
-It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by `gzcmd.sh` in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains under 6 MB.
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains under 6 MB.
 
 <br>
 

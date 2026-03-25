@@ -115,6 +115,12 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 <br>
 
+### Hacked μ-qemu
+
+Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this project also provides the option of compiling a special [footprint reduced](qemu/) edition of the `qemu-system-x86_64` binary (6044 KB) which uses a subset of ROMs (488 KB). It is worth to notice that, despite this custom **qemu v10.2.2** is still a dynamically compiled instance, the whole uChaSys + μ-qemu package occupy less than 10MB on an uncompressed file-system storage (8.14 MB, plus shared system libraries).
+
+<br>
+
 ### License
 
 The overall license for the uChaoSys binaries is dependent on the system components thus the GPLv2 is the reference as the most demanding license among those involved as long as "GPLv2 or later" means GPLv2 as an option.

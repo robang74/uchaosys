@@ -12,12 +12,20 @@ I did a "trick of mine", possibly two, and the minimal footprint to have a x86-6
 
 ### Quick Start
 
+The following instructions set builds a **qemu v10.2.2** binary:
+
 ```sh
 git clone https://github.com/robang74/uchaosys.git
 cd uchaosys/qemu
 git switch devl
 sh make.sh veryclean sources
 ```
+
+The outcoming elf64 binary isn't a totally static because glibc but almost apart the following function that would not be resolved properly unless a specific patch applies:
+
+- `getpwuid getpwnam_r getpwuid_r getpwnam initgroups gethostbyname getaddrinfo`
+
+However, the final goal is to compile static against musl, which isn't trivial therefore an approach step by step is easier for proceeding. In fact, the `configure` apparently mess-up the linking, the last step of the build, when `-static` is involved. Which is the main reason to stick to shell script before switch to a more traditional `Makefile`.
 
 ---
 

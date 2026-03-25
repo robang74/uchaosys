@@ -16,9 +16,9 @@ src_dir="src"
 dst_dir="../virt"
 
 if [ "${1:-}" = "clean" ]; then
-  rm -rf build/
+  rm -rf build/ slirp/libslirp.a
 elif [ "${1:-}" = "veryclean" ]; then
-  rm -rf build/ src/
+  rm -rf build/ slirp/libslirp.a src/
   test "${2:-}" = "" && exit
   shift
 fi
@@ -97,14 +97,6 @@ path="$PWD/../musl/output"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
 CFLAGS="-O1 -march=x86-64-v3 -flto -fno-plt -falign-functions=32 -pipe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-LDFLAGS="-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
-
-# slirp is for user-emulated network, while vhost is for the passtrough:
-# - user-mode networking (stack TCP/IP emulated by QEMU)
-# - kernel-level acceleration (passthrough-like via TAP)
-# both should be available because they contributes jittering in different ways
-mkdir -p $bld_dir; cd $bld_dir
 
 #export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
 #export CC="${CROSS_COMPILE}gcc"
@@ -112,12 +104,37 @@ mkdir -p $bld_dir; cd $bld_dir
 #export AR="${CROSS_COMPILE}ar"
 #export NM="${CROSS_COMPILE}nm"
 
+# slirp is for user-emulated network, while vhost is for the passtrough:
+# - user-mode networking (stack TCP/IP emulated by QEMU)
+# - kernel-level acceleration (passthrough-like via TAP)
+# both should be available because they contributes jittering in different ways
+
+if [ ! -r slirp/libslirp.a ]; then
+  echo
+  echo "Compiling slirp/libslirp.a ... $PWD"
+  echo
+  set -e
+  cd slirp; rm -rf build; mkdir -p build
+  meson build --prefix=$PWD/build && ninja -C build
+  ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
+  cd ..
+  set +e
+fi
+
+LDFLAGS="-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
+export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
+
+mkdir -p $bld_dir; cd $bld_dir
+
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
+LIBA="$LIBA $PWD/../slirp/libslirp.a"
 for i in pthread z m c_nonshared glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-printf "\nStatic libraries found:$LIBA\n\n"
+LIBA="$LIBA $(find /usr -name libpcre\*.a | tr '\n' ' ')"
+printf "\nStatic libraries found:\n\t"$LIBA"\n\n"
+
 CFLAGS="" LDFLAGS="" ../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
@@ -135,10 +152,8 @@ CFLAGS="" LDFLAGS="" ../$src_dir/configure \
   --disable-tcg-interpreter --disable-auth-pam \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS" \
-  --extra-ldflags="$LDFLAGS -no-pie -fPIC $PWD/libm_ifix.o $LIBA $(find $PWD -name libslirp.a) $(find /usr -name libpcre\*.a) -static" || exit $?
-
-#   --extra-ldflags="$LDFLAGS -no-pie $PWD/libm_ifix.o $PWD/libslirp.a /usr/lib/x86_64-linux-gnu/libc_nonshared.a /usr/lib/x86_64-linux-gnu/libglib-2.0.a /usr/lib/x86_64-linux-gnu/libpcre2-8.a /usr/lib/x86_64-linux-gnu/libpcre.a  " \
+  --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
+  --extra-ldflags="$LDFLAGS -no-pie -fPIC $LIBA -static -s" || exit $?
 
 ################################################################################
 

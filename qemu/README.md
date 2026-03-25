@@ -1,4 +1,4 @@
-### Experimental hacked u-footprint QEMU edition
+### Experimental hacked μ-footprint QEMU edition
 
 In 2019, RedHat presented the minimal footprint QEMU at **31MB for the Q35 machine with KVM** support. I tested a similar configuration and I found out that it was not less than 28MB. In these six years they did a good job in reducing 10% of the minimal footprint.
 

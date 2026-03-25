@@ -1,0 +1,37 @@
+--- ./src/os-posix.c.0	2026-03-25 19:03:38.092984529 +0100
++++ ./src/os-posix.c	2026-03-25 19:07:46.403629151 +0100
+@@ -103,6 +103,10 @@ static gid_t user_gid = (gid_t)-1; /*
+  */
+ bool os_set_runas(const char *user_id)
+ {
++#ifdef _DISABLE_RUNAS
++    fprintf(stderr, "-runas is disabled in this hacked edition\n");
++    exit(1);
++#else
+     unsigned long lv;
+     const char *ep;
+     uid_t got_uid;
+@@ -132,10 +136,15 @@ bool os_set_runas(const char *user_id)
+     user_uid = got_uid;
+     user_gid = got_gid;
+     return true;
++#endif
+ }
+ 
+ static void change_process_uid(void)
+ {
++#ifdef _DISABLE_RUNAS
++    fprintf(stderr, "-runas is disabled in this hacked edition\n");
++    exit(1);
++#else
+     assert((user_uid == (uid_t)-1) || user_pwd == NULL);
+     assert((user_uid == (uid_t)-1) ==
+            (user_gid == (gid_t)-1));
+@@ -169,6 +178,7 @@ static void change_process_uid(void)
+             exit(1);
+         }
+     }
++#endif
+ }
+ 
+ 

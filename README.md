@@ -106,7 +106,7 @@ make runqemu
 
 The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.
 
-- [uchaosys binary snapshot for qemu x86_64](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)
+- [uchaosys binary snapshot for qemu x86_64](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu) &hairsp;v0.6.3
 
 Considering that the system footprint is below 2MB, offering a binary sample makes sense independently from the outages. This snapshot is not supposed to be updated often, therefore refers to the above project link.
 

@@ -10,3 +10,6 @@
 [submodule "prnd"]
 	path = prnd
 	url = https://github.com/robang74/pracrand.git
+[submodule "slirp"]
+	path = qemu/slirp
+	url = https://github.com/robang74/libslirp.git

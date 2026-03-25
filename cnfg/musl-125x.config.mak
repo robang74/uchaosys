@@ -74,7 +74,7 @@ DL_CMD = wget -c -O
 # COMMON_CONFIG += CFLAGS="-g0 -O2 -pipe" CXXFLAGS="-g0 -O2 -pipe" LDFLAGS="-s"
 # Definetely avoid -O3 because a single mistake in a toolchain avalanches
 
-GCC_FLAGS := "-g0 -O1 -pipe -static"
+GCC_FLAGS := "-g0 -O1 -falign-functions=32 -pipe -static -fno-semantic-interposition"
 COMMON_CONFIG +=   CFLAGS=$(GCC_FLAGS)
 COMMON_CONFIG += CXXFLAGS=$(GCC_FLAGS)
 COMMON_CONFIG +=  LDFLAGS="-s --static"

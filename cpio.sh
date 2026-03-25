@@ -6,6 +6,7 @@
 action=${1:-}
 cpiofl=${2:-initramfs.cpio.gz}
 tmpdir=${3:-cpio.tmp}
+vrtdir=${4:-virt/}
 
 zcmd="gzip"; which pigz >/dev/null && zcmd="pigz"
 
@@ -25,7 +26,7 @@ while true; do
         --reproducible --owner 0:0 | tee ../cpio.cpio | $zcmd -9nc > ../$cpiofl
       cd - >/dev/null
       du -ks $cpiofl | sed -e "s/\t/ KB /" -e "s/^/ /"
-      test -d qemu/ && mv -f $cpiofl qemu/
+      test -d $vrtdir && mv -f $cpiofl $vrtdir
   else
       echo
       echo "Usage: cpio.sh -e|-c|-d [file [dir]]"

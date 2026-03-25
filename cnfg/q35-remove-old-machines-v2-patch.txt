@@ -1,0 +1,504 @@
+https://lists.libreplanet.org/archive/html/qemu-devel/2016-01/msg04496.html
+
+This is another attempt to remove old q35 machine code. Now I am
+also removing unused compat code to demonstrate the benefit of
+throwing away the old code that nobody uses.
+
+Eduardo Habkost (5):
+  q35: Remove old machine versions
+  machine: Remove no_tco field
+  ich9: Remove enable_tco arguments from init functions
+  q35: Remove unused q35-acpi-dsdt.aml file
+  q35: No need to check gigabyte_align
+
+ Makefile                  |   2 +-
+ hw/acpi/ich9.c            |   8 +--
+ hw/i386/pc_q35.c          | 176 +---------------------------------------------
+ hw/isa/lpc_ich9.c         |   4 +-
+ include/hw/acpi/ich9.h    |   1 -
+ include/hw/boards.h       |   1 -
+ include/hw/i386/ich9.h    |   2 +-
+ pc-bios/q35-acpi-dsdt.aml | Bin 7344 -> 0 bytes
+ 8 files changed, 9 insertions(+), 185 deletions(-)
+ delete mode 100644 pc-bios/q35-acpi-dsdt.aml
+
+-- 
+2.1.0
+
+
+
+Migration with q35 was not possible before commit
+04329029a8c539eb5f75dcb6d8b016f0c53a031a, because q35
+unconditionally creates an ich9-ahci device, that was marked as
+unmigratable. So all q35 machine classes before pc-q35-2.4 were
+not migratable, so there's no point in keeping compatibility code
+for them.
+
+Remove all old pc-q35 machine classes and keep only pc-q35-2.4
+and newer.
+
+Signed-off-by: Eduardo Habkost <address@hidden>
+---
+ hw/i386/pc_q35.c | 165 -------------------------------------------------------
+ 1 file changed, 165 deletions(-)
+
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index 6128b02..cc81601 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -268,62 +268,6 @@ static void pc_q35_init(MachineState *machine)
+     }
+ }
+ 
+-/* Looking for a pc_compat_2_4() function? It doesn't exist.
+- * pc_compat_*() functions that run on machine-init time and
+- * change global QEMU state are deprecated. Please don't create
+- * one, and implement any pc-*-2.4 (and newer) compat code in
+- * HW_COMPAT_*, PC_COMPAT_*, or * pc_*_machine_options().
+- */
+-
+-static void pc_compat_2_3(MachineState *machine)
+-{
+-    PCMachineState *pcms = PC_MACHINE(machine);
+-    savevm_skip_section_footers();
+-    if (kvm_enabled()) {
+-        pcms->smm = ON_OFF_AUTO_OFF;
+-    }
+-    global_state_set_optional();
+-    savevm_skip_configuration();
+-}
+-
+-static void pc_compat_2_2(MachineState *machine)
+-{
+-    pc_compat_2_3(machine);
+-    machine->suppress_vmdesc = true;
+-}
+-
+-static void pc_compat_2_1(MachineState *machine)
+-{
+-    pc_compat_2_2(machine);
+-    x86_cpu_change_kvm_default("svm", NULL);
+-}
+-
+-static void pc_compat_2_0(MachineState *machine)
+-{
+-    pc_compat_2_1(machine);
+-}
+-
+-static void pc_compat_1_7(MachineState *machine)
+-{
+-    pc_compat_2_0(machine);
+-    x86_cpu_change_kvm_default("x2apic", NULL);
+-}
+-
+-static void pc_compat_1_6(MachineState *machine)
+-{
+-    pc_compat_1_7(machine);
+-}
+-
+-static void pc_compat_1_5(MachineState *machine)
+-{
+-    pc_compat_1_6(machine);
+-}
+-
+-static void pc_compat_1_4(MachineState *machine)
+-{
+-    pc_compat_1_5(machine);
+-}
+-
+ #define DEFINE_Q35_MACHINE(suffix, name, compatfn, optionfn) \
+     static void pc_init_##suffix(MachineState *machine) \
+     { \
+@@ -380,112 +324,3 @@ static void pc_q35_2_4_machine_options(MachineClass *m)
+ 
+ DEFINE_Q35_MACHINE(v2_4, "pc-q35-2.4", NULL,
+                    pc_q35_2_4_machine_options);
+-
+-
+-static void pc_q35_2_3_machine_options(MachineClass *m)
+-{
+-    pc_q35_2_4_machine_options(m);
+-    m->hw_version = "2.3.0";
+-    m->no_floppy = 0;
+-    m->no_tco = 1;
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_2_3);
+-}
+-
+-DEFINE_Q35_MACHINE(v2_3, "pc-q35-2.3", pc_compat_2_3,
+-                   pc_q35_2_3_machine_options);
+-
+-
+-static void pc_q35_2_2_machine_options(MachineClass *m)
+-{
+-    PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
+-    pc_q35_2_3_machine_options(m);
+-    m->hw_version = "2.2.0";
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_2_2);
+-    pcmc->rsdp_in_ram = false;
+-}
+-
+-DEFINE_Q35_MACHINE(v2_2, "pc-q35-2.2", pc_compat_2_2,
+-                   pc_q35_2_2_machine_options);
+-
+-
+-static void pc_q35_2_1_machine_options(MachineClass *m)
+-{
+-    PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
+-    pc_q35_2_2_machine_options(m);
+-    m->hw_version = "2.1.0";
+-    m->default_display = NULL;
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_2_1);
+-    pcmc->smbios_uuid_encoded = false;
+-    pcmc->enforce_aligned_dimm = false;
+-}
+-
+-DEFINE_Q35_MACHINE(v2_1, "pc-q35-2.1", pc_compat_2_1,
+-                   pc_q35_2_1_machine_options);
+-
+-
+-static void pc_q35_2_0_machine_options(MachineClass *m)
+-{
+-    PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
+-    pc_q35_2_1_machine_options(m);
+-    m->hw_version = "2.0.0";
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_2_0);
+-    pcmc->has_reserved_memory = false;
+-    pcmc->smbios_legacy_mode = true;
+-    pcmc->acpi_data_size = 0x10000;
+-}
+-
+-DEFINE_Q35_MACHINE(v2_0, "pc-q35-2.0", pc_compat_2_0,
+-                   pc_q35_2_0_machine_options);
+-
+-
+-static void pc_q35_1_7_machine_options(MachineClass *m)
+-{
+-    PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
+-    pc_q35_2_0_machine_options(m);
+-    m->hw_version = "1.7.0";
+-    m->default_machine_opts = NULL;
+-    m->option_rom_has_mr = true;
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_1_7);
+-    pcmc->smbios_defaults = false;
+-    pcmc->gigabyte_align = false;
+-}
+-
+-DEFINE_Q35_MACHINE(v1_7, "pc-q35-1.7", pc_compat_1_7,
+-                   pc_q35_1_7_machine_options);
+-
+-
+-static void pc_q35_1_6_machine_options(MachineClass *m)
+-{
+-    PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
+-    pc_q35_machine_options(m);
+-    m->hw_version = "1.6.0";
+-    m->rom_file_has_mr = false;
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_1_6);
+-    pcmc->has_acpi_build = false;
+-}
+-
+-DEFINE_Q35_MACHINE(v1_6, "pc-q35-1.6", pc_compat_1_6,
+-                   pc_q35_1_6_machine_options);
+-
+-
+-static void pc_q35_1_5_machine_options(MachineClass *m)
+-{
+-    pc_q35_1_6_machine_options(m);
+-    m->hw_version = "1.5.0";
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_1_5);
+-}
+-
+-DEFINE_Q35_MACHINE(v1_5, "pc-q35-1.5", pc_compat_1_5,
+-                   pc_q35_1_5_machine_options);
+-
+-
+-static void pc_q35_1_4_machine_options(MachineClass *m)
+-{
+-    pc_q35_1_5_machine_options(m);
+-    m->hw_version = "1.4.0";
+-    m->hot_add_cpu = NULL;
+-    SET_MACHINE_COMPAT(m, PC_COMPAT_1_4);
+-}
+-
+-DEFINE_Q35_MACHINE(v1_4, "pc-q35-1.4", pc_compat_1_4,
+-                   pc_q35_1_4_machine_options);
+-- 
+2.1.0
+
+The field is always set to zero, so it is not necessary anymore.
+
+Signed-off-by: Eduardo Habkost <address@hidden>
+---
+ hw/i386/pc_q35.c    | 3 +--
+ include/hw/boards.h | 1 -
+ 2 files changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index cc81601..8773efb 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -234,7 +234,7 @@ static void pc_q35_init(MachineState *machine)
+                          (pcms->vmport != ON_OFF_AUTO_ON), 0xff0104);
+ 
+     /* connect pm stuff to lpc */
+-    ich9_lpc_pm_init(lpc, pc_machine_is_smm_enabled(pcms), !mc->no_tco);
++    ich9_lpc_pm_init(lpc, pc_machine_is_smm_enabled(pcms), true);
+ 
+     /* ahci and SATA device, for q35 1 ahci controller is built-in */
+     ahci = pci_create_simple_multifunction(host_bus,
+@@ -289,7 +289,6 @@ static void pc_q35_machine_options(MachineClass *m)
+     m->default_machine_opts = "firmware=bios-256k.bin";
+     m->default_display = "std";
+     m->no_floppy = 1;
+-    m->no_tco = 0;
+ }
+ 
+ static void pc_q35_2_6_machine_options(MachineClass *m)
+diff --git a/include/hw/boards.h b/include/hw/boards.h
+index 0f30959..de3b3bd 100644
+--- a/include/hw/boards.h
++++ b/include/hw/boards.h
+@@ -84,7 +84,6 @@ struct MachineClass {
+         no_cdrom:1,
+         no_sdcard:1,
+         has_dynamic_sysbus:1,
+-        no_tco:1,
+         pci_allow_0_address:1;
+     int is_default;
+     const char *default_machine_opts;
+-- 
+2.1.0
+
+The enable_tco arguments are always true, so they are not needed
+anymore.
+
+Signed-off-by: Eduardo Habkost <address@hidden>
+---
+ hw/acpi/ich9.c         | 8 +++-----
+ hw/i386/pc_q35.c       | 2 +-
+ hw/isa/lpc_ich9.c      | 4 ++--
+ include/hw/acpi/ich9.h | 1 -
+ include/hw/i386/ich9.h | 2 +-
+ 5 files changed, 7 insertions(+), 10 deletions(-)
+
+diff --git a/hw/acpi/ich9.c b/hw/acpi/ich9.c
+index 1c7fcfa..a4bd98c 100644
+--- a/hw/acpi/ich9.c
++++ b/hw/acpi/ich9.c
+@@ -239,7 +239,7 @@ static void pm_powerdown_req(Notifier *n, void *opaque)
+ }
+ 
+ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm,
+-                  bool smm_enabled, bool enable_tco,
++                  bool smm_enabled,
+                   qemu_irq sci_irq)
+ {
+     memory_region_init(&pm->io, OBJECT(lpc_pci), "ich9-pm", ICH9_PMIO_SIZE);
+@@ -263,10 +263,8 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm,
+ 
+     pm->smm_enabled = smm_enabled;
+ 
+-    pm->enable_tco = enable_tco;
+-    if (pm->enable_tco) {
+-        acpi_pm_tco_init(&pm->tco_regs, &pm->io);
+-    }
++    pm->enable_tco = true;
++    acpi_pm_tco_init(&pm->tco_regs, &pm->io);
+ 
+     pm->irq = sci_irq;
+     qemu_register_reset(pm_reset, pm);
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index 8773efb..b61f7a6 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -234,7 +234,7 @@ static void pc_q35_init(MachineState *machine)
+                          (pcms->vmport != ON_OFF_AUTO_ON), 0xff0104);
+ 
+     /* connect pm stuff to lpc */
+-    ich9_lpc_pm_init(lpc, pc_machine_is_smm_enabled(pcms), true);
++    ich9_lpc_pm_init(lpc, pc_machine_is_smm_enabled(pcms));
+ 
+     /* ahci and SATA device, for q35 1 ahci controller is built-in */
+     ahci = pci_create_simple_multifunction(host_bus,
+diff --git a/hw/isa/lpc_ich9.c b/hw/isa/lpc_ich9.c
+index ed9907d..362d187 100644
+--- a/hw/isa/lpc_ich9.c
++++ b/hw/isa/lpc_ich9.c
+@@ -368,13 +368,13 @@ static void ich9_set_sci(void *opaque, int irq_num, int level)
+     }
+ }
+ 
+-void ich9_lpc_pm_init(PCIDevice *lpc_pci, bool smm_enabled, bool enable_tco)
++void ich9_lpc_pm_init(PCIDevice *lpc_pci, bool smm_enabled)
+ {
+     ICH9LPCState *lpc = ICH9_LPC_DEVICE(lpc_pci);
+     qemu_irq sci_irq;
+ 
+     sci_irq = qemu_allocate_irq(ich9_set_sci, lpc, 0);
+-    ich9_pm_init(lpc_pci, &lpc->pm, smm_enabled, enable_tco, sci_irq);
++    ich9_pm_init(lpc_pci, &lpc->pm, smm_enabled, sci_irq);
+     ich9_lpc_reset(&lpc->d.qdev);
+ }
+ 
+diff --git a/include/hw/acpi/ich9.h b/include/hw/acpi/ich9.h
+index 345fd8d..63fa198 100644
+--- a/include/hw/acpi/ich9.h
++++ b/include/hw/acpi/ich9.h
+@@ -62,7 +62,6 @@ typedef struct ICH9LPCPMRegs {
+ 
+ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm,
+                   bool smm_enabled,
+-                  bool enable_tco,
+                   qemu_irq sci_irq);
+ 
+ void ich9_pm_iospace_update(ICH9LPCPMRegs *pm, uint32_t pm_io_base);
+diff --git a/include/hw/i386/ich9.h b/include/hw/i386/ich9.h
+index b9d2b04..b411434 100644
+--- a/include/hw/i386/ich9.h
++++ b/include/hw/i386/ich9.h
+@@ -17,7 +17,7 @@
+ void ich9_lpc_set_irq(void *opaque, int irq_num, int level);
+ int ich9_lpc_map_irq(PCIDevice *pci_dev, int intx);
+ PCIINTxRoute ich9_route_intx_pin_to_irq(void *opaque, int pirq_pin);
+-void ich9_lpc_pm_init(PCIDevice *pci_lpc, bool smm_enabled, bool enable_tco);
++void ich9_lpc_pm_init(PCIDevice *pci_lpc, bool smm_enabled);
+ I2CBus *ich9_smb_init(PCIBus *bus, int devfn, uint32_t smb_io_base);
+ 
+ void ich9_generate_smi(void);
+-- 
+2.1.0
+
+The file was used only by older machine-types, and it is not
+needed anymore.
+
+Signed-off-by: Eduardo Habkost <address@hidden>
+---
+ Makefile                  |   2 +-
+ hw/i386/pc_q35.c          |   4 ----
+ pc-bios/q35-acpi-dsdt.aml | Bin 7344 -> 0 bytes
+ 3 files changed, 1 insertion(+), 5 deletions(-)
+ delete mode 100644 pc-bios/q35-acpi-dsdt.aml
+
+diff --git a/Makefile b/Makefile
+index d0de2d4..9357574 100644
+--- a/Makefile
++++ b/Makefile
+@@ -390,7 +390,7 @@ bepo    cz
+ ifdef INSTALL_BLOBS
+ BLOBS=bios.bin bios-256k.bin sgabios.bin vgabios.bin vgabios-cirrus.bin \
+ vgabios-stdvga.bin vgabios-vmware.bin vgabios-qxl.bin vgabios-virtio.bin \
+-acpi-dsdt.aml q35-acpi-dsdt.aml \
++acpi-dsdt.aml \
+ ppc_rom.bin openbios-sparc32 openbios-sparc64 openbios-ppc QEMU,tcx.bin 
+QEMU,cgthree.bin \
+ pxe-e1000.rom pxe-eepro100.rom pxe-ne2k_pci.rom \
+ pxe-pcnet.rom pxe-rtl8139.rom pxe-virtio.rom \
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index b61f7a6..aed4432 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -116,10 +116,6 @@ static void pc_q35_init(MachineState *machine)
+     }
+ 
+     pc_cpus_init(pcms);
+-    if (!pcmc->has_acpi_build) {
+-        /* only machine types 1.7 & older need this */
+-        pc_acpi_init("q35-acpi-dsdt.aml");
+-    }
+ 
+     kvmclock_create();
+ 
+diff --git a/pc-bios/q35-acpi-dsdt.aml b/pc-bios/q35-acpi-dsdt.aml
+deleted file mode 100644
+index 
+d71b3a328ced5ce2cb16d153cfa7cda0aca966a4..0000000000000000000000000000000000000000
+GIT binary patch
+literal 0
+HcmV?d00001
+
+literal 7344
+zcmb7JOK%(38ND;4q|uO)h7v8y@)KILX!?jAj?xxrVRD9~Xj9UNl${hbz>%C3Dhw2a
+z>i}_#0J2)tjutIqH9?njz;)Vx&@8+3u8VHkZI>wuYi0F(-^VN8JBol<i<x`woO8c9
+zcOGYW6}6(xzg|$v885#Zhf0;-jnJc%tCXs*Z8oMxC$9wc>}}QFjmou-lXJ69`%#YD
+z*p$8E52EtTn)BzK<ntuC|address@hidden;Ir+m?r)zY+lojZY<GR18o~EEt#YTm8;7k;
+zC#Syj^V}{wx%`(jEc(mW;;>%!g7rL8_iB0Id9SllkMgDGzUOs9X=S`lDQYUObF&^f
+zUh8HYD=*w^HdHYh?X0)L?EYO9M(-^2sv`$Gg(*L1ul{rC#pMgvK7Z$a>8qdp<Cpt)
+z{VWKJ*n8M7bqUZo)address@hidden(*w<u?tl(<iA?>^^3qEs
+address@hidden&R$7Jfi2v&+W6I5Arj<IPjZ<?D^M`rIL%);HP}d6_KFlBEu_Ge>
+z_wiY!<address@hidden>Cy_EJ>mmXkxn#)address@hidden>o^e6Cm
+zOZ^X2vE+BcW=rkUiTk(address@hidden&>address@hidden@7?Dn`jw-I)5{;k
+z3%5F|PlNrDPRSpSTgz9aIUQGY^E+{4`D!;address@hidden;0Z5<plVH`8+oj^I
+z#Fb5byEwQ>aC_k9U5PhW73T8!%bd!#9|eS`ZdKNzD{(XGTq!PhTAL-+rJkfqU0WX|
+zevtI?pB^OYAjusa^;K{D(}OMbr>(sD_y30as_#$WW^A?!1%LeaqcmmDU#cw4SFn71
+zt=oHV+^Us2e6OOsql!4ug-G?ev8WqM)Cd|QhHibh-g+gx3=eU=x#9W=Jv5Ctj9h=$
+zciWGyP+NuTtEG%`uq$KNh&Llwxzz|PCRbd4kI1tiS5#Q4tT|yBn?{UHHNqxnoPRT;
+address@hidden(g?kRWpfoku)eWM&5(=(akC{O9}
+zEU_?AiE^NNPrZlzoQuh7?|pZ5{pPW7Vk#~4{GmA&5b=5zj*j02BdRzfSB(rLy<uFb
+zzIv8Du6W*`sX1R~zRsv@&3Tb|fr**BrryYM(address@hidden@}`7q;o
+address@hidden(sOdNT-hD9=aIE!#G}C
+z538z}?_lqAcL)W4xarX448s5LJ11^##*;UGvpbo~;$~KjwHp;address@hidden
+z$N;RU$+2wy=m_r=;SCU}KpdB2tOHd;Qeu4OB1(address@hidden|XTw~)0fjq2
+address@hidden<address@hidden<Av{a3d=80HpFE)HbJ+4Z%t}oi
+zwtWJcK1VE{BdpXuM{J*frcclE>9JBziD&x+G=1WQ1!sDuM=hVDwogFQr*HZ6EuX&a
+z6VUXDm_kj=315|*<uhmd1T=l()oEPMyyY`*`vf$7j#)address@hidden<Cf2H
+z+b5vubHegDVfmb}eFB<31IuS%`3!8IfTqua<+EV<EZ9B)O`nsN&q>SYr0o;X^f_hu
+zoU(jQ***bHpGC`O(ehceeFB<3&address@hidden)0WR^%jdN16VUXDuPx)gJ!|<q
+address@hidden&oE2G7blR+a}ZyK|xpUqMnv1MaM)oVAp*wi3`(p0||e
+zE#-Mz31}+u3j$}L&-Q|)ykIK<P31*PdC^i{w3UFS@)9d`%3NZle)nAxrGCc)l2X5U
+zE?YG(address@hidden|O-QJTZlK^uh!0SbV!0x|%)C<0V?{PJ_~?ZiZ#n66MY
+zB&D{702MAPT~_K~p#T*sD=9z$^=lmg3Z%~f-#-SG0#vB1qyPmp0#vv<Kn*Gds8Cr+
+z0Sc(AAV7u7N(87ur2rKwD=9z$wNC`7a9N1}HK-JzLS-cdD4_O<address@hidden
+address@hidden)gDM1TsHl?YISN&zZV
+zR#JchYM%&D;j$6|YEUUah000_P(bYy0V-TpB0vo)1*lM2NdXF|eIh`G%Sr^OL8Sl{
+zDk~{K0kuyAsBl?{05zx-ph9IO1t_5Qi2xNYD-oaul>$_#tfT-1)IJfQ!eu1_)Syy;
+z3YC=<pn%#Z0#vxHM1UGp3Q(c4k^&address@hidden&1TKP~ox?0cubw
+zK!wUm3Q$1p69Fn*Rw6(RDg~%eSxEs3sC^<ph096=s6nLw6)Gz!KmoN+1gLOXi2yaI
+z6re(7B?Ty;_K5%$E-MkB29*L-sH~&_1=Kzfpu%M(address@hidden>VfC`nB6rh0GCjt~mM-l=Q
+z$P7?GGe7~205y~dP(w)pYA7i{4J889P$EDLB?YLVqyROP2v9?b05y~ppoWqH)KDTo
+z4J889P*Q*zN(xXzi2w!CR~G>age%6ANdXFo%b+1C_1q#rf%M!WK!Nn!Qh);LxupOF
+zj8t*9g9uf${6jxh`}BkK*)Z)&?MFX-Gef^pY2ATVIh?q;Q9|NwlxY*vCh`=PYBnm=
+zuF|GPn-#A(address@hidden)8KmKljP78s#;address@hidden@X
+address@hidden<zo`ea;<address@hidden<A!{6T
+z3OJimvCxU?E%h<A{ax;v;FYsJoe<address@hidden
+zoFA>*>FVX;H&-vW_g2Y!n5yo(uTefU%7<J&OqCB$DIX5XN9podz5CYgBcpu8<)c*j
+z=#=u&address@hidden|n;5>GH#`
+zQNCuBuW|WWs(kH~^0h(address@hidden;7;r<7l5?^Uw&Dod3gJoWnBfv*Z$
+zW#a`<yRSIR&+}lI^y8Zv2A>!whLJvdnDld)8V27RCx($edzkd|lo|#fA18*9K6{w-
+address@hidden($edzke7mKp{hEGLGMzQHg-
+zZJbtDi*JSTYRSRBy25yUZAT^DLeBRTepS%lR(I#gmhURwWmGo-%BucWaW;&RS+7*R
+zp#-be&ocP0fFH({>u!6_|2r1^oBVIGzxY?$kMaz#>0Aqn*N4#v75-7t>b#Htw{=zW
+zMRn-2<T0JaVAw=$_56p4KcYU`cDA48(address@hidden
+z;EuDlS^Y)gJo9+(XFf=Rb+1#4<rWw#g>ij;etubD5*qXKsu*Cmpl-{5EpSHMzbJ>7
+jWOr3|Z^>>TeOu6vW%m==m1I|zT_`(zH&CsL?5gVjcvrSt
+
+-- 
+2.1.0
+
+gigabyte_align is always true on q35, so we don't need the
+!gigabyte_align compat code anymore.
+
+Signed-off-by: Eduardo Habkost <address@hidden>
+---
+ hw/i386/pc_q35.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index aed4432..20722f2 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -81,11 +81,9 @@ static void pc_q35_init(MachineState *machine)
+      * If it doesn't, we need to split it in chunks below and above 4G.
+      * In any case, try to make sure that guest addresses aligned at
+      * 1G boundaries get mapped to host addresses aligned at 1G boundaries.
+-     * For old machine types, use whatever split we used historically to avoid
+-     * breaking migration.
+      */
+     if (machine->ram_size >= 0xb0000000) {
+-        lowmem = pcmc->gigabyte_align ? 0x80000000 : 0xb0000000;
++        lowmem = 0x80000000;
+     } else {
+         lowmem = 0xb0000000;
+     }
+-- 
+2.1.0
+

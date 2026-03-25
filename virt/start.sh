@@ -9,6 +9,8 @@ kimg="bzImage"
 rfsimg="initramfs.cpio"
 qemubin="qemu-system-x86_64"
 
+export PATH=.:$PATH
+
 test -r ${rfsimg}.gz && rfsimg="${rfsimg}.gz"
 rfsdir=$(echo "$rfsimg" | sed 's/\.cpio\.gz//;s/\.cpio//')
 
@@ -91,8 +93,15 @@ nograp="-nographic -vga none -display none"
 
 if [ "${QZERO:-0}" = "0" ]; then
   boxnme="-name tinylnx"
-  qaccel="-enable-kvm -cpu host -machine accel=kvm"
-  netisl="-netdev user,id=net0,restrict=yes -device virtio-net-pci,netdev=net0"
+  qaccel="-enable-kvm -cpu host,migratable=off,+invtsc"
+# netisl="-netdev user,id=net0,restrict=yes"
+  if $qemubin -M help | grep -q q35; then
+    qaccel="$qaccel -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc"
+#   netisl="$netisl -device virtio-net-pci,netdev=net0"
+  else
+    qaccel="$qaccel -M microvm,accel=kvm,x-option-roms=off,pit=off,pic=off,rtc=off,acpi=off"
+#   netisl="$netisl -device virtio-net-device,netdev=net0"
+  fi
 else
   echo
   echo "Zero Kelvin Linux mode"
@@ -112,12 +121,16 @@ fi
 
 cmdlnx="-append '$cmdlnx ${KARGS:-}'"
 
+# disable this line if it creates trouble because ulimit -l isn't friendly
+qaccel="$qaccel -overcommit mem-lock=on"
+
+
 cmd="$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
-              -no-reboot -boot order=dc ${boxnme:-} ${qaccel:-} ${netisl:-} \
+              -no-reboot ${boxnme:-} ${qaccel:-} ${netisl:-} \
               ${cmdlnx:-} ${QARGS:-}"
 
 # Starting the QEMU configuraed virtual machine ################################
 
 sh -xc "$cmd"; stty sane; printf '\e[?7h'
-echo $cmd
+echo; echo $cmd; echo
 

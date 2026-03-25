@@ -1,6 +1,6 @@
-# uchaosys
+## μChaoSys
 
-`(c)` 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, text published under CC BY-NC-ND 4.0
+**`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
@@ -10,7 +10,7 @@
 
 <br>
 
-## uChaos minimal Linux **qemu** bootable system
+### μChaos minimal Linux qemu bootable system
 
 This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
 
@@ -94,7 +94,7 @@ Last but not least, the chaos engine is **exactly** the same in kernel and user 
 
 <br>
 
-## Quick Start
+### Quick Start
 
 ```sh
 git clone https://github.com/robang74/uchaosys.git
@@ -109,6 +109,12 @@ The instructions above are able to provide the same output in about 20m, dependi
 - [uchaosys binary snapshot for qemu x86_64](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)
 
 Considering that the system footprint is below 2MB, offering a binary sample makes sense independently from the outages. This snapshot is not supposed to be updated often, therefore refers to the above project link.
+
+<br>
+
+### Hacked μ-qemu
+
+Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this project also provides the option of compiling a special [footprint reduced](qemu/) edition of the `qemu-system-x86_64` binary (6044 KB) which uses a subset of ROMs (488 KB). It is worth to notice that, despite this custom **qemu v10.2.2** is still a dynamically compiled instance, the whole uChaSys + μ-qemu package occupy less than 10MB on an uncompressed file-system storage (8.14 MB, plus shared system libraries).
 
 <br>
 

@@ -10,9 +10,9 @@ In 2019, RedHat presented the minimal footprint QEMU at **31MB for the Q35 machi
 
 - [KVM Forum 2019 (un)bloated QEMU](https://static.sched.com/hosted_files/kvmforum2019/c6/kvmforum19-bloat.pdf) &nbsp;(PDF slides, by RedHat)
 
-I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 6MB**. Do not trust me and try to replicate.
+I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 6MB**. Do not trust me and try to replicate. By the way, the screeshot below refers to the v0.6.5.
 
-![image](../docs/red-hat-kvm-2019-qemu-footprint.png)
+![v0.6.5](../docs/red-hat-kvm-2019-qemu-footprint.png)
 
 ---
 

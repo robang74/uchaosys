@@ -99,7 +99,7 @@ if [ "${1:-}" = "sources" ]; then
                  acpi_dsdt_add_host_bridge_methods(dev, true);
 EOF
 fi
-cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
+cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################
 
@@ -127,7 +127,7 @@ if [ ! -r slirp/libslirp.a ]; then
   echo "Compiling slirp/libslirp.a ... "
   set -e
   cd slirp; rm -rf build; mkdir -p build
-  meson build --prefix=$PWD/build && ninja -j$ncpu -C build
+  meson build --prefix=$PWD/build; ninja -j$ncpu -C build
   ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
   cd ..
   set +e
@@ -163,8 +163,7 @@ fi
 cd $bld_dir
 
 fn=$(find /usr/include -name zlib.h)
-test -n "$fn" || exit 1
-cp $fn $(dirname $fn)/zconf.h .
+test -n "$fn" -a cp $fn $(dirname $fn)/zconf.h . || exit 1
 CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"
@@ -235,8 +234,10 @@ echo "==============================="
 echo
 echo " Building path:\n\t$PWD"
 cd ..
-cp -f $bld_dir/$qbin $dst_dir
+set -e
+cp -f $bld_dir/$qbin $dst_dir 
 for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
+set +e
 cd $dst_dir
 echo
 echo " Dynamic libraries involved:"

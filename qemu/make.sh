@@ -13,13 +13,16 @@ infl_cmd="tar -xzf"
 
 bin_dir="bin"
 src_dir="src"
-dst_dir="../virt"
 top_dir=$PWD
+dst_dir=$(realpath $PWD/../virt)
 
+ld_libz= # "z" keep disable to use miniz, instead
+
+to_clean="build/ slirp/libslirp.a minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
-  rm -rf build/ slirp/libslirp.a
+  rm -rf $to_clean
 elif [ "${1:-}" = "veryclean" ]; then
-  rm -rf build/ slirp/libslirp.a src/
+  rm -rf $to_clean src/
   test "${2:-}" = "" && exit
   shift
 fi
@@ -116,7 +119,6 @@ export NM="${CROSS_COMPILE}nm"
 if [ ! -r slirp/libslirp.a ]; then
   echo
   echo "Compiling slirp/libslirp.a ... "
-  echo
   set -e
   cd slirp; rm -rf build; mkdir -p build
   meson build --prefix=$PWD/build && ninja -C build
@@ -124,9 +126,21 @@ if [ ! -r slirp/libslirp.a ]; then
   cd ..
   set +e
 fi
+LIBA="$LIBA $top_dir/slirp/libslirp.a"
+if [ ! -n "$ld_libz" ]; then
+  if [ ! -r minz/miniz.o ]; then
+    echo
+    echo "Compiling minz/miniz.o ... "
+    set -e
+    cd minz; rm -f miniz.o; ${CC:-cc} $CFLAGS -c miniz.c -o miniz.o
+    cd ..
+    set +e
+  fi
+  LIBA="$LIBA $top_dir/minz/miniz.o"
+fi
 
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
+export LDFLAGS="$LDFLAGS -Wl,--gc-sections -falign-functions=32"
 
 IFIXO=""
 mkdir -p $bld_dir
@@ -134,10 +148,12 @@ if true; then
   IFIXO="glibc-musl-fix"
   echo
   echo "Preparing $bld_dir/$IFIXO.o ... "
+  set -e
   CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
   ${CC:-cc} -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
   IFIXO="$PWD/$bld_dir/$IFIXO.o"
   LDFLAGS="$LDFLAGS $IFIXO"
+  set +e
 fi
 cd $bld_dir
 
@@ -152,8 +168,8 @@ LIBA="$LIBA $(realpath $PWD/../slirp/libslirp.a)"
 for i in pthread z glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-pcre=$(find /usr -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
-LIBA="$LIBA $pcre"
+pcre=$(find $glib -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
+LIBA="$LIBA $XLIB $pcre"
 printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
 
 CFLAGS="" LDFLAGS="" ../$src_dir/configure \
@@ -196,7 +212,7 @@ if ! make -j$(nproc) $qbin; then
   done
   echo "Retry for static linking ... "
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
-  rm -f $qbin; ${CC:-cc} -m64 $LDFLAGS $CFLAGS @$qbin.rsp || exit $?
+  rm -f $qbin; ${CC:-cc} -m64 $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
 fi
 
 echo
@@ -212,7 +228,7 @@ echo " Dynamic libraries involved:"
 ldd ./$qbin 2>&1
 echo
 echo " Static  libraries involved:"
-echo $LIBA $IFIXO | tr ' ' \\n | sort | shft
+echo $LIBA $IFIXO | tr ' ' '\n' | sort | shft
 echo
 strip -s $qbin
 echo " Supported machines are:"

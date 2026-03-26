@@ -109,6 +109,11 @@ time make sources
 time make buildall
 #    real	16m46.399s
 make runqemu
+# ancillary activities
+time make rngtest
+#    real	0m17.791s
+cd qemu && time sh make.sh sources
+#    
 ```
 
 The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.

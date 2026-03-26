@@ -34,6 +34,10 @@ is an experimental *frankenstein* [glibc-musl static](glibc-musl-fix.c) footprin
 
 ### qemu-in-qemu
 
+> [!NOTE]
+>
+> For a static qemu the self-hosting ins't a strictly necessary feature, apart being the definitive healty check.
+
 This glibc-musl stastic qemu is capable of self-hosting and self-emulation:
 
 ```sh

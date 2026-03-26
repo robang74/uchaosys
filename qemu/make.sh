@@ -16,7 +16,11 @@ src_dir="src"
 top_dir=$PWD
 dst_dir=$(realpath $PWD/../virt)
 
-ld_libz="z" # keep disable to use miniz, instead
+# PARAMETRIC BUILDING
+ld_libz="z"               # set ot "z" for libz, or "" to use miniz, instead
+xlto="-flto -fno-plt"     # set for profuction, unset for faster devolpment 
+ncpu=$(nproc)             # number of pipelines for parallel compilation
+xppe="-pipe"              # usually faster in compiling  but not always
 
 to_clean="build/ slirp/libslirp.a minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
@@ -102,7 +106,7 @@ out_dir="$PWD/$bin_dir"
 
 path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 -falign-functions=32 -pipe"
+CFLAGS="-O1 -march=x86-64-v3 $xlto -falign-functions=32 $xppe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 
 export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
@@ -121,7 +125,7 @@ if [ ! -r slirp/libslirp.a ]; then
   echo "Compiling slirp/libslirp.a ... "
   set -e
   cd slirp; rm -rf build; mkdir -p build
-  meson build --prefix=$PWD/build && ninja -C build
+  meson build --prefix=$PWD/build && ninja -j$ncpu -C build
   ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
   cd ..
   set +e
@@ -139,8 +143,8 @@ if [ ! -n "$ld_libz" ]; then
   LIBA="$LIBA $top_dir/minz/miniz.o"
 fi
 
-LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS="$LDFLAGS -Wl,--gc-sections -falign-functions=32"
+LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
+export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
 
 IFIXO=""
 mkdir -p $bld_dir
@@ -170,7 +174,7 @@ printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
 #read -p "param 1: $1" key
 
 if [ "${1:-}" != "noconfig" ]; then
-  CFLAGS="" LDFLAGS="" ../$src_dir/configure \
+  CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \
     --audio-drv-list= \
     --without-default-devices \
     --without-default-features \
@@ -197,7 +201,7 @@ roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 
 rm -f $qbin
-if ! make -j$(nproc) $qbin; then
+if ! time -p make -j$ncpu $qbin; then
   echo
   echo "Fix the linking stage and repeat ..."
   CFLAGS=""
@@ -212,7 +216,7 @@ if ! make -j$(nproc) $qbin; then
   echo "Retry for static linking ... "
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" \
       -e "s, -pthread,," -i $qbin.rsp
-  rm -f $qbin; ${CC:-cc} -m64 $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
+  rm -f $qbin; time -p ${CC:-cc} -m64 $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
 fi
 
 echo
@@ -237,5 +241,5 @@ echo
 echo " Hacked qemu footprint:"
 printf "\t$(du -k $qbin)\n"
 sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
-printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
+printf "\t%4d\troms files\n" $(( ($sze + (1<<9)) >> 10 ))
 

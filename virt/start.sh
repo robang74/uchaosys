@@ -28,7 +28,7 @@ zerokelv=0
 zerotest=0
 quietrun=0
 
-while getopts "ZzuUqm:w" opt; do
+while getopts "ZzuUqm:wM:" opt; do
   case $opt in
     u)
       imgupdte=1
@@ -49,6 +49,9 @@ while getopts "ZzuUqm:w" opt; do
     m)
       QMSZE=$OPTARG
       ;;
+    M)
+      QMACH=$OPTARG
+      ;;
     w)
       ZWARM=1
       ;;
@@ -66,12 +69,12 @@ fi
 
 if [ $zerotest -ne 0 ]; then
   export QZERO=1 QMSZE=${QMSZE:-256M} UCTEST=${UCTEST:-1}
-  cmdlnx="UCTEST=${UCTEST:-1}"
+  cmdlnx="$cmdlnx UCTEST=${UCTEST:-1}"
 elif [ $zerokelv -ne 0 ]; then
   export QZERO=1 QMSZE=${QMSZE:-256M} UCTEST=${UCTEST:-0}
-  cmdlnx="UCTEST=${UCTEST:-1}"
+  cmdlnx="$cmdlnx UCTEST=${UCTEST:-1}"
 elif [ -n "$UCTEST" ]; then
-  cmdlnx="UCTEST=$UCTEST"
+  cmdlnx="$cmdlnx UCTEST=$UCTEST"
 fi
 
 if [ $imgupdte -ne 0 ]; then
@@ -95,12 +98,12 @@ if [ "${QZERO:-0}" = "0" ]; then
   boxnme="-name tinylnx"
   qaccel="-enable-kvm -cpu host,migratable=off,+invtsc"
 # netisl="-netdev user,id=net0,restrict=yes"
-  if $qemubin -M help | grep -q q35; then
-    qaccel="$qaccel -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc"
-#   netisl="$netisl -device virtio-net-pci,netdev=net0"
-  else
+  if "$QMACH" = "microvm" ; then
     qaccel="$qaccel -M microvm,accel=kvm,x-option-roms=off,pit=off,pic=off,rtc=off,acpi=off"
 #   netisl="$netisl -device virtio-net-device,netdev=net0"
+  else
+    qaccel="$qaccel -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc"
+#   netisl="$netisl -device virtio-net-pci,netdev=net0"
   fi
 else
   echo
@@ -117,13 +120,13 @@ else
   if [ "${ZWARM:-0}" = "1" ]; then
     qaccel="-cpu qemu64 -smp 1";
   fi
+  qaccel="${QMACH:+-M $QMACH} $qaccel"
 fi
 
 cmdlnx="-append '$cmdlnx ${KARGS:-}'"
 
 # disable this line if it creates trouble because ulimit -l isn't friendly
-qaccel="$qaccel -overcommit mem-lock=on"
-
+grep -qi uchaos /etc/os-release || qaccel="$qaccel -overcommit mem-lock=on"
 
 cmd="$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
               -no-reboot ${boxnme:-} ${qaccel:-} ${netisl:-} \

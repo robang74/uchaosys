@@ -16,7 +16,7 @@ src_dir="src"
 top_dir=$PWD
 dst_dir=$(realpath $PWD/../virt)
 
-ld_libz= # "z" keep disable to use miniz, instead
+ld_libz="z" # keep disable to use miniz, instead
 
 to_clean="build/ slirp/libslirp.a minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
@@ -163,14 +163,11 @@ CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-LIBA="$LIBA $(realpath $PWD/../slirp/libslirp.a)"
-for i in pthread z glib-2.0; do
+for i in pthread glib-2.0 libpcre2-8 $ld_libz; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-pcre=$(find $glib -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
-LIBA="$LIBA $XLIB $pcre"
 printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
-# read -p "param 1: $1" key
+#read -p "param 1: $1" key
 
 if [ "${1:-}" != "noconfig" ]; then
   CFLAGS="" LDFLAGS="" ../$src_dir/configure \

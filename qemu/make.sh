@@ -13,13 +13,14 @@ infl_cmd="tar -xzf"
 
 bin_dir="bin"
 src_dir="src"
-dst_dir="../virt"
 top_dir=$PWD
+dst_dir=$(realpath $PWD/../virt)
 
+to_clean="build/ slirp/libslirp.a minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
-  rm -rf build/ slirp/libslirp.a
+  rm -rf $to_clean
 elif [ "${1:-}" = "veryclean" ]; then
-  rm -rf build/ slirp/libslirp.a src/
+  rm -rf $to_clean src/
   test "${2:-}" = "" && exit
   shift
 fi

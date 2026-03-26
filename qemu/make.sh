@@ -16,11 +16,13 @@ src_dir="src"
 top_dir=$PWD
 dst_dir=$(realpath $PWD/../virt)
 
-# PARAMETRIC BUILDING
-ld_libz="z"               # set ot "z" for libz, or "" to use miniz, instead
-xlto="-flto -fno-plt"     # set for profuction, unset for faster devolpment 
-ncpu=$(nproc)             # number of pipelines for parallel compilation
-xppe="-pipe"              # usually faster in compiling  but not always
+# PARAMETRIC BUILDING # ====================================================== #
+#
+# ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
+  ncpu=$(nproc)                # number of pipelines for parallel compilation
+  xppe="-pipe"                 # usually faster in compiling  but not always
+  xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment 
+# ============================================================================ #
 
 to_clean="build/ slirp/libslirp.a minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
@@ -153,8 +155,8 @@ if true; then
   echo
   echo "Preparing $bld_dir/$IFIXO.o ... "
   set -e
+  ${CC:-cc} $CFLAGS -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
   CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
-  ${CC:-cc} -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
   LIBA="$LIBA $PWD/$bld_dir/$IFIXO.o"
   set +e
 fi
@@ -207,16 +209,26 @@ if ! time -p make -j$ncpu $qbin; then
   CFLAGS=""
   LDFLAGS=""
   for i in open stat; do
-      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
+    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
   done
   for i in lseek mmap fstatat ftello fseeko fcntl ftell fseek \
            creat readdir lstat fallocate setrlimit freopen mkostemp; do
-      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
+    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
   done
+  if [ ! -n "$ld_libz" ]; then
+    for i in deflate inflate deflateInit inflateInit deflateEnd inflateEnd\
+             compressBound compress2 inflateInit2 deflateInit2; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym,$i=mz_$i"
+    done
+    for i in deflateInit inflateInit; do for j in "" 2; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym=${i}${j}_=mz_${i}"
+      LDFLAGS="$LDFLAGS -Wl,--defsym=${i}${j}_=mz_${i}${j}"
+    done; done
+  fi
   echo "Retry for static linking ... "
-  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" \
-      -e "s, -pthread,," -i $qbin.rsp
-  rm -f $qbin; time -p ${CC:-cc} -m64 $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
+  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s, -lutil,," -e "s, -lm,," \
+      -e "s, -pthread,," -e "s, -lz,," -i $qbin.rsp
+  rm -f $qbin; time -p ${CC:-cc} $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
 fi
 
 echo

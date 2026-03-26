@@ -40,6 +40,7 @@ all: muslcfg sources toolchain bzImage busybox uchaos rngtest install
 
 # target: muslcfg //////////////////////////////////////////////////////////////
 	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
+	cp -arf cnfg/hashes musl/
 
 # target: sources //////////////////////////////////////////////////////////////
 sources: muslcfg
@@ -51,10 +52,9 @@ sources: muslcfg
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
+# @echo "Sync and drop caches, ^C to skip root password"
+# sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 toolchain: muslcfg
-	#@echo "Sync and drop caches, ^C to skip root password"
-	#sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
-	cp -arf cnfg/hashes musl/
 	make -C musl install
 	@echo
 	tar czf musl-output.tar.gz musl/output/

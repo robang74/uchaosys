@@ -152,6 +152,10 @@ buildall: toolchain bzImage busybox uchaos install
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys: bzImage busybox uchaos install
 
+# target: uqemu ////////////////////////////////////////////////////////////////
+uqemu:
+	cd qemu && time sh make.sh sources
+
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu:
 	@echo Prepare and start the KVM 32MB machine

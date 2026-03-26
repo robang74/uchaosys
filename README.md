@@ -117,7 +117,9 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 ### Hacked μ-qemu
 
-Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/) edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
+- [μ-footprint hacked qemu edition](qemu/) &hairsp;host page, last version
+
+Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
 
 > FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4), 
 > GZIP: 2715646 (2652 Kb, 35 %), GZSH: v0.1.6

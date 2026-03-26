@@ -32,7 +32,7 @@ sh start.sh -qm32
 Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) the outcoming elf64 binary 
 is an experimental *frankenstein* [glibc-musl static](glibc-musl-fix.c) footprint reduced edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
 
-#### qemu-in-qemu
+### qemu-in-qemu
 
 This glibc-musl stastic qemu is capable of self-hosting and self-emulation:
 
@@ -48,6 +48,7 @@ sh start.sh -uqm64
 ```
 
 The second started is an instance running on a u-qemu KVM w/64MB of RAM in which the virtualisation stuff has been copied into the initramfs and then executed after the boot in software emulation w/32MB.
+
 ---
 
 ### Rationale

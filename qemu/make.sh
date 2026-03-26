@@ -24,7 +24,7 @@ dst_dir=$(realpath $PWD/../virt)
   xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment 
 # ============================================================================ #
 
-to_clean="build/ slirp/libslirp.a minz/miniz.o"
+to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
   rm -rf $to_clean
 elif [ "${1:-}" = "veryclean" ]; then

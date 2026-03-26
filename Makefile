@@ -36,22 +36,24 @@ export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
 .PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean
 
-all: sources toolchain bzImage busybox uchaos rngtest install
+all: muslcfg sources toolchain bzImage busybox uchaos rngtest install
+
+# target: muslcfg //////////////////////////////////////////////////////////////
+	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
 
 # target: sources //////////////////////////////////////////////////////////////
-sources:
+sources: muslcfg
 	@echo Wait downloading sources ...
 	git submodule update --init --recursive
 	$(MAKE) -j$(NCPU) -C musl extract_all
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
-	sh gzcmd.sh gzcmd.sh gzcmd
+	sh gzcmd.sh gzcmd.sh gzcmd; sync &
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
-toolchain:
-	@echo "Sync and drop caches, ^C to skip root password"
-	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
-	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
+toolchain: muslcfg
+	#@echo "Sync and drop caches, ^C to skip root password"
+	#sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 	cp -arf cnfg/hashes musl/
 	make -C musl install
 	@echo

@@ -114,7 +114,6 @@ export NM="${CROSS_COMPILE}nm"
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
 
-XLIB=""
 if [ ! -r slirp/libslirp.a ]; then
   echo
   echo "Compiling slirp/libslirp.a ... "
@@ -122,23 +121,21 @@ if [ ! -r slirp/libslirp.a ]; then
   cd slirp; rm -rf build; mkdir -p build
   meson build --prefix=$PWD/build && ninja -C build
   ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
-  XLIB="$XLIB $top_dir/slirp/libslirp.a"
   cd ..
   set +e
 fi
-rm -f minz/miniz.o ##################### TODO DEBUG
 if [ ! -r minz/miniz.o ]; then
   echo
   echo "Compiling minz/miniz.o ... "
   set -e
   cd minz; rm -f miniz.o; ${CC:-cc} -c miniz.c -o miniz.o
-  XLIB="$XLIB $top_dir/minz/miniz.o"
   cd ..
   set +e
 fi
 
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
+export LDFLAGS="$LDFLAGS -Wl,--gc-sections -falign-functions=32"
+LDFLAGS="$LDFLAGS $top_dir/slirp/libslirp.a $top_dir/minz/miniz.o"
 
 IFIXO=""
 mkdir -p $bld_dir

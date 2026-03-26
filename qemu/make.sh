@@ -28,6 +28,9 @@ bld_dir="build"
 ################################################################################
 
 if [ "${1:-}" = "sources" ]; then
+  echo
+  echo "Preparing sources ... "
+  echo
   test -r $url_name ||
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
@@ -93,16 +96,16 @@ cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
 export ARCH="x86_64"
 out_dir="$PWD/$bin_dir"
 
-path="$PWD/../musl/output"
+path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 -flto -fno-plt -falign-functions=32 -pipe"
+CFLAGS="-O1 -march=x86-64-v3 -falign-functions=32 -pipe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 
-#export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
-#export CC="${CROSS_COMPILE}gcc"
-#export LD="${CROSS_COMPILE}ld"
-#export AR="${CROSS_COMPILE}ar"
-#export NM="${CROSS_COMPILE}nm"
+export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
+export CC="${CROSS_COMPILE}gcc"
+export LD="${CROSS_COMPILE}ld"
+export AR="${CROSS_COMPILE}ar"
+export NM="${CROSS_COMPILE}nm"
 
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
@@ -111,7 +114,7 @@ export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 
 if [ ! -r slirp/libslirp.a ]; then
   echo
-  echo "Compiling slirp/libslirp.a ... $PWD"
+  echo "Compiling slirp/libslirp.a ... "
   echo
   set -e
   cd slirp; rm -rf build; mkdir -p build
@@ -121,20 +124,25 @@ if [ ! -r slirp/libslirp.a ]; then
   set +e
 fi
 
-LDFLAGS="-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
+LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
+export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
 
 mkdir -p $bld_dir; cd $bld_dir
+
+fn=$(find /usr/include -name zlib.h)
+test -n "$fn" || exit 1
+cp $fn $(dirname $fn)/zconf.h .
+CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
 LIBA="$LIBA $PWD/../slirp/libslirp.a"
-for i in pthread z m c_nonshared glib-2.0; do
+for i in pthread z glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 pcre=$(find /usr -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
 LIBA="$LIBA $pcre"
-printf "\nStatic libraries found:\n\t"$LIBA"\n\n"
+printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
 
 CFLAGS="" LDFLAGS="" ../$src_dir/configure \
   --audio-drv-list= \
@@ -147,14 +155,13 @@ CFLAGS="" LDFLAGS="" ../$src_dir/configure \
   --enable-system \
   --enable-vhost-net \
   --enable-slirp \
-  --enable-lto \
   --enable-fdt \
   --disable-attr --disable-cap-ng \
   --disable-tcg-interpreter --disable-auth-pam \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
   --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
-  --extra-ldflags="$LDFLAGS -no-pie -fPIC $LIBA -static -s" || exit $?
+  --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
 
 ################################################################################
 
@@ -163,10 +170,27 @@ roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 pdir=$PWD
 
+rm -f $qbin
 if ! make -j$(nproc) $qbin; then
+  echo
+  echo "Fix the linking stage and repeat ..."
+  echo
+  LDFLAGS="-Wl,--defsym=close_range=close"
+  for i in open stat; do
+    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i "
+  done
+  for i in lseek mmap fstatat ftello fseeko fcntl ftell fseek creat readdir lstat fallocate setrlimit freopen mkostemp; do
+    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i "
+  done
+  for i in strtoull strtoll; do
+    LDFLAGS="$LDFLAGS -Wl,--defsym=${i}_l=${i}"
+  done
+  for i in vasprintf vfprintf snprintf vsprintf vsnprintf sprintf fprintf printf memcpy memmove memset strcpy; do
+    LDFLAGS="$LDFLAGS -Wl,--defsym=__${i}_chk=${i}"
+  done
   echo "Retry for static linking ... "
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
-  ${CC:-cc} -m64 @$qbin.rsp || exit $?
+  rm -f $qbin; ${CC:-cc} -m64 $LDFLAGS @$qbin.rsp || exit $?
 fi
 
 echo "==============================="

@@ -221,7 +221,6 @@ if ! time -p make -j$ncpu $qbin; then
       LDFLAGS="$LDFLAGS -Wl,--defsym,$i=mz_$i"
     done
     for i in deflateInit inflateInit; do for j in "" 2; do
-      LDFLAGS="$LDFLAGS -Wl,--defsym=${i}${j}_=mz_${i}"
       LDFLAGS="$LDFLAGS -Wl,--defsym=${i}${j}_=mz_${i}${j}"
     done; done
   fi
@@ -253,5 +252,5 @@ echo
 echo " Hacked qemu footprint:"
 printf "\t$(du -k $qbin)\n"
 sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
-printf "\t%4d\troms files\n" $(( ($sze + (1<<9)) >> 10 ))
+printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
 

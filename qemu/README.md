@@ -46,6 +46,9 @@ sh start.sh -uqm64
   >   > free; head /proc/cpuinfo
   >   > qq
   > qq
+# to restore the default state
+rm -rf ../cpio.tmp/virt
+sh start.sh -U
 ```
 
 The second started is an instance running on a u-qemu KVM w/64MB of RAM in which the virtualisation stuff has been copied into the initramfs and then executed after the boot in software emulation w/32MB.

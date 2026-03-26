@@ -151,8 +151,7 @@ if true; then
   set -e
   CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
   ${CC:-cc} -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
-  IFIXO="$PWD/$bld_dir/$IFIXO.o"
-  LDFLAGS="$LDFLAGS $IFIXO"
+  LIBA="$LIBA $PWD/$bld_dir/$IFIXO.o"
   set +e
 fi
 cd $bld_dir
@@ -171,25 +170,28 @@ done
 pcre=$(find $glib -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
 LIBA="$LIBA $XLIB $pcre"
 printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
+# read -p "param 1: $1" key
 
-CFLAGS="" LDFLAGS="" ../$src_dir/configure \
-  --audio-drv-list= \
-  --without-default-devices \
-  --without-default-features \
-  --target-list=$ARCH-softmmu \
-  --with-devices-$ARCH=minikvm \
-  --enable-kvm \
-  --enable-tcg \
-  --enable-system \
-  --enable-vhost-net \
-  --enable-slirp \
-  --enable-fdt \
-  --disable-attr --disable-cap-ng \
-  --disable-tcg-interpreter --disable-auth-pam \
-  --disable-zstd --disable-lzo --disable-bzip2 \
-  --disable-docs --disable-tools --disable-guest-agent \
-  --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
-  --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
+if [ "${1:-}" != "noconfig" ]; then
+  CFLAGS="" LDFLAGS="" ../$src_dir/configure \
+    --audio-drv-list= \
+    --without-default-devices \
+    --without-default-features \
+    --target-list=$ARCH-softmmu \
+    --with-devices-$ARCH=minikvm \
+    --enable-kvm \
+    --enable-tcg \
+    --enable-system \
+    --enable-vhost-net \
+    --enable-slirp \
+    --enable-fdt \
+    --disable-attr --disable-cap-ng \
+    --disable-tcg-interpreter --disable-auth-pam \
+    --disable-zstd --disable-lzo --disable-bzip2 \
+    --disable-docs --disable-tools --disable-guest-agent \
+    --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
+    --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
+fi
 
 ################################################################################
 
@@ -211,7 +213,8 @@ if ! make -j$(nproc) $qbin; then
       LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
   done
   echo "Retry for static linking ... "
-  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
+  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" \
+      -e "s, -pthread,," -i $qbin.rsp
   rm -f $qbin; ${CC:-cc} -m64 $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
 fi
 
@@ -228,7 +231,7 @@ echo " Dynamic libraries involved:"
 ldd ./$qbin 2>&1
 echo
 echo " Static  libraries involved:"
-echo $LIBA $IFIXO | tr ' ' '\n' | sort | shft
+echo $LIBA | tr ' ' '\n' | sort | shft
 echo
 strip -s $qbin
 echo " Supported machines are:"

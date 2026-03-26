@@ -50,10 +50,10 @@ Reference architecture **x86_64**, system footprint:
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.062 s `**!!!**
-- `total available memory in userland: 18868 KB`
-    - `host: 32768, zram: -4717, cpio:  -664 KB`
-    - `mlnx: 23544, used: -2396, buff: -1460 KB`
+- `total time for being ready to user: 0.064 s `**!!!**
+- `total available memory in userland: 18828 KB`
+    - `host: 32768, zram: -4710, cpio:  -664 KB`
+    - `mlnx: 23544, used: -2404, buff: -1504 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 
@@ -119,7 +119,7 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 - [μ-footprint hacked qemu edition](qemu/) &hairsp;host page, last version
 
-Since v0.6.5 this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary ([v0.6.6](https://github.com/robang74/uchaosys/releases/tag/v0.6.5): 7280&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB, tgz: 272&nbsp;KB).
+Since v0.6.5 this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary ([v0.6.6](https://github.com/robang74/uchaosys/releases/tag/v0.6.5): 7280&nbsp;KB, -3% minz w/lto) which uses a subset of ROMs (488&nbsp;KB, tgz: 272&nbsp;KB).
 
 > FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4),
 > GZIP: 2656031 (2594 Kb, 35 %), GZSH: v0.1.6

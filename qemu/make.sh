@@ -127,6 +127,14 @@ fi
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
 export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
 
+if true; then
+  echo
+  echo "Preparing $bld_dir/libm_ifix.o ... "
+  CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
+  ${CC:-cc} -c libm_ifix.c -o $bld_dir/libm_ifix.o || exit $?
+  LDFLAGS="$LDFLAGS $PWD/$bld_dir/libm_ifix.o"
+fi
+
 mkdir -p $bld_dir; cd $bld_dir
 
 fn=$(find /usr/include -name zlib.h)
@@ -174,8 +182,8 @@ rm -f $qbin
 if ! make -j$(nproc) $qbin; then
   echo
   echo "Fix the linking stage and repeat ..."
-  echo
-  LDFLAGS="-Wl,--defsym=close_range=close"
+  CFLAGS=""
+  LDFLAGS=""
   for i in open stat; do
     LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i "
   done
@@ -190,9 +198,10 @@ if ! make -j$(nproc) $qbin; then
   done
   echo "Retry for static linking ... "
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
-  rm -f $qbin; ${CC:-cc} -m64 $LDFLAGS @$qbin.rsp || exit $?
+  rm -f $qbin; ${CC:-cc} -m64 $LDFLAGS $CFLAGS @$qbin.rsp || exit $?
 fi
 
+echo
 echo "==============================="
 echo
 echo " Building path:\n\t$PWD"

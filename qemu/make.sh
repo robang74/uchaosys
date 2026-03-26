@@ -126,6 +126,16 @@ if [ ! -r slirp/libslirp.a ]; then
   cd ..
   set +e
 fi
+rm -f minz/miniz.o ##################### TODO DEBUG
+if [ ! -r minz/miniz.o ]; then
+  echo
+  echo "Compiling minz/miniz.o ... "
+  set -e
+  cd minz; rm -f miniz.o; ${CC:-cc} -c miniz.c -o miniz.o
+  XLIB="$XLIB $top_dir/minz/miniz.o"
+  cd ..
+  set +e
+fi
 
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
 export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
@@ -156,7 +166,7 @@ LIBA="$LIBA $(realpath $PWD/../slirp/libslirp.a)"
 for i in pthread z glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-pcre=$(find $glib -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n')
+pcre=$(find $glib -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
 LIBA="$LIBA $XLIB $pcre"
 printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
 
@@ -216,7 +226,7 @@ echo " Dynamic libraries involved:"
 ldd ./$qbin 2>&1
 echo
 echo " Static  libraries involved:"
-echo $LIBA $IFIXO | tr ' ' \\n | sort | shft
+echo $LIBA $IFIXO | tr ' ' '\n' | sort | shft
 echo
 strip -s $qbin
 echo " Supported machines are:"

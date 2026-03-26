@@ -14,6 +14,7 @@ infl_cmd="tar -xzf"
 bin_dir="bin"
 src_dir="src"
 dst_dir="../virt"
+top_dir=$PWD
 
 if [ "${1:-}" = "clean" ]; then
   rm -rf build/ slirp/libslirp.a
@@ -127,12 +128,14 @@ fi
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
 export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
 
+IFIXO=""
 if true; then
   echo
   echo "Preparing $bld_dir/libm_ifix.o ... "
   CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
   ${CC:-cc} -c libm_ifix.c -o $bld_dir/libm_ifix.o || exit $?
-  LDFLAGS="$LDFLAGS $PWD/$bld_dir/libm_ifix.o"
+  IFIXO="$PWD/$bld_dir/libm_ifix.o"
+  LDFLAGS="$LDFLAGS $IFIXO"
 fi
 
 mkdir -p $bld_dir; cd $bld_dir
@@ -144,7 +147,7 @@ CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-LIBA="$LIBA $PWD/../slirp/libslirp.a"
+LIBA="$LIBA $(realpath $PWD/../slirp/libslirp.a)"
 for i in pthread z glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
@@ -173,10 +176,9 @@ CFLAGS="" LDFLAGS="" ../$src_dir/configure \
 
 ################################################################################
 
-shft() { sed -e "s/^/\t/" -e "s,$tdir/,,"; }
+shft() { eval sed -e 's/^/\\t/' -e \"s,$top_dir/,local::qemu/,\"; }
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
-pdir=$PWD
 
 rm -f $qbin
 if ! make -j$(nproc) $qbin; then
@@ -185,16 +187,11 @@ if ! make -j$(nproc) $qbin; then
   CFLAGS=""
   LDFLAGS=""
   for i in open stat; do
-    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i "
+      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
   done
-  for i in lseek mmap fstatat ftello fseeko fcntl ftell fseek creat readdir lstat fallocate setrlimit freopen mkostemp; do
-    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i "
-  done
-  for i in strtoull strtoll; do
-    LDFLAGS="$LDFLAGS -Wl,--defsym=${i}_l=${i}"
-  done
-  for i in vasprintf vfprintf snprintf vsprintf vsnprintf sprintf fprintf printf memcpy memmove memset strcpy; do
-    LDFLAGS="$LDFLAGS -Wl,--defsym=__${i}_chk=${i}"
+  for i in lseek mmap fstatat ftello fseeko fcntl ftell fseek \
+           creat readdir lstat fallocate setrlimit freopen mkostemp; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
   done
   echo "Retry for static linking ... "
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
@@ -211,13 +208,10 @@ for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
 cd $dst_dir
 echo
 echo " Dynamic libraries involved:"
-ldd ./$qbin 2>&1 | grep "not a dynamic" && {
-  printf "\tgetpwuid getpwnam_r getpwuid_r getpwnam %s\n" \
-    "initgroups gethostbyname getaddrinfo"
-}
+ldd ./$qbin 2>&1
 echo
 echo " Static  libraries involved:"
-echo $LIBA | tr ' ' \\n | sort | shft
+echo $LIBA $IFIXO | tr ' ' \\n | sort | shft
 echo
 strip -s $qbin
 echo " Supported machines are:"

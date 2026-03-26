@@ -25,13 +25,29 @@ git clone https://github.com/robang74/uchaosys.git
 cd uchaosys/qemu
 git switch devl
 sh make.sh veryclean sources
+cd ../virt
+sh start.sh -qm32
 ```
 
 Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) the outcoming elf64 binary 
 is an experimental *frankenstein* [glibc-musl static](glibc-musl-fix.c) footprint reduced edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
 
-It is capable of executing itself `qemu-system-x86_64 -M help` when included into the initramfs. Instead, the complete self-hosting and self-emulating isn't yet tested thus granted.
+#### qemu-in-qemu
 
+This glibc-musl stastic qemu is capable of self-hosting and self-emulation:
+
+```sh
+cp -arf virt cpio.tmp
+cd virt
+sh start.sh -uqm64
+  > cd virt
+  > sh start.sh -w1 -zm32 -M q35
+  >   > free; head /proc/cpuinfo
+  >   > qq
+  > qq
+```
+
+The second started is an instance running on a u-qemu KVM w/64MB of RAM in which the virtualisation stuff has been copied into the initramfs and then executed after the boot in software emulation w/32MB.
 ---
 
 ### Rationale

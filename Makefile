@@ -34,28 +34,30 @@ GZCMD_PATH  := refs/heads/main
 path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
-.PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean
+.PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean muslcfg
 
-all: muslcfg sources toolchain bzImage busybox uchaos rngtest install
+all: sources toolchain bzImage busybox uchaos rngtest install
 
 # target: muslcfg //////////////////////////////////////////////////////////////
+muslcfg:
 	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
 	cp -arf cnfg/hashes musl/
 
 # target: sources //////////////////////////////////////////////////////////////
-sources: muslcfg
+sources:
 	@echo Wait downloading sources ...
-	git submodule update --init --recursive
+	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
+	$(MAKE) -j$(NCPU) muslcfg
 	$(MAKE) -j$(NCPU) -C musl extract_all
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
-	sh gzcmd.sh gzcmd.sh gzcmd; sync &
+	sync & sh gzcmd.sh gzcmd.sh gzcmd
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
 # @echo "Sync and drop caches, ^C to skip root password"
 # sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 toolchain: muslcfg
-	make -C musl install
+	make -j$(NCPU) -C musl install
 	@echo
 	tar czf musl-output.tar.gz musl/output/
 	du -ms musl-output.tar.gz musl/output/
@@ -124,7 +126,7 @@ install:
 clean:
 	rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $(TMPD)
 	for dir in musl bbox kdev usrl prnd $(LNXPATH); do \
-		$(MAKE) ARCH=$(ARCH) -C $$dir clean || true; \
+		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir clean || true; \
 	done
 
 # target: veryclean ////////////////////////////////////////////////////////////

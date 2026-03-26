@@ -16,6 +16,8 @@ src_dir="src"
 top_dir=$PWD
 dst_dir=$(realpath $PWD/../virt)
 
+ld_libz= # "z" keep disable to use miniz, instead
+
 to_clean="build/ slirp/libslirp.a minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
   rm -rf $to_clean
@@ -124,18 +126,21 @@ if [ ! -r slirp/libslirp.a ]; then
   cd ..
   set +e
 fi
-if [ ! -r minz/miniz.o ]; then
-  echo
-  echo "Compiling minz/miniz.o ... "
-  set -e
-  cd minz; rm -f miniz.o; ${CC:-cc} -c miniz.c -o miniz.o
-  cd ..
-  set +e
+LIBA="$LIBA $top_dir/slirp/libslirp.a"
+if [ ! -n "$ld_libz" ]; then
+  if [ ! -r minz/miniz.o ]; then
+    echo
+    echo "Compiling minz/miniz.o ... "
+    set -e
+    cd minz; rm -f miniz.o; ${CC:-cc} $CFLAGS -c miniz.c -o miniz.o
+    cd ..
+    set +e
+  fi
+  LIBA="$LIBA $top_dir/minz/miniz.o"
 fi
 
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
 export LDFLAGS="$LDFLAGS -Wl,--gc-sections -falign-functions=32"
-LDFLAGS="$LDFLAGS $top_dir/slirp/libslirp.a $top_dir/minz/miniz.o"
 
 IFIXO=""
 mkdir -p $bld_dir

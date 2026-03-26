@@ -1,4 +1,5 @@
 kdev/linux-kernel
+kdev/linux-5.15.202.orig
 kdev/modules.order
 kdev/Module.symvers
 kdev/uchaos_dev.ko.gz
@@ -19,3 +20,13 @@ cpio.tmp
 cpio.cpio
 virt/bzImage
 virt/initramfs.cpio.gz
+virt/qemu-system-x86_64
+virt/linuxboot_dma.bin
+virt/efi-virtio.rom
+virt/bios-256k.bin
+virt/kvmvapic.bin
+virt/qboot.rom
+musl-output.tar.gz
+qemu/v10.2.2.tar.gz
+qemu/build
+qemu/src

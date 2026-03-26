@@ -4,13 +4,15 @@ In 2019, RedHat presented the minimal footprint QEMU at **31MB for the Q35 machi
 
 - [KVM Forum 2019 (un)bloated QEMU](https://static.sched.com/hosted_files/kvmforum2019/c6/kvmforum19-bloat.pdf) &nbsp;(PDF slides, by RedHat)
 
-I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 6MB**. Do not trust me and try to replicate.
+I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 6MB**. Do not trust me and try to replicate. By the way, the screeshot below refers to the v0.6.5.
 
-![image](red-hat-kvm-2019-qemu-footprint.png)
+![v0.6.5](../docs/red-hat-kvm-2019-qemu-footprint.png)
 
 ---
 
 ### Quick Start
+
+The following instructions set builds a **qemu v10.2.2** binary:
 
 ```sh
 git clone https://github.com/robang74/uchaosys.git
@@ -18,6 +20,9 @@ cd uchaosys/qemu
 git switch devl
 sh make.sh veryclean sources
 ```
+
+Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) the outcoming elf64 binary 
+is an experimental *frankenstein* [glibc-musl static](glibc-musl-fix.c) footprint reduced edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
 
 ---
 

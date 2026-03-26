@@ -14,20 +14,24 @@ infl_cmd="tar -xzf"
 bin_dir="bin"
 src_dir="src"
 dst_dir="../virt"
+top_dir=$PWD
 
 if [ "${1:-}" = "clean" ]; then
-  rm -rf build/
+  rm -rf build/ slirp/libslirp.a
 elif [ "${1:-}" = "veryclean" ]; then
-  rm -rf build/ src/
+  rm -rf build/ slirp/libslirp.a src/
   test "${2:-}" = "" && exit
   shift
 fi
-# A recursive deletion upon a variable argument is risky, define it later 
+# A recursive deletion upon a variable argument is risky, define it later
 bld_dir="build"
 
 ################################################################################
 
 if [ "${1:-}" = "sources" ]; then
+  echo
+  echo "Preparing sources ... "
+  echo
   test -r $url_name ||
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
@@ -44,7 +48,7 @@ if [ "${1:-}" = "sources" ]; then
 + #ifndef _DISABLE_CXL //RAF: disable for a minimal build
 +    build_cxl_dsm_method(dev);
 + #endif
- 
+
      aml_append(scope, dev);
      aml_append(table, scope);
 @@ -1014,7 +1015,9 @@ build_dsdt(GArray *table_data, BIOSLinke
@@ -69,13 +73,13 @@ if [ "${1:-}" = "sources" ]; then
 +                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
 + #endif
      }
- 
+
      acpi_add_table(table_offsets, tables_blob);
 --- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
 +++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
 @@ -149,7 +119,9 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
              aml_append(dev, aml_name_decl("_CRS", crs));
- 
+
              if (is_cxl) {
 -                build_cxl_osc_method(dev);
 + #ifndef _DISABLE_CXL //RAF: disable for a minimal build
@@ -93,32 +97,66 @@ cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
 export ARCH="x86_64"
 out_dir="$PWD/$bin_dir"
 
-path="$PWD/../musl/output"
+path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 -mtune=generic -flto -fno-plt -falign-functions=32 -pipe -s"
+CFLAGS="-O1 -march=x86-64-v3 -falign-functions=32 -pipe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
-LDFLAGS="-no-pie -Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS="-flto -fno-plt -Wl,--gc-sections -falign-functions=32 -s $LDFLAGS"
+
+export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
+export CC="${CROSS_COMPILE}gcc"
+export LD="${CROSS_COMPILE}ld"
+export AR="${CROSS_COMPILE}ar"
+export NM="${CROSS_COMPILE}nm"
 
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
-mkdir -p $bld_dir; cd $bld_dir
 
-#export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
-#export CC="${CROSS_COMPILE}gcc"
-#export LD="${CROSS_COMPILE}ld"
-#export AR="${CROSS_COMPILE}ar"
-#export NM="${CROSS_COMPILE}nm"
+if [ ! -r slirp/libslirp.a ]; then
+  echo
+  echo "Compiling slirp/libslirp.a ... "
+  echo
+  set -e
+  cd slirp; rm -rf build; mkdir -p build
+  meson build --prefix=$PWD/build && ninja -C build
+  ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
+  cd ..
+  set +e
+fi
+
+LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
+export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
+
+IFIXO=""
+mkdir -p $bld_dir
+if true; then
+  IFIXO="glibc-musl-fix"
+  echo
+  echo "Preparing $bld_dir/$IFIXO.o ... "
+  CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
+  ${CC:-cc} -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
+  IFIXO="$PWD/$bld_dir/$IFIXO.o"
+  LDFLAGS="$LDFLAGS $IFIXO"
+fi
+cd $bld_dir
+
+fn=$(find /usr/include -name zlib.h)
+test -n "$fn" || exit 1
+cp $fn $(dirname $fn)/zconf.h .
+CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-for i in pthread z; do
+LIBA="$LIBA $(realpath $PWD/../slirp/libslirp.a)"
+for i in pthread z glib-2.0; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-printf "\nStatic libraries found:$LIBA\n\n"
-../$src_dir/configure \
+pcre=$(find /usr -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
+LIBA="$LIBA $pcre"
+printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
+
+CFLAGS="" LDFLAGS="" ../$src_dir/configure \
   --audio-drv-list= \
   --without-default-devices \
   --without-default-features \
@@ -129,42 +167,59 @@ printf "\nStatic libraries found:$LIBA\n\n"
   --enable-system \
   --enable-vhost-net \
   --enable-slirp \
-  --enable-strip \
-  --enable-lto \
   --enable-fdt \
-  --disable-tcg-interpreter \
+  --disable-attr --disable-cap-ng \
+  --disable-tcg-interpreter --disable-auth-pam \
   --disable-zstd --disable-lzo --disable-bzip2 \
   --disable-docs --disable-tools --disable-guest-agent \
-  --extra-ldflags="$LDFLAGS $LIBA" \
-  --extra-cflags="$CFLAGS -D_DISABLE_CXL" || exit
+  --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
+  --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
 
 ################################################################################
 
-shft() { sed -e "s/^/\t/"; }
+shft() { eval sed -e 's/^/\\t/' -e \"s,$top_dir/,local::qemu/,\"; }
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
-if make -j$(nproc) $qbin; then
-  echo "=============================="
+
+rm -f $qbin
+if ! make -j$(nproc) $qbin; then
   echo
-  echo " Building path:\n\t$PWD"
-  cd ..
-  cp -f $bld_dir/$qbin $dst_dir 
-  for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
-  cd $dst_dir
-  echo
-  echo " Dynamic libraries involved:"
-  ldd ./$qbin
-  echo
-  echo " Static  libraries involved:"
-  echo  $LIBA | tr ' ' \\n | shft
-  echo
-  strip -s $qbin
-  echo " Supported machines are:"
-  ./$qbin -M help | grep -ve "^Supported" | shft
-  echo
-  echo " Hacked qemu footprint:"
-  printf "\t$(du -k $qbin)\n"
-  sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
-  printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
+  echo "Fix the linking stage and repeat ..."
+  CFLAGS=""
+  LDFLAGS=""
+  for i in open stat; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
+  done
+  for i in lseek mmap fstatat ftello fseeko fcntl ftell fseek \
+           creat readdir lstat fallocate setrlimit freopen mkostemp; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
+  done
+  echo "Retry for static linking ... "
+  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
+  rm -f $qbin; ${CC:-cc} -m64 $LDFLAGS $CFLAGS @$qbin.rsp || exit $?
 fi
+
+echo
+echo "==============================="
+echo
+echo " Building path:\n\t$PWD"
+cd ..
+cp -f $bld_dir/$qbin $dst_dir
+for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
+cd $dst_dir
+echo
+echo " Dynamic libraries involved:"
+ldd ./$qbin 2>&1
+echo
+echo " Static  libraries involved:"
+echo $LIBA $IFIXO | tr ' ' \\n | sort | shft
+echo
+strip -s $qbin
+echo " Supported machines are:"
+./$qbin -M help | grep -ve "^Supported" | shft
+echo
+echo " Hacked qemu footprint:"
+printf "\t$(du -k $qbin)\n"
+sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
+printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
 

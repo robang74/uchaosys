@@ -30,13 +30,13 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific for the reference tagged version [v0.6.3](https://github.com/robang74/uchaosys/releases/tag/v0.6.3) which adopts the all-static policy (footprints: +3% sys, +1% musl).
+The data reported below are indicative and specific for the reference tagged version [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) which adopts the all-static policy (footprints: +3% sys, +1% musl) and boots on an experimental *frankenstein* glibc-musl all-static qemu compiled on Ubuntu 22.04 (footprint: +25% dev/build).
 
 Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time: 1010 s  (16m 50s)`&hairsp;¹
-- `dev/build environment size: 4889 MB (4.77 GB)`
-- `repository .zip copy  size:  102 KB`
+- `dev/build environment size: 6116 MB (5.97 GB)`
+- `repository .zip copy  size:  324 KB (pdf+img)`
 
 Reference architecture **x86_64**, system footprint:
 
@@ -48,10 +48,10 @@ Reference architecture **x86_64**, system footprint:
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.054 s `**!!!**
-- `total available memory in userland: 18804 KB`
-    - `host: 32768, zram: -4722, cpio:  -664 KB`
-    - `mlnx: 23548, used: -2408, buff: -1460 KB`
+- `total time for being ready to user: 0.062 s `**!!!**
+- `total available memory in userland: 18868 KB`
+    - `host: 32768, zram: -4717, cpio:  -664 KB`
+    - `mlnx: 23544, used: -2396, buff: -1460 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 
@@ -65,16 +65,17 @@ It is interesting to note how the memory is allocated&hairsp;.<br>
 - **musl v1.2.15**, and related packages for the cross-compilation toolchain;
 - **busybox v1.38**, as the whole initramfs system component and user shell;
 - **linux v5.15.202**, as the kernel from a very widely spread LTS branch;
-- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
+- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver;
+- **qemu v10.2.2**, as machine emulator with virtio/microvm/q35 support.
 
 #### External tools 
 
 - [dL1](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) &dash; **PractRand RNG_test**, external static tool for testing randonmess quality 
 - [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
 
-While PractRand `RNG_test` (2288 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
+While PractRand `RNG_test` (2288&nbsp;KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
 
-The `RNG_test.gz.sh` (906 KB) is 1366 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
+The `RNG_test.gz.sh` (906&nbsp;KB) is 1366&nbsp;KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
 
 However, using gzcmd executables make sense only when a storage is available. Otherwise there are two copies in RAM, at least. After all, `gzcmd.sh` exists as an alternative to compressed archives and initramfs is nothing else than a compressed `cpio` archive.
 
@@ -114,7 +115,17 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 ### Hacked μ-qemu
 
-Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this project also provides the option of compiling a special [footprint reduced](qemu/) edition of the `qemu-system-x86_64` binary (6044 KB) which uses a subset of ROMs (488 KB). It is worth to notice that, despite this custom **qemu v10.2.2** is still a dynamically compiled instance, the whole uChaSys + μ-qemu package occupy less than 10MB on an uncompressed file-system storage (8.14 MB, plus shared system libraries).
+Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/) edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
+
+> FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4), 
+> GZIP: 2715646 (2652 Kb, 35 %), GZSH: v0.1.6
+
+> FILE: 'RNG_test.gz.sh', HEAD: 1384 (4), 
+> GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
+
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.73&nbsp;MB).
+
+This result has been achieved in 7-days from the initial commit of this project.
 
 <br>
 

@@ -100,10 +100,14 @@ Last but not least, the chaos engine is **exactly** the same in kernel and user 
 ### Quick Start
 
 ```sh
-git clone https://github.com/robang74/uchaosys.git
+url="github.com/robang74/uchaosys.git"
+git clone https://$url --jobs $(nproc)
 cd uchaosys
+#    git switch <branch>
 time make sources
+#    real	4m4.240s
 time make buildall
+#    real	16m46.399s
 make runqemu
 ```
 

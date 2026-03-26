@@ -129,16 +129,17 @@ LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
 export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
 
 IFIXO=""
+mkdir -p $bld_dir
 if true; then
+  IFIXO="glibc-musl-fix"
   echo
-  echo "Preparing $bld_dir/libm_ifix.o ... "
+  echo "Preparing $bld_dir/$IFIXO.o ... "
   CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
-  ${CC:-cc} -c libm_ifix.c -o $bld_dir/libm_ifix.o || exit $?
-  IFIXO="$PWD/$bld_dir/libm_ifix.o"
+  ${CC:-cc} -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
+  IFIXO="$PWD/$bld_dir/$IFIXO.o"
   LDFLAGS="$LDFLAGS $IFIXO"
 fi
-
-mkdir -p $bld_dir; cd $bld_dir
+cd $bld_dir
 
 fn=$(find /usr/include -name zlib.h)
 test -n "$fn" || exit 1

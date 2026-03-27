@@ -4,6 +4,9 @@
 #
 ################################################################################
 
+shft() { eval sed -e 's/^/\\t/' -e \"s,$top_dir/,local::qemu/,\"; }
+prnt() { echo "$@" | tr ' ' '\n' | sort | shft; }
+
 url_site="https://github.com/robang74/qemu"
 url_path="/archive/refs/tags/"
 url_name="v10.2.2.tar.gz"
@@ -22,6 +25,7 @@ dst_dir=$(realpath $PWD/../virt)
   ncpu=$(nproc)                # number of pipelines for parallel compilation
   xppe="-pipe"                 # usually faster in compiling  but not always
   xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment
+  fixo="glibc-musl-fix"        # unset to not use it
 # ============================================================================ #
 
 to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o"
@@ -41,6 +45,8 @@ if [ "${1:-}" = "sources" ]; then
   echo
   echo "Preparing sources ... "
   echo
+  git submodule update --init --recursive --jobs $ncpu \
+    --depth 32 --single-branch slirp
   test -r $url_name ||
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
@@ -110,6 +116,8 @@ path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
 CFLAGS="-O1 -march=x86-64-v3 $xlto -falign-functions=32 $xppe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
+LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
+export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
 
 export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
 export CC="${CROSS_COMPILE}gcc"
@@ -117,63 +125,73 @@ export LD="${CROSS_COMPILE}ld"
 export AR="${CROSS_COMPILE}ar"
 export NM="${CROSS_COMPILE}nm"
 
+mkdir -p $bld_dir
+
+################################################################################
+
+if [ ! -n "$ld_libz" ]; then
+  luz="minz/miniz"
+  if [ ! -r $luz.o ]; then
+    echo
+    echo "Compiling libminiz ... "
+    set -e
+    ${CC:-cc} $CFLAGS -c $luz.c -o $luz.o
+    set +e
+  fi
+  OBJS="$OBJS $top_dir/$luz.o"
+else
+  rm -f minz/miniz.o
+fi
+
+if [ -r "$fixo.c" ]; then
+  echo "Compiling libifixo ... "
+  set -e
+  ${CC:-cc} $CFLAGS -c $fixo.c -o $bld_dir/$fixo.o || exit $?
+  CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
+  OBJS="$OBJS $top_dir/$bld_dir/$fixo.o"
+  set +e
+fi
+
 # slirp is for user-emulated network, while vhost is for the passtrough:
 # - user-mode networking (stack TCP/IP emulated by QEMU)
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
 
-if [ ! -r slirp/libslirp.a ]; then
+if ! ls -1 slirp/libslirp*.p/*.o 2>/dev/null | grep -q \.o ; then
+  echo "Compiling libslirp ... "
   echo
-  echo "Compiling slirp/libslirp.a ... "
   set -e
-  cd slirp; rm -rf build; mkdir -p build
-  meson build --prefix=$PWD/build; ninja -j$ncpu -C build
-  ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
+  cd slirp
+  rm -rf $bld_dir; mkdir -p $bld_dir
+  meson build --prefix=$PWD/$bld_dir
+  CFLAGS="$CFLAGS" ninja -j$ncpu -C $bld_dir
   cd ..
   set +e
 fi
-LIBA="$LIBA $top_dir/slirp/libslirp.a"
-if [ ! -n "$ld_libz" ]; then
-  if [ ! -r minz/miniz.o ]; then
-    echo
-    echo "Compiling minz/miniz.o ... "
-    set -e
-    cd minz; rm -f miniz.o; ${CC:-cc} $CFLAGS -c miniz.c -o miniz.o
-    cd ..
-    set +e
-  fi
-  LIBA="$LIBA $top_dir/minz/miniz.o"
-fi
 
-LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
-export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
-
-IFIXO=""
-mkdir -p $bld_dir
-if true; then
-  IFIXO="glibc-musl-fix"
+luc="libucustom"
+if [ ! -r "$luc.a" ]; then
+  OBJS="$OBJS "$(find slirp/$bld_dir/libslirp*.p/ -name \*.o)
   echo
-  echo "Preparing $bld_dir/$IFIXO.o ... "
-  set -e
-  ${CC:-cc} $CFLAGS -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
-  CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
-  LIBA="$LIBA $PWD/$bld_dir/$IFIXO.o"
+  echo "Preparting libucustom ... "
+  ${AR:-ar} rcs $bld_dir/$luc.a $OBJS
   set +e
 fi
-cd $bld_dir
+LIBA="$LIBA $top_dir/$bld_dir/$luc.a"
 
-fn=$(find /usr/include -name zlib.h)
-test -n "$fn" || exit 1
-cp $fn $(dirname $fn)/zconf.h . || exit 1
+################################################################################
+
+cd $bld_dir
 CFLAGS="$CFLAGS -I$PWD"
+hd="/usr/include"; cp $hd/zlib.h $hd/zconf.h . || exit 1
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
 for i in pthread glib-2.0 libpcre2-8 $ld_libz; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
-#read -p "param 1: $1" key
+printf "\nStatic libraries found:\n"
+prnt $LIBA #read -p "param 1: $1" key
 
 if [ "${1:-}" != "noconfig" ]; then
   CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \
@@ -198,7 +216,6 @@ fi
 
 ################################################################################
 
-shft() { eval sed -e 's/^/\\t/' -e \"s,$top_dir/,local::qemu/,\"; }
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 
@@ -245,7 +262,7 @@ echo " Dynamic libraries involved:"
 ldd ./$qbin 2>&1
 echo
 echo " Static  libraries involved:"
-echo $LIBA | tr ' ' '\n' | sort | shft
+prnt $LIBA
 echo
 strip -s $qbin
 echo " Supported machines are:"

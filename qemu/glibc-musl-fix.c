@@ -40,8 +40,11 @@ __attribute__((weak)) struct cpu_features _dl_x86_cpu_features;
  * could be absent during compilation and available only at linking time but
  * the linking stage could be LTO enabled. The "static" avoid LTO pollution.
  */
-
-#define weakinline static always_inline __attribute__((weak))
+#if 0
+#define weakinline static inline __attribute__((always_inline))
+#else
+#define weakinline __attribute__((weak))
+#endif
 
 weakinline
 int __fprintf_chk(FILE *fp, int flag,
@@ -114,12 +117,9 @@ int close_range(unsigned int first, unsigned int last, unsigned int flags) {
 #endif
 }
 
-#ifndef locale_t
-typedef void *locale_t;
-#endif
 weakinline
-unsigned long long strtoull_l(const char *nptr,
-  char **endptr, int base, locale_t loc) {
+unsigned long long strtoull_l(const char *nptr, char **endptr, int base,
+  void *loc __attribute__((unused)) ) {
     return strtoull(nptr, endptr, base);
 }
 

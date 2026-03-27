@@ -163,7 +163,8 @@ fi
 cd $bld_dir
 
 fn=$(find /usr/include -name zlib.h)
-test -n "$fn" -a cp $fn $(dirname $fn)/zconf.h . || exit 1
+test -n "$fn" || exit 1
+cp $fn $(dirname $fn)/zconf.h . || exit 1
 CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"

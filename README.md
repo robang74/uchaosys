@@ -8,6 +8,10 @@
 
 ![0KVM](docs/zero-entropy-virtual-machine.jpg)
 
+> [!WARNING]
+>
+> **μChaoSys** isn't an operative system but a recipe to create a specific operative system. A recipe that a bright kid can operate as well as the produce operative system but a dumb adult cannot. Deliberately, this warning allows one to grasp how silly/mad in its fundamentals is the idea to divide knowledge by age.
+
 <br>
 
 ### μChaos minimal Linux qemu bootable system

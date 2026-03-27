@@ -21,9 +21,8 @@ I did a "trick of mine", possibly two, and the minimal footprint to have a x86-6
 The following instructions set builds a **qemu v10.2.2** binary:
 
 ```sh
-git clone https://github.com/robang74/uchaosys.git
-cd uchaosys/qemu
-git switch devl
+# pre-requisite: toolchain built
+cd qemu
 sh make.sh veryclean sources
 cd ../virt
 sh start.sh -qm32

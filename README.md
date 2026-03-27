@@ -10,7 +10,7 @@
 
 > [!WARNING]
 >
-> **μChaoSys** isn't an operative system but a recipe to create a specific operative system. A recipe that a bright kid can operate as well as the its product, but a dumb adult cannot. Deliberately, this warning allows hopefully everyone to grasp how silly/mad is, in its fundamentals, the idea to divide knowledge by age.
+> **μChaoSys** isn't an operative system but a recipe to create a specific operative system. A recipe that a bright kid can operate as well as the recipe's product, but a dumb adult cannot. Deliberately and hopefully, this warning helps everyone to grasp how silly/mad is, in its fundamentals, the idea to divide knowledge and agency by age.
 
 <br>
 

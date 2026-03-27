@@ -161,10 +161,11 @@ buildemu:
 
 # target: uemutest //////////////////////////////////////////////////////////////
 uemutest:
+	rm -rf cpio.tmp/virt/
+	cp -arf cpio/* cpio.tmp/
 	sh cpio.sh -c || exit 1
-  cp -arf virt/ cpio.tmp/
-	cd virt && KARGS="UTEST=9" sh start.sh -uqm64
-	rm -rf ../cpio.tmp/virt && start.sh -U
+	cp -arf virt/ cpio.tmp/
+	cd virt && KARGS="UCTEST=9" sh start.sh -uqm64
 
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu:

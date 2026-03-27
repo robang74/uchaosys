@@ -33,7 +33,7 @@ HLINE=$(printf '-%.0s' $(seq 80))
 _dduchaos() { dd if=/dev/uchaos bs=8k "$@"; }
 _pgetentr() { cat /proc/sys/kernel/random/entropy_avail; }
 
-if uname -r | grep -qe "^5.15.202$" && which RNG_test.gz.sh >&3; then
+if which RNG_test.gz.sh >&3; then
   printf "\n>>>>>>>>: Kernel entropy pool available: %d bits\n" $(_pgetentr)
   grep -qe "UCTEST=2" /proc/cmdline && {
     printf "UCTEST=3: testing /dev/uchaos in warm I/O reading test\n\n"
@@ -60,5 +60,17 @@ if uname -r | grep -qe "^5.15.202$" && which RNG_test.gz.sh >&3; then
     }
   fi
 fi
+
+grep -qe "UCTEST=9" /proc/cmdline && {
+  echo
+  printf "UCTEST=9: testing self-hosting self-executable uqemu ...\n\n"
+  if [ -d /virt ]; then
+    free; echo virt: $(du -ks /virt/ | cut -f1; echo)
+    echo; read -p "Press ENTER to continue: "
+    cd /virt/ && sh start.sh -w1 -zm32 -M q35
+  else    
+    free; head /proc/cpuinfo
+  fi
+}
 
 fi #############################################################################

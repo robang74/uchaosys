@@ -25,7 +25,8 @@ dst_dir=$(realpath $PWD/../virt)
   ncpu=$(nproc)                # number of pipelines for parallel compilation
   xppe="-pipe"                 # usually faster in compiling  but not always
   xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment
-  fixo="glibc-musl-fix"        # unset to not use it
+  fixo="glibc-musl-fix"        # unset to not use the "frankenstein" approach
+  ldck="ies"                   # set to "yes" for the option of check @.rbs
 # ============================================================================ #
 
 to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o"
@@ -221,6 +222,7 @@ qbin="qemu-system-$ARCH"
 
 rm -f $qbin
 if ! time -p make -j$ncpu $qbin; then
+  [ "$ldck" = "yes" ] && read -p "Press ENTER to continue: " pkey
   echo
   echo "Fix the linking stage and repeat ..."
   CFLAGS=""
@@ -242,6 +244,7 @@ if ! time -p make -j$ncpu $qbin; then
     done; done
   fi
   echo "Retry for static linking ... "
+  cp -f $qbin.rsp $qbin.rsp.bak
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s, -lutil,," -e "s, -lm,," \
       -e "s, -pthread,," -e "s, -lz,," -i $qbin.rsp
   rm -f $qbin; time -p ${CC:-cc} $CFLAGS $LDFLAGS @$qbin.rsp || exit $?

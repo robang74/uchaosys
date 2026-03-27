@@ -112,15 +112,16 @@ time make sources
 #    real	2m14.851s
 time make buildall
 #    real	16m44.828s
+# to run uChaoSys on u/qemu
+make runqemu
 
 # ancillary activities
 time make rngtest
 #    real	0m17.791s
 time make buildemu
 #    real	4m44.253s
-
-# to run or test u/qemu
-make runqemu
+# to test self-hosting u/qemu
+make uemutest
 ```
 
 The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.

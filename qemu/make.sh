@@ -244,10 +244,11 @@ if ! time -p make -j$ncpu $qbin; then
     done; done
   fi
   echo "Retry for static linking ... "
-  cp -f $qbin.rsp $qbin.rsp.bak
+  rm -f $qbin; cp -f $qbin.rsp $qbin.rsp.bak
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s, -lutil,," -e "s, -lm,," \
       -e "s, -pthread,," -e "s, -lz,," -i $qbin.rsp
-  rm -f $qbin; time -p ${CC:-cc} $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
+  cmd="${CC:-cc} $CFLAGS $LDFLAGS @$qbin.rsp"
+  echo $cmd; time -p $cmd || exit $?
 fi
 
 echo

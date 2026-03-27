@@ -61,7 +61,7 @@ if which RNG_test.gz.sh >&3; then
   fi
 fi
 
-grep -qe "UCTEST=9" /proc/cmdline && {
+if grep -qe "UCTEST=9" /proc/cmdline; then
   echo
   printf "UCTEST=9: testing self-hosting self-executable uqemu ...\n\n"
   if [ -d /virt ]; then
@@ -71,6 +71,6 @@ grep -qe "UCTEST=9" /proc/cmdline && {
   else    
     free; head /proc/cpuinfo
   fi
-}
+fi
 
 fi #############################################################################

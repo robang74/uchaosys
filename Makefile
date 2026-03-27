@@ -157,7 +157,7 @@ buildsys: bzImage busybox uchaos install
 
 # target: uqemu ////////////////////////////////////////////////////////////////
 uqemu:
-	cd qemu && time sh make.sh sources
+	cd qemu && time -p sh make.sh sources
 
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu:

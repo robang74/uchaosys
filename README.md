@@ -16,9 +16,9 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 
 * [Technical Proposal for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) (2026-03-16)
 
-Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. 
+Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources.
 
-Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views. Including the ability of self-hosting and self-executing in a cascade KVM 64MB to TCG 32MB, for example.  
+Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views. Including the ability of self-hosting and self-executing in a cascade KVM 64MB to TCG 32MB, for example.
 
 <br>
 
@@ -70,9 +70,9 @@ It is interesting to note how the memory is allocated&hairsp;.<br>
 - **uchaosbox & dev.ko**, as userland utility toolbox and char device driver;
 - **qemu v10.2.2**, as machine emulator with virtio/microvm/q35 support.
 
-#### External tools 
+#### External tools
 
-- [dL1](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) &dash; **PractRand RNG_test**, external static tool for testing randonmess quality 
+- [dL1](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) &dash; **PractRand RNG_test**, external static tool for testing randonmess quality
 - [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
 
 While PractRand `RNG_test` (2288&nbsp;KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
@@ -133,7 +133,7 @@ Since v0.6.5 this project also provides the option of compiling an experimental 
 > FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4),
 > GZIP: 2656031 (2594 Kb, 35 %), GZSH: v0.1.6
 
-> FILE: 'RNG_test.gz.sh', HEAD: 1384 (4), 
+> FILE: 'RNG_test.gz.sh', HEAD: 1384 (4),
 > GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
 
 It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.44&nbsp;MB).

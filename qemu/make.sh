@@ -21,7 +21,7 @@ dst_dir=$(realpath $PWD/../virt)
 # ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
   ncpu=$(nproc)                # number of pipelines for parallel compilation
   xppe="-pipe"                 # usually faster in compiling  but not always
-  xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment 
+  xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment
 # ============================================================================ #
 
 to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o"
@@ -236,7 +236,7 @@ echo
 echo " Building path:\n\t$PWD"
 cd ..
 set -e
-cp -f $bld_dir/$qbin $dst_dir 
+cp -f $bld_dir/$qbin $dst_dir
 for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
 set +e
 cd $dst_dir

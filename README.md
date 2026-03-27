@@ -50,10 +50,10 @@ Reference architecture **x86_64**, system footprint:
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.062 s `**!!!**
-- `total available memory in userland: 18868 KB`
-    - `host: 32768, zram: -4717, cpio:  -664 KB`
-    - `mlnx: 23544, used: -2396, buff: -1460 KB`
+- `total time for being ready to user: 0.064 s `**!!!**
+- `total available memory in userland: 18828 KB`
+    - `host: 32768, zram: -4710, cpio:  -664 KB`
+    - `mlnx: 23544, used: -2404, buff: -1504 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 
@@ -100,11 +100,20 @@ Last but not least, the chaos engine is **exactly** the same in kernel and user 
 ### Quick Start
 
 ```sh
-git clone https://github.com/robang74/uchaosys.git
+url="github.com/robang74/uchaosys.git"
+git clone https://$url --jobs $(nproc)
 cd uchaosys
+#    git switch <branch>
 time make sources
+#    real	2m14.851s
 time make buildall
+#    real	16m44.828s
 make runqemu
+# ancillary activities
+time make rngtest
+#    real	0m17.791s
+time make uqemu
+#    real	4m44.253s
 ```
 
 The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.
@@ -119,15 +128,15 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 - [μ-footprint hacked qemu edition](qemu/) &hairsp;host page, last version
 
-Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
+Since v0.6.5 this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary ([v0.6.6](https://github.com/robang74/uchaosys/releases/tag/v0.6.5): 7280&nbsp;KB, -3% minz w/lto) which uses a subset of ROMs (488&nbsp;KB, tgz: 272&nbsp;KB).
 
-> FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4), 
-> GZIP: 2715646 (2652 Kb, 35 %), GZSH: v0.1.6
+> FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4),
+> GZIP: 2656031 (2594 Kb, 35 %), GZSH: v0.1.6
 
 > FILE: 'RNG_test.gz.sh', HEAD: 1384 (4), 
 > GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
 
-It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.73&nbsp;MB).
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.44&nbsp;MB).
 
 This result has been achieved in 7-days from the initial commit of this project.
 

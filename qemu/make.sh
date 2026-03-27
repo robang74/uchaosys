@@ -13,13 +13,22 @@ infl_cmd="tar -xzf"
 
 bin_dir="bin"
 src_dir="src"
-dst_dir="../virt"
 top_dir=$PWD
+dst_dir=$(realpath $PWD/../virt)
 
+# PARAMETRIC BUILDING # ====================================================== #
+#
+# ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
+  ncpu=$(nproc)                # number of pipelines for parallel compilation
+  xppe="-pipe"                 # usually faster in compiling  but not always
+  xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment 
+# ============================================================================ #
+
+to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o"
 if [ "${1:-}" = "clean" ]; then
-  rm -rf build/ slirp/libslirp.a
+  rm -rf $to_clean
 elif [ "${1:-}" = "veryclean" ]; then
-  rm -rf build/ slirp/libslirp.a src/
+  rm -rf $to_clean src/
   test "${2:-}" = "" && exit
   shift
 fi
@@ -90,7 +99,7 @@ if [ "${1:-}" = "sources" ]; then
                  acpi_dsdt_add_host_bridge_methods(dev, true);
 EOF
 fi
-cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/
+cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################
 
@@ -99,7 +108,7 @@ out_dir="$PWD/$bin_dir"
 
 path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 -falign-functions=32 -pipe"
+CFLAGS="-O1 -march=x86-64-v3 $xlto -falign-functions=32 $xppe"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 
 export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
@@ -116,17 +125,28 @@ export NM="${CROSS_COMPILE}nm"
 if [ ! -r slirp/libslirp.a ]; then
   echo
   echo "Compiling slirp/libslirp.a ... "
-  echo
   set -e
   cd slirp; rm -rf build; mkdir -p build
-  meson build --prefix=$PWD/build && ninja -C build
+  meson build --prefix=$PWD/build; ninja -j$ncpu -C build
   ${AR:-ar} rcs libslirp.a $(find build/libslirp*.p/ -name \*.o)
   cd ..
   set +e
 fi
+LIBA="$LIBA $top_dir/slirp/libslirp.a"
+if [ ! -n "$ld_libz" ]; then
+  if [ ! -r minz/miniz.o ]; then
+    echo
+    echo "Compiling minz/miniz.o ... "
+    set -e
+    cd minz; rm -f miniz.o; ${CC:-cc} $CFLAGS -c miniz.c -o miniz.o
+    cd ..
+    set +e
+  fi
+  LIBA="$LIBA $top_dir/minz/miniz.o"
+fi
 
-LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries"
-export LDFLAGS=" -Wl,--gc-sections -falign-functions=32 $LDFLAGS"
+LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
+export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
 
 IFIXO=""
 mkdir -p $bld_dir
@@ -134,46 +154,47 @@ if true; then
   IFIXO="glibc-musl-fix"
   echo
   echo "Preparing $bld_dir/$IFIXO.o ... "
+  set -e
+  ${CC:-cc} $CFLAGS -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
   CFLAGS="$CFLAGS -Dclose_range(a,b,c)=syscall(SYS_close_range,a,b,c)"
-  ${CC:-cc} -c $IFIXO.c -o $bld_dir/$IFIXO.o || exit $?
-  IFIXO="$PWD/$bld_dir/$IFIXO.o"
-  LDFLAGS="$LDFLAGS $IFIXO"
+  LIBA="$LIBA $PWD/$bld_dir/$IFIXO.o"
+  set +e
 fi
 cd $bld_dir
 
 fn=$(find /usr/include -name zlib.h)
 test -n "$fn" || exit 1
-cp $fn $(dirname $fn)/zconf.h .
+cp $fn $(dirname $fn)/zconf.h . || exit 1
 CFLAGS="$CFLAGS -I$PWD"
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-LIBA="$LIBA $(realpath $PWD/../slirp/libslirp.a)"
-for i in pthread z glib-2.0; do
+for i in pthread glib-2.0 libpcre2-8 $ld_libz; do
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
-pcre=$(find /usr -name libpcre\*.a | grep -ve "16\.a" -e "32\.a" | tr '\n' ' ')
-LIBA="$LIBA $pcre"
 printf "\nStatic libraries found:\n\t%s\n" "$LIBA"
+#read -p "param 1: $1" key
 
-CFLAGS="" LDFLAGS="" ../$src_dir/configure \
-  --audio-drv-list= \
-  --without-default-devices \
-  --without-default-features \
-  --target-list=$ARCH-softmmu \
-  --with-devices-$ARCH=minikvm \
-  --enable-kvm \
-  --enable-tcg \
-  --enable-system \
-  --enable-vhost-net \
-  --enable-slirp \
-  --enable-fdt \
-  --disable-attr --disable-cap-ng \
-  --disable-tcg-interpreter --disable-auth-pam \
-  --disable-zstd --disable-lzo --disable-bzip2 \
-  --disable-docs --disable-tools --disable-guest-agent \
-  --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
-  --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
+if [ "${1:-}" != "noconfig" ]; then
+  CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \
+    --audio-drv-list= \
+    --without-default-devices \
+    --without-default-features \
+    --target-list=$ARCH-softmmu \
+    --with-devices-$ARCH=minikvm \
+    --enable-kvm \
+    --enable-tcg \
+    --enable-system \
+    --enable-vhost-net \
+    --enable-slirp \
+    --enable-fdt \
+    --disable-attr --disable-cap-ng \
+    --disable-tcg-interpreter --disable-auth-pam \
+    --disable-zstd --disable-lzo --disable-bzip2 \
+    --disable-docs --disable-tools --disable-guest-agent \
+    --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
+    --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
+fi
 
 ################################################################################
 
@@ -182,21 +203,31 @@ roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 
 rm -f $qbin
-if ! make -j$(nproc) $qbin; then
+if ! time -p make -j$ncpu $qbin; then
   echo
   echo "Fix the linking stage and repeat ..."
   CFLAGS=""
   LDFLAGS=""
   for i in open stat; do
-      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
+    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
   done
   for i in lseek mmap fstatat ftello fseeko fcntl ftell fseek \
            creat readdir lstat fallocate setrlimit freopen mkostemp; do
-      LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
+    LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i"
   done
+  if [ ! -n "$ld_libz" ]; then
+    for i in deflate inflate deflateInit inflateInit deflateEnd inflateEnd\
+             compressBound compress2 inflateInit2 deflateInit2; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym,$i=mz_$i"
+    done
+    for i in deflateInit inflateInit; do for j in "" 2; do
+      LDFLAGS="$LDFLAGS -Wl,--defsym=${i}${j}_=mz_${i}${j}"
+    done; done
+  fi
   echo "Retry for static linking ... "
-  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s/ -lutil//" -e "s/ -lm//" -i $qbin.rsp
-  rm -f $qbin; ${CC:-cc} -m64 $LDFLAGS $CFLAGS @$qbin.rsp || exit $?
+  sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s, -lutil,," -e "s, -lm,," \
+      -e "s, -pthread,," -e "s, -lz,," -i $qbin.rsp
+  rm -f $qbin; time -p ${CC:-cc} $CFLAGS $LDFLAGS @$qbin.rsp || exit $?
 fi
 
 echo
@@ -204,15 +235,17 @@ echo "==============================="
 echo
 echo " Building path:\n\t$PWD"
 cd ..
-cp -f $bld_dir/$qbin $dst_dir
+set -e
+cp -f $bld_dir/$qbin $dst_dir 
 for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
+set +e
 cd $dst_dir
 echo
 echo " Dynamic libraries involved:"
 ldd ./$qbin 2>&1
 echo
 echo " Static  libraries involved:"
-echo $LIBA $IFIXO | tr ' ' \\n | sort | shft
+echo $LIBA | tr ' ' '\n' | sort | shft
 echo
 strip -s $qbin
 echo " Supported machines are:"

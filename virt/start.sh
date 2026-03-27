@@ -8,6 +8,7 @@ append_for_kernel_debug="earlyprintk=serial nokaslr -pidfile vm.pid -panic=1"
 kimg="bzImage"
 rfsimg="initramfs.cpio"
 qemubin="qemu-system-x86_64"
+test -r $qemubin.gz.sh && qemubin="$qemubin.gz.sh"
 
 export PATH=.:$PATH
 

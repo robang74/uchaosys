@@ -21,7 +21,7 @@ I did a "trick of mine", possibly two, and the minimal footprint to have a x86-6
 The following instructions set builds a **qemu v10.2.2** binary:
 
 ```sh
-# pre-requisite: toolchain built
+# pre-requisite: make buildall
 cd qemu
 sh make.sh veryclean sources
 cd ../virt

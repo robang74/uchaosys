@@ -76,7 +76,7 @@ fi
 
 dmesg -r | head -c 8192 > d.txt
 echo; uname -a | sed -e "s,\(x86_64\) x86_64 x86_64,\\1,"
-if echo $krnver | grep -qe "^5.15.20[0-9]$" && which uchaos >&3; then
+if which uchaos >&3; then
   test "$entrp" != "256" &&
   uchaos -qZK1 -k /dev/random < d.txt | md5sum 2>&1 | grep . |\
     sed -e "s,  -$, --> /dev/random by uChaos,"

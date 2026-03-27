@@ -83,10 +83,13 @@ busybox:
 	du -k bbox/busybox
 	@echo
 
-# target: uchaos ///////////////////////////////////////////////////////////////
-uchaos:
-	ln -sf $(KDIR)/ kdev
+# target: miniz ////////////////////////////////////////////////////////////////
+miniz:
 	cd minz; sh amalgamate.sh; cd ..
+
+# target: uchaos ///////////////////////////////////////////////////////////////
+uchaos: miniz
+	ln -sf $(KDIR)/ kdev
 	$(MAKE) -j$(NCPU) -C kdev $(OPTS) dist
 	$(MAKE) -j$(NCPU) -C usrl $(OPTS) uchaosbox
 	@echo

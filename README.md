@@ -116,7 +116,7 @@ time make buildall
 # ancillary activities
 time make rngtest
 #    real	0m17.791s
-time make uqemu
+time make buildemu
 #    real	4m44.253s
 
 # to run or test u/qemu

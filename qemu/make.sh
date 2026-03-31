@@ -22,6 +22,7 @@ dst_dir=$(realpath $PWD/../virt)
 # PARAMETRIC BUILDING # ====================================================== #
 #
 # ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
+  ld_glib="glib-2.0"           # unset to have a glib-2.0 dynamic binary (TODO)
   ncpu=$(nproc)                # number of pipelines for parallel compilation
   xppe="-pipe"                 # usually faster in compiling  but not always
   xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment
@@ -29,7 +30,7 @@ dst_dir=$(realpath $PWD/../virt)
   ldck="ies"                   # set to "yes" for the option of check @.rbs
 # ============================================================================ #
 
-to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o"
+to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o cpio.tmp/"
 if [ "${1:-}" = "clean" ]; then
   rm -rf $to_clean
 elif [ "${1:-}" = "veryclean" ]; then
@@ -121,10 +122,11 @@ LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
 export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
 
 export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
-export CC="${CROSS_COMPILE}gcc"
-export LD="${CROSS_COMPILE}ld"
-export AR="${CROSS_COMPILE}ar"
-export NM="${CROSS_COMPILE}nm"
+export    CC="${CROSS_COMPILE}gcc"
+export    LD="${CROSS_COMPILE}ld"
+export    AR="${CROSS_COMPILE}ar"
+export    NM="${CROSS_COMPILE}nm"
+export STRIP="${CROSS_COMPILE}strip"
 
 mkdir -p $bld_dir
 
@@ -188,11 +190,17 @@ hd="/usr/include"; cp $hd/zlib.h $hd/zconf.h . || exit 1
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-for i in pthread glib-2.0 libpcre2-8 $ld_libz; do
+for i in pcre2-8 $ld_libz pthread $ld_glib; do # util
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
+
 printf "\nStatic libraries found:\n"
 prnt $LIBA #read -p "param 1: $1" key
+echo
+if [ "$ld_glib" = "" ]; then
+  LDFLAGS="$LDFLAGS -L$glib/libc.so.6 -Wl,-rpath,$glib -Wl,-Bdynamic -lglib-2.0"
+fi
+LDFLAGS="$LDFLAGS -Wl,-Bstatic $LIBA"
 
 if [ "${1:-}" != "noconfig" ]; then
   CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \
@@ -211,8 +219,8 @@ if [ "${1:-}" != "noconfig" ]; then
     --disable-tcg-interpreter --disable-auth-pam \
     --disable-zstd --disable-lzo --disable-bzip2 \
     --disable-docs --disable-tools --disable-guest-agent \
-    --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS -s" \
-    --extra-ldflags="$LDFLAGS $LIBA -static -s" || exit $?
+    --extra-cflags="$CFLAGS -D_DISABLE_CXL -D_DISABLE_RUNAS" \
+    --extra-ldflags="$LDFLAGS -static" || exit $?
 fi
 
 ################################################################################
@@ -220,9 +228,12 @@ fi
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 
-rm -f $qbin
-if ! time -p make -j$ncpu $qbin; then
+rm -f $qbin ../$qbin.nma ../$qbin.rsp ../$qbin.ldc ../$qbin
+time -p make -j$ncpu $qbin
+
+if [ ! -x $qbin ] ; then
   [ "$ldck" = "yes" ] && read -p "Press ENTER to continue: " pkey
+  rm -f $qbin; cp -f $qbin.rsp $qbin.rsp.bak
   echo
   echo "Fix the linking stage and repeat ..."
   CFLAGS=""
@@ -243,35 +254,38 @@ if ! time -p make -j$ncpu $qbin; then
       LDFLAGS="$LDFLAGS -Wl,--defsym=${i}${j}_=mz_${i}${j}"
     done; done
   fi
-  echo "Retry for static linking ... "
-  rm -f $qbin; cp -f $qbin.rsp $qbin.rsp.bak
   sed -e "s,/[^ ]*/lib[^ ]*\.so,,g" -e "s, -lutil,," -e "s, -lm,," \
       -e "s, -pthread,," -e "s, -lz,," -i $qbin.rsp
   cmd="${CC:-cc} $CFLAGS $LDFLAGS @$qbin.rsp"
-  echo $cmd; time -p $cmd || exit $?
+  echo $cmd | tee ../$qbin.ldc; time -p $cmd || exit $?
 fi
+
+cp -f $qbin.rsp ../$qbin.rsp
+${NM:-nm} -a $qbin >../$qbin.nma
+${STRIP:-strip} -s $qbin -o ../$qbin
+for i in $roms; do cp -f ../$src_dir/pc-bios/$i $dst_dir; done
+cp -f ../$qbin $dst_dir
 
 echo
 echo "==============================="
 echo
 echo " Building path:\n\t$PWD"
-cd ..
-set -e
-cp -f $bld_dir/$qbin $dst_dir
-for i in $roms; do cp -f $src_dir/pc-bios/$i $dst_dir; done
-set +e
-cd $dst_dir
 echo
 echo " Dynamic libraries involved:"
+
+cd ..
 ldd ./$qbin 2>&1
 echo
-echo " Static  libraries involved:"
-prnt $LIBA
-echo
-strip -s $qbin
+if [ -n "$LIBA" ]; then
+  echo " Static  libraries involved:"
+  prnt $LIBA
+  echo
+fi
 echo " Supported machines are:"
 ./$qbin -M help | grep -ve "^Supported" | shft
 echo
+
+cd $dst_dir
 echo " Hacked qemu footprint:"
 printf "\t$(du -k $qbin)\n"
 sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))

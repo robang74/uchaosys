@@ -137,19 +137,29 @@ install: all
 
 else
 
-all: musl gcc binutils
+all: musl gcc binutils extra-libs
 
-install: install-musl install-gcc install-binutils
+install: install-musl install-gcc install-binutils install-extra-libs
 
 musl: obj_musl/.lc_built
 
 toolchain: gcc binutils
 
+extra-libs: zlib pcre2
+
 install-toolchain: install-gcc install-binutils
+
+install-extra-libs: zlib pcre2
+	cp -R obj_sysroot/lib/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/lib
+	cp -R obj_sysroot/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
 
 gcc: obj_gcc/.lc_built
 
 binutils: obj_binutils/.lc_built
+
+zlib: obj_zlib/.lc_built
+
+pcre2: obj_pcre2/.lc_built
 
 .PHONY: all musl toolchain install-musl install-toolchain clean
 
@@ -272,14 +282,6 @@ obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 	cd obj_pcre2 && $(MAKE)
 	cd obj_pcre2 && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install
-	touch $@
-
-obj_glib/.lc_built: | obj_glib src_glib obj_zlib/.lc_built obj_pcre2/.lc_built
-	cd obj_glib && meson setup ../src_glib \
-		--prefix=$(SYSROOT) \
-		--cross-file ../cross_file_musl.txt \
-		-Ddefault_library=static -Dgio=disabled -Dtests=false
-	ninja -C obj_glib install DESTDIR=$(CURDIR)/obj_sysroot
 	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built

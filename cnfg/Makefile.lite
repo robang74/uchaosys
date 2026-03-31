@@ -137,19 +137,31 @@ install: all
 
 else
 
-all: musl gcc binutils
+all: musl gcc binutils extra-libs
 
-install: install-musl install-gcc install-binutils
+install: install-musl install-gcc install-binutils install-extra-libs
 
 musl: obj_musl/.lc_built
 
 toolchain: gcc binutils
 
+extra-libs: zlib pcre2 glib
+
 install-toolchain: install-gcc install-binutils
+
+install-extra-libs: zlib pcre2 glib
+	cp -R obj_sysroot/lib/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/lib
+	cp -R obj_sysroot/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
 
 gcc: obj_gcc/.lc_built
 
 binutils: obj_binutils/.lc_built
+
+zlib: obj_zlib/.lc_built
+
+pcre2: obj_pcre2/.lc_built
+
+glib: obj_glib/.lc_built
 
 .PHONY: all musl toolchain install-musl install-toolchain clean
 

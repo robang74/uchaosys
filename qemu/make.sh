@@ -246,7 +246,7 @@ roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 
 rm -f $qbin ../$qbin.nma ../$qbin.rsp ../$qbin.ldc ../$qbin
-# time -p make -j$ncpu $qbin
+time -p make -j$ncpu $qbin
 
 if [ ! -x $qbin ] ; then
   [ "$ldck" = "yes" ] && read -p "Press ENTER to continue: " pkey

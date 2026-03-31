@@ -55,7 +55,7 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* pcre2-* glib-* zlib-* build build-* linux-*
+	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* pcre2-* zlib-* build build-* linux-*
 
 distclean: clean
 	rm -rf sources
@@ -157,7 +157,6 @@ $(foreach dir,$(notdir $(basename $(basename $(basename $(wildcard hashes/*)))))
 
 extract_all: | $(SRC_DIRS)
 
-
 # Rules for building.
 
 ifeq ($(TARGET),)
@@ -189,6 +188,9 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(REL_TOP)/zlib-$(ZLIB_VER)") \
 	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
 	"-include $(REL_TOP)/config.mak"
+
+extra-libs:
+	cd $(BUILD_DIR) && $(MAKE) $@
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) $@

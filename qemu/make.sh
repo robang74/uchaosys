@@ -224,7 +224,7 @@ hd="/usr/include"; cp $hd/zlib.h $hd/zconf.h . || exit 1
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-for i in pcre2-8 $ld_libz pthread $ld_glib; do # util
+for i in pcre2-8 $ld_libz $ld_glib; do # util pthread
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 
@@ -295,7 +295,8 @@ fi
 
 cp -f $qbin.rsp ../$qbin.rsp
 ${NM:-nm} -a $qbin >../$qbin.nma
-${STRIP:-strip} -s $qbin -o ../$qbin
+#opts="--strip-all --remove-section=.comment --remove-section=.note"
+${STRIP:-strip} ${opt:--s} $qbin -o ../$qbin
 for i in $roms; do cp -f ../$src_dir/pc-bios/$i $dst_dir; done
 cp -f ../$qbin $dst_dir
 

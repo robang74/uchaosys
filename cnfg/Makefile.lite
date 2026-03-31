@@ -51,6 +51,9 @@ ifneq ($(LIBTOOL),)
 LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
 endif
 
+#ifneq ($(HAVE_DECL_BASENAME),)
+MAKE += HAVE_DECL_BASENAME=1
+#endif
 MAKE += MULTILIB_OSDIRNAMES=
 MAKE += INFO_DEPS= infodir=
 MAKE += ac_cv_prog_lex_root=lex.yy
@@ -137,9 +140,9 @@ install: all
 
 else
 
-all: musl gcc binutils extra-libs
+all: musl gcc binutils
 
-install: install-musl install-gcc install-binutils install-extra-libs
+install: install-musl install-gcc install-binutils
 
 musl: obj_musl/.lc_built
 
@@ -153,15 +156,15 @@ install-extra-libs: zlib pcre2
 	cp -R obj_sysroot/lib/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/lib
 	cp -R obj_sysroot/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
 
-gcc: obj_gcc/.lc_built
-
 binutils: obj_binutils/.lc_built
+
+gcc: obj_gcc/.lc_built
 
 zlib: obj_zlib/.lc_built
 
 pcre2: obj_pcre2/.lc_built
 
-.PHONY: all musl toolchain install-musl install-toolchain clean
+.PHONY: all musl toolchain extra-libs install-musl install-toolchain install-extra-libs clean
 
 src_binutils: | $(BINUTILS_SRCDIR)
 	ln -sf $(BINUTILS_SRCDIR) $@
@@ -267,7 +270,7 @@ obj_sysroot/.lc_libs: | obj_musl/.lc_built
 	touch $@
 
 obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
-	cd obj_zlib && CC="$(XGCC)" ../src_zlib/configure $(FULL_ZLIB_CONFIG)
+	cd obj_zlib && CC="$(XGCC)" ../src_zlib/configure --prefix=/ --static
 	touch $@
 
 obj_zlib/.lc_built: | obj_zlib/.lc_configured
@@ -276,7 +279,7 @@ obj_zlib/.lc_built: | obj_zlib/.lc_configured
 	touch $@
 
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
-	cd obj_pcre2 && ../src_pcre2/configure $(FULL_PCRE2_CONFIG) CC="$(XGCC)"
+	cd obj_pcre2 && ../src_pcre2/configure --prefix=/ --host=$(TARGET) --enable-static --disable-shared CC="$(XGCC)"
 	touch $@
 
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured

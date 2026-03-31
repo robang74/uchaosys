@@ -89,6 +89,23 @@ if [ "${1:-}" = "sources" ]; then
 +        cxl_build_cedt(table_offsets, tables_blob, tables->linker,
 +                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
 + #endif
+--- a/$src_dir/hw/core/machine.c	2026-03-31 07:04:12.848337933 +0200
++++ b/$src_dir/hw/core/machine.c	2026-03-31 07:06:08.752070371 +0200
+@@ -47,6 +47,7 @@ GlobalProperty hw_compat_10_1[] = {
+ };
+ const size_t hw_compat_10_1_len = G_N_ELEMENTS(hw_compat_10_1);
+ 
++#if 0
+ GlobalProperty hw_compat_10_0[] = {
+     { "scsi-hd", "dpofua", "off" },
+     { "vfio-pci", "x-migration-load-config-after-iter", "off" },
+@@ -297,6 +298,7 @@ GlobalProperty hw_compat_2_6[] = {
+     { "virtio-pci", "disable-legacy", "off", .optional = true },
+ };
+ const size_t hw_compat_2_6_len = G_N_ELEMENTS(hw_compat_2_6);
++#endif
+ 
+ MachineState *current_machine;
      }
 
      acpi_add_table(table_offsets, tables_blob);
@@ -229,7 +246,7 @@ roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 qbin="qemu-system-$ARCH"
 
 rm -f $qbin ../$qbin.nma ../$qbin.rsp ../$qbin.ldc ../$qbin
-time -p make -j$ncpu $qbin
+# time -p make -j$ncpu $qbin
 
 if [ ! -x $qbin ] ; then
   [ "$ldck" = "yes" ] && read -p "Press ENTER to continue: " pkey

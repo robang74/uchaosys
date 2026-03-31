@@ -45,6 +45,7 @@ MPFR_VER = 4.2.2
 ISL_VER = 0.27
 PCRE2_VER = 10.47
 ZLIB_VER = 1.3.2
+GLIB_VER = 2.88.0
 LINUX_VER = 5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.

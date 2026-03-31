@@ -22,7 +22,7 @@ MPFR_SITE = $(GNU_SITE)/mpfr
 ISL_SITE = https://downloads.sourceforge.net/project/libisl/
 
 PCRE2_SITE = https://github.com/PCRE2Project/pcre2/releases/download/pcre2-$(PCRE2_VER)
-ZLIB_SITE = https://zlib.net/zlib-$(ZLIB_VER)
+ZLIB_SITE = https://zlib.net/
 
 MUSL_SITE = https://musl.libc.org/releases
 MUSL_REPO = https://git.musl-libc.org/git/musl
@@ -48,12 +48,14 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(MPC_VER),mpc-$(MPC_VER)) \
 	$(if $(MPFR_VER),mpfr-$(MPFR_VER)) \
 	$(if $(ISL_VER),isl-$(ISL_VER)) \
+	$(if $(PCRE2_VER),pcre2-$(PCRE2_VER)) \
+	$(if $(ZLIB_VER),zlib-$(ZLIB_VER)) \
 	$(if $(LINUX_VER),linux-$(LINUX_VER))
 
 all:
 
 clean:
-	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* build build-* linux-*
+	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* pcre2-* glib-* zlib-* build build-* linux-*
 
 distclean: clean
 	rm -rf sources
@@ -183,6 +185,8 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	$(if $(MPC_VER),"MPC_SRCDIR = $(REL_TOP)/mpc-$(MPC_VER)") \
 	$(if $(MPFR_VER),"MPFR_SRCDIR = $(REL_TOP)/mpfr-$(MPFR_VER)") \
 	$(if $(ISL_VER),"ISL_SRCDIR = $(REL_TOP)/isl-$(ISL_VER)") \
+	$(if $(PCRE2_VER),"PCRE2_SRCDIR = $(REL_TOP)/pcre2-$(PCRE2_VER)") \
+	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(REL_TOP)/zlib-$(ZLIB_VER)") \
 	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
 	"-include $(REL_TOP)/config.mak"
 

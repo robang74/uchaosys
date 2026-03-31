@@ -27,6 +27,7 @@ virt/bios-256k.bin
 virt/kvmvapic.bin
 virt/qboot.rom
 musl-output.tar.gz
+qemu/qemu-system-x86_64
 qemu/v10.2.2.tar.gz
 qemu/minz/miniz.o
 qemu/build

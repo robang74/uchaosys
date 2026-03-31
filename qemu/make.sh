@@ -19,6 +19,10 @@ src_dir="src"
 top_dir=$PWD
 dst_dir=$(realpath $PWD/../virt)
 
+export ARCH="x86_64"
+out_dir="$PWD/$bin_dir"
+qbin="qemu-system-$ARCH"
+
 # PARAMETRIC BUILDING # ====================================================== #
 #
 # ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
@@ -35,6 +39,7 @@ if [ "${1:-}" = "clean" ]; then
   rm -rf $to_clean
 elif [ "${1:-}" = "veryclean" ]; then
   rm -rf $to_clean src/
+  rm -f $qbin $qbin.???
   test "${2:-}" = "" && exit
   shift
 fi
@@ -142,9 +147,6 @@ fi
 cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################
-
-export ARCH="x86_64"
-out_dir="$PWD/$bin_dir"
 
 path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
@@ -258,7 +260,6 @@ fi
 ################################################################################
 
 roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
-qbin="qemu-system-$ARCH"
 
 rm -f $qbin ../$qbin.nma ../$qbin.rsp ../$qbin.ldc ../$qbin
 time -p make -j$ncpu $qbin

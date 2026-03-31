@@ -43,7 +43,7 @@ bld_dir="build"
 
 ################################################################################
 
-if [ "${1:-}" = "sources" ]; then
+if [ "${1:-}" = "sources" -o ! -d src/ ]; then
   echo
   echo "Preparing sources ... "
   echo
@@ -89,6 +89,37 @@ if [ "${1:-}" = "sources" ]; then
 +        cxl_build_cedt(table_offsets, tables_blob, tables->linker,
 +                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
 + #endif
+     }
+
+     acpi_add_table(table_offsets, tables_blob);
+--- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
++++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
+@@ -149,7 +119,9 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
+             aml_append(dev, aml_name_decl("_CRS", crs));
+
+             if (is_cxl) {
+-                build_cxl_osc_method(dev);
++ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
++                build_cxl_osc_method(dev);
++ #endif
+             } else {
+                 /* pxb bridges do not have ACPI PCI Hot-plug enabled */
+                 acpi_dsdt_add_host_bridge_methods(dev, true);
+--- a/$src_dir/hw/i386/pc_q35.c	2026-03-31 19:10:11.650911367 +0200
++++ b/$src_dir/hw/i386/pc_q35.c	2026-03-31 19:11:06.445131700 +0200
+@@ -381,6 +381,7 @@ static void pc_q35_machine_10_2_options(
+ 
+ DEFINE_Q35_MACHINE_AS_LATEST(10, 2);
+ 
++#if 0
+ static void pc_q35_machine_10_1_options(MachineClass *m)
+ {
+     pc_q35_machine_10_2_options(m);
+@@ -695,3 +696,4 @@ static void pc_q35_machine_2_6_options(M
+ }
+ 
+ DEFINE_Q35_MACHINE(2, 6);
++#endif
 --- a/$src_dir/hw/core/machine.c	2026-03-31 07:04:12.848337933 +0200
 +++ b/$src_dir/hw/core/machine.c	2026-03-31 07:06:08.752070371 +0200
 @@ -47,6 +47,7 @@ GlobalProperty hw_compat_10_1[] = {
@@ -106,22 +137,6 @@ if [ "${1:-}" = "sources" ]; then
 +#endif
  
  MachineState *current_machine;
-     }
-
-     acpi_add_table(table_offsets, tables_blob);
---- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
-+++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
-@@ -149,7 +119,9 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
-             aml_append(dev, aml_name_decl("_CRS", crs));
-
-             if (is_cxl) {
--                build_cxl_osc_method(dev);
-+ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
-+                build_cxl_osc_method(dev);
-+ #endif
-             } else {
-                 /* pxb bridges do not have ACPI PCI Hot-plug enabled */
-                 acpi_dsdt_add_host_bridge_methods(dev, true);
 EOF
 fi
 cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1

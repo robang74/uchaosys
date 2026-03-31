@@ -161,7 +161,6 @@ $(foreach dir,$(notdir $(basename $(basename $(basename $(wildcard hashes/*)))))
 
 extract_all: | $(SRC_DIRS)
 
-
 # Rules for building.
 
 ifeq ($(TARGET),)
@@ -194,6 +193,9 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	$(if $(GLIB_VER),"GLIB_SRCDIR = $(REL_TOP)/glib-$(GLIB_VER)") \
 	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
 	"-include $(REL_TOP)/config.mak"
+
+extra-libs:
+	cd $(BUILD_DIR) && $(MAKE) $@
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	test -d "$(GLIB_SRCDIR)" && rm -rf $(GLIB_SRCDIR)/.git* || true

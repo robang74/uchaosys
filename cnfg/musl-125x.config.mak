@@ -35,6 +35,7 @@ TARGET = $(ARCH)-linux-musl
 # Setting a blank version for linux will suppress installation of kernel
 # headers, which are not needed unless compiling programs that use them.
 
+CONFIG_SUB_REV = a2287c3041a3
 BINUTILS_VER = 2.44
 GCC_VER = 14.3.0
 MUSL_VER = 1.2.5
@@ -42,6 +43,9 @@ GMP_VER = 6.3.0
 MPC_VER = 1.3.1
 MPFR_VER = 4.2.2
 ISL_VER = 0.27
+GLIB_VER = 2.88.0
+PCRE2_VER = 10.47
+ZLIB_VER = 1.3.2
 LINUX_VER = 5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.

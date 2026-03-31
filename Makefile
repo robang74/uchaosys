@@ -40,8 +40,9 @@ all: sources toolchain bzImage busybox uchaos rngtest install
 
 # target: muslcfg //////////////////////////////////////////////////////////////
 muslcfg:
-	@test -r musl/config.mak || cp $(MUSLCFGMAK) musl/config.mak
-	cp -arf cnfg/hashes musl/
+	if [ ! -r musl/config.mak ]; then cp $(MUSLCFGMAK) musl/config.mak; \
+cp -arf cnfg/hashes musl/; cp -f musl/Makefile musl/Makefile.bak; \
+cp -f cnfg/Makefile.musl musl/Makefile; fi
 
 # target: sources //////////////////////////////////////////////////////////////
 sources:
@@ -138,6 +139,7 @@ veryclean: clean
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
+	cp -f musl/Makefile.bak musl/Makefile
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
 # Protected by: test -r $lnxpath/.config

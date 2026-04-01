@@ -36,7 +36,7 @@ export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
 .PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean muslcfg
 
-all: sources toolchain bzImage busybox uchaos rngtest install
+all: sources toolchain bzImage busybox uchaos rngtest buildemu install
 
 # target: muslcfg //////////////////////////////////////////////////////////////
 muslcfg:

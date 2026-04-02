@@ -57,6 +57,7 @@ LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
 endif
 
 #ifneq ($(HAVE_DECL_BASENAME),)
+MUSL_VARS += HAVE_DECL_BASENAME=1
 MAKE += HAVE_DECL_BASENAME=1
 #endif
 MAKE += MULTILIB_OSDIRNAMES=
@@ -159,11 +160,12 @@ musl: obj_musl/.lc_built
 
 toolchain: gcc binutils
 
-extra-libs: zlib install-zlib pcre2
+extra-libs: zlib install-zlib pcre2 install-pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-extra-libs: extra-libs install-pcre2
+install-extra-libs: extra-libs
+# glib install-glib
 
 binutils: obj_binutils/.lc_built
 

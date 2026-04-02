@@ -57,6 +57,7 @@ LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
 endif
 
 #ifneq ($(HAVE_DECL_BASENAME),)
+GCC_CONFIG += ac_cv_have_decl_basename=yes
 MUSL_VARS += HAVE_DECL_BASENAME=1
 MAKE += HAVE_DECL_BASENAME=1
 #endif

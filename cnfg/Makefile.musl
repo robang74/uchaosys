@@ -1,3 +1,8 @@
+#
+# (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
+#     Copyright notice and related license applies to the changes, original
+#     Makefile remains under the terms and authorship as previously it was.
+#
 
 SOURCES = sources
 
@@ -188,9 +193,6 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(REL_TOP)/zlib-$(ZLIB_VER)") \
 	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
 	"-include $(REL_TOP)/config.mak"
-
-extra-libs:
-	cd $(BUILD_DIR) && $(MAKE) $@
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) $@

@@ -98,6 +98,10 @@ FULL_ZLIB_CONFIG = --static --disable-crcvx \
 FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
+FULL_GLIB_CONFIG = --static --disable-shared \
+		-Ddefault_library=static -Dgio=disabled -Dtests=false \
+		--prefix= --host=$(TARGET) --cross-file ../cross_musl.txt
+
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
 endif
@@ -149,9 +153,7 @@ else
 
 all: musl toolchain install
 
-prepare: install-musl install-toolchain
-
-install: prepare install-extra-libs
+install: install-musl install-toolchain install-extra-libs
 
 musl: obj_musl/.lc_built
 
@@ -162,9 +164,7 @@ extra-libs: zlib install-zlib pcre2 install-pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-extra-libs: extra-libs
-# meson install-meson
-#	$(MAKE) glib install-glib
+install-extra-libs: install-zlib install-pcre2 install-glib
 
 binutils: obj_binutils/.lc_built
 
@@ -291,12 +291,12 @@ obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 	( cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
 
+obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
+	cd obj_glib && meson setup ../src_glib $(FULL_GLIB_CONFIG)
+	touch $@
+
 obj_glib/.lc_built: | obj_glib src_glib obj_zlib/.lc_built obj_pcre2/.lc_built
-	cd obj_glib && meson setup ../src_glib \
-		--prefix=/ \
-		--cross-file ../cross_musl.txt \
-		-Ddefault_library=static -Dgio=disabled -Dtests=false
-	ninja -C obj_glib install DESTDIR=$(CURDIR)/obj_sysroot
+	ninja -C obj_glib DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
@@ -317,6 +317,10 @@ install-zlib: | obj_zlib/.lc_built
 
 install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+
+install-glib: | obj_glib/.lc_built
+	ninja -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+	touch $@
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))

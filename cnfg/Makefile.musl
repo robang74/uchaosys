@@ -198,7 +198,7 @@ all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) $@
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
-	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@
+	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@ install
 
 endif
 

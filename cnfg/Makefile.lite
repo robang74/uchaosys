@@ -102,7 +102,8 @@ FULL_PCRE2_CONFIG = --disable-shared \
 
 FULL_GLIB_CONFIG = --static --disable-shared \
 		-Ddefault_library=static -Dgio=disabled -Dtests=false \
-		--prefix= --host=$(TARGET) --cross-file ../cross_musl.txt
+		--prefix= --host=$(TARGET) --cross-file ../cross_musl.txt \
+		--buildtype=release --default-library=static ../src_glib
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -166,7 +167,7 @@ extra-libs: zlib install-zlib pcre2 install-pcre2
 install-toolchain: install-gcc install-binutils
 
 install-extra-libs: extra-libs
-# glib install-glib
+	$(MAKE) glib install-glib
 
 binutils: obj_binutils/.lc_built
 
@@ -297,8 +298,9 @@ obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
 	cd obj_glib && meson setup ../src_glib $(FULL_GLIB_CONFIG)
 	touch $@
 
-obj_glib/.lc_built: | obj_glib src_glib obj_zlib/.lc_built obj_pcre2/.lc_built
-	ninja -C obj_glib DESTDIR=$(CURDIR)/obj_sysroot install
+obj_glib/.lc_built: obj_glib/.lc_configured
+	touch obj_glib/cross_musl.txt
+	ninja -C obj_glib
 	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
@@ -321,7 +323,8 @@ install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-glib: | obj_glib/.lc_built
-	ninja -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+	ninja -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install
+# DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) ninja -C obj_glib install
 	touch $@
 
 ifneq ($(LINUX_SRCDIR),)

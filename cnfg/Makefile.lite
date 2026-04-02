@@ -87,9 +87,10 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
 	--prefix= --host=$(TARGET)
 
-FULL_ZLIB_CONFIG = --prefix=$(SYSROOT) --static
+FULL_ZLIB_CONFIG = --prefix= --static
 
-FULL_PCRE2_CONFIG = --prefix=$(SYSROOT) --host=$(TARGET) --enable-static --disable-shared
+FULL_PCRE2_CONFIG = --prefix= --host=$(TARGET) \
+  --enable-static --disable-shared
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -140,9 +141,9 @@ install: all
 
 else
 
-all: musl gcc binutils
+all: musl toolchain pcre2
 
-install: install-musl install-gcc install-binutils
+install: install-musl install-gcc install-binutils install-libs
 
 musl: obj_musl/.lc_built
 
@@ -152,9 +153,7 @@ extra-libs: zlib pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-extra-libs: zlib pcre2
-	cp -R obj_sysroot/lib/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/lib
-	cp -R obj_sysroot/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
+install-libs: install-pcre2
 
 binutils: obj_binutils/.lc_built
 
@@ -164,7 +163,7 @@ zlib: obj_zlib/.lc_built
 
 pcre2: obj_pcre2/.lc_built
 
-.PHONY: all musl toolchain extra-libs install-musl install-toolchain install-extra-libs clean
+.PHONY: all musl toolchain extra-libs install-musl install-toolchain install-libs clean
 
 src_binutils: | $(BINUTILS_SRCDIR)
 	ln -sf $(BINUTILS_SRCDIR) $@
@@ -275,16 +274,14 @@ obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
 
 obj_zlib/.lc_built: | obj_zlib/.lc_configured
 	cd obj_zlib && $(MAKE)
-	cd obj_zlib && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
-	cd obj_pcre2 && ../src_pcre2/configure --prefix=/ --host=$(TARGET) --enable-static --disable-shared CC="$(XGCC)"
+	cd obj_pcre2 && ../src_pcre2/configure $(FULL_PCRE2_CONFIG)
 	touch $@
 
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
-	cd obj_pcre2 && $(MAKE)
-	cd obj_pcre2 && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
@@ -300,6 +297,13 @@ install-binutils: | obj_binutils/.lc_built
 install-gcc: | obj_gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
+
+install-pcre2: | obj_pcre2/.lc_built
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+
+install-zlib: | obj_zlib/.lc_built
+	cp -R obj_zlib/lib/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/lib
+	cp -R obj_zlib/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))

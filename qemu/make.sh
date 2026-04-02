@@ -224,7 +224,7 @@ hd="/usr/include"; cp $hd/zlib.h $hd/zconf.h . || exit 1
 
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
-for i in pcre2-8 $ld_libz $ld_glib; do # util pthread
+for i in $ld_libz $ld_glib; do # util pthread pcre2-8
   LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
 done
 

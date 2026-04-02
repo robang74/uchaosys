@@ -159,12 +159,11 @@ musl: obj_musl/.lc_built
 
 toolchain: gcc binutils
 
-extra-libs: zlib install-zlib pcre2 install-pcre2
-#	$(set_decl_basename)
+extra-libs: zlib install-zlib pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-extra-libs: install-zlib install-pcre2 install-glib
+install-extra-libs: extra-libs install-pcre2
 
 binutils: obj_binutils/.lc_built
 

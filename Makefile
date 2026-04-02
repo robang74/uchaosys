@@ -169,6 +169,11 @@ uemutest:
 	cp -arf virt/ cpio.tmp/
 	cd virt && KARGS="UCTEST=9" sh start.sh -uqm64
 
+# target: uemurset //////////////////////////////////////////////////////////////
+uemurset:
+	rm -rf cpio.tmp/virt
+	sh cpio.sh -c
+
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu:
 	@echo Prepare and start the KVM 32MB machine

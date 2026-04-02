@@ -1,3 +1,8 @@
+#
+# (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
+#     Copyright notice and related license applies to the changes, original
+#     Makefile remains under the terms and authorship as previously it was.
+#
 
 OUTPUT = $(CURDIR)/output
 
@@ -87,10 +92,11 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
 	--prefix= --host=$(TARGET)
 
-FULL_ZLIB_CONFIG = --prefix= --static
+FULL_ZLIB_CONFIG = --static --disable-shared \
+	--prefix= --host=$(TARGET)
 
-FULL_PCRE2_CONFIG = --prefix= --host=$(TARGET) \
-  --enable-static --disable-shared
+FULL_PCRE2_CONFIG = --static --disable-shared \
+	--prefix= --host=$(TARGET)
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -153,7 +159,7 @@ extra-libs: zlib pcre2 glib
 
 install-toolchain: install-gcc install-binutils
 
-install-libs: install-pcre2
+install-libs: install-pcre2 install-zlib
 
 binutils: obj_binutils/.lc_built
 
@@ -276,11 +282,11 @@ obj_sysroot/.lc_libs: | obj_musl/.lc_built
 	touch $@
 
 obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
-	cd obj_zlib && CC="$(XGCC)" ../src_zlib/configure --prefix=/ --static
+	cd obj_zlib && ../src_zlib/configure $(FULL_ZLIB_CONFIG)
 	touch $@
 
 obj_zlib/.lc_built: | obj_zlib/.lc_configured
-	cd obj_zlib && $(MAKE)
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
@@ -317,8 +323,7 @@ install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-zlib: | obj_zlib/.lc_built
-	cp -R obj_zlib/lib/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/lib
-	cp -R obj_zlib/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))

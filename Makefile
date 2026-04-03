@@ -33,6 +33,7 @@ GZCMD_PATH  := refs/heads/main
 
 path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
+MAKE        += PATH=$(PATH)
 
 .PHONY: all muslcfg sources toolchain bzImage busybox miniz uchaos rngtest install veryclean clean  buildall buildsys buildemu uemutest uemurset runqemu
 

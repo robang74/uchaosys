@@ -100,10 +100,10 @@ FULL_ZLIB_CONFIG = --static --disable-crcvx \
 FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
-FULL_GLIB_CONFIG = --static --disable-shared \
-		-Ddefault_library=static -Dgio=disabled -Dtests=false \
-		--prefix= --host=$(TARGET) --cross-file ../cross_musl.txt \
-		--buildtype=release --default-library=static ../src_glib
+FULL_GLIB_CONFIG = --prefix= \
+    --cross-file $(OUTPUT)/../cross_musl.txt \
+		--buildtype=release --default-library=static \
+		-Dgio=disabled -Dtests=false
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -167,7 +167,7 @@ extra-libs: zlib install-zlib pcre2 install-pcre2
 install-toolchain: install-gcc install-binutils
 
 install-extra-libs: extra-libs
-	$(MAKE) glib install-glib
+#	$(MAKE) glib install-glib
 
 binutils: obj_binutils/.lc_built
 

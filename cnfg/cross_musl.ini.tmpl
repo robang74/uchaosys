@@ -1,0 +1,28 @@
+#
+# (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
+#
+# Linux little endian glib building config
+# The variables values to expand via 'envsubst':
+#
+# cross_musl.ini: cross_musl.ini.tmpl
+#   OUTPUT=$(OUTPUT) TARGET=$(TARGET) ARCH=$(ARCH) envsubst < $< > $@
+#
+
+[binaries]
+c = '$OUTPUT/bin/$TARGET-gcc'
+cpp = '$OUTPUT/bin/$TARGET-g++'
+ar = '$OUTPUT/bin/$TARGET-ar'
+nm = '$OUTPUT/bin/$TARGET-nm'
+strip = '$OUTPUT/bin/$TARGET-strip'
+pkgconfig = 'pkg-config'
+
+[host_machine]
+system = 'linux'
+cpu_family = '$ARCH'
+cpu = '$ARCH'
+endian = 'little'
+
+[properties]
+# Required to import zlib e pcre2 from building sysroot
+pkg_config_libdir = '$OUTPUT/$TARGET/lib/pkgconfig'
+sys_root = '$OUTPUT/$TARGET'

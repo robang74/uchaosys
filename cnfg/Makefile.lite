@@ -53,16 +53,18 @@ GCC_CONFIG_FOR_TARGET += --with-float=hard
 endif
 
 ifneq ($(LIBTOOL),)
-LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
+LIBTOOL_ARG  = LIBTOOL=$(LIBTOOL)
 endif
 
-GCC_CONFIG += ac_cv_have_decl_basename=yes
+CXXFLAGS += -DHAVE_DECL_BASENAME=1
+LIBTOOL_ARG += HAVE_DECL_BASENAME=1
 MUSL_VARS += HAVE_DECL_BASENAME=1
 MAKE += HAVE_DECL_BASENAME=1
 
 MAKE += MULTILIB_OSDIRNAMES=
 MAKE += INFO_DEPS= infodir=
 MAKE += ac_cv_prog_lex_root=lex.yy
+MAKE += ac_cv_have_decl_basename=yes
 MAKE += MAKEINFO=false
 
 FULL_BINUTILS_CONFIG = \
@@ -105,7 +107,7 @@ FULL_MESON_CONFIG = --static --disable-shared \
 FULL_GLIB_CONFIG = --prefix= \
     --cross-file $(OUTPUT)/../cross_musl.txt \
 		--buildtype=release --default-library=static \
-		-Dgio=disabled -Dtests=false
+		-Dgio=disabled -Dtests=false -DHAVE_DECL_BASENAME=1
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -275,6 +277,7 @@ obj_gcc/.lc_configured: | obj_gcc src_gcc
 	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
+	sed -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1," -i $(shell find $(CURDIR) -name config.h 2>/dev/null)
 	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
 
 obj_musl/.lc_configured: | obj_musl src_musl

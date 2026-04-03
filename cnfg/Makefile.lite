@@ -266,63 +266,59 @@ obj_sysroot/lib64: | obj_sysroot
 	ln -sf lib $@
 
 obj_binutils/.lc_configured: | obj_binutils src_binutils
-	( cd obj_binutils && ../src_binutils/configure $(FULL_BINUTILS_CONFIG) ) && touch $@
+	cd obj_binutils && ../src_binutils/configure $(FULL_BINUTILS_CONFIG) && touch $@
 
 obj_binutils/.lc_built: | obj_binutils/.lc_configured
-	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all ) && touch $@
+	cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all && touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
-	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
+	cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
-	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
+	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc && touch $@
 
 obj_musl/.lc_configured: | obj_musl src_musl
-	( cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG) ) && touch $@
+	cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG) && touch $@
 
 obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
-	( cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers ) && touch $@
+	cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers && touch $@
 
 obj_gcc/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" all-target-libgcc
 
 obj_musl/.lc_built: | obj_musl/.lc_configured
-	( cd obj_musl && $(MAKE) $(MUSL_VARS) ) && touch $@
+	cd obj_musl && $(MAKE) $(MUSL_VARS) && touch $@
 
 obj_sysroot/.lc_libs: | obj_musl/.lc_built
-	( cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
+	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot install && touch $@
 
 obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
-	( cd obj_zlib && ../src_zlib/configure $(FULL_ZLIB_CONFIG) ) && touch $@
+	cd obj_zlib && ../src_zlib/configure $(FULL_ZLIB_CONFIG) && touch $@
 
 obj_zlib/.lc_built: | obj_zlib/.lc_configured
-	( cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install && touch $@
 
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
-	( cd obj_pcre2 && ../src_pcre2/configure $(FULL_PCRE2_CONFIG) ) && touch $@
+	cd obj_pcre2 && ../src_pcre2/configure $(FULL_PCRE2_CONFIG) && touch $@
 
 obj_meson/.lc_built: | obj_meson/.lc_configured
-	cd obj_meson && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install
-	touch $@
+	cd obj_meson && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install && touch $@
 
 obj_meson/.lc_configured: | obj_meson src_meson obj_sysroot/.lc_headers
-	cd obj_meson && ../src_meson/configure $(FULL_MESON_CONFIG)
-	touch $@
+	cd obj_meson && ../src_meson/configure $(FULL_MESON_CONFIG) && touch $@
 
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
-	( cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install && touch $@
 
 obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
-	cd obj_glib && meson setup ../src_glib $(FULL_GLIB_CONFIG)
-	touch $@
+	cd obj_glib && meson setup ../src_glib $(FULL_GLIB_CONFIG) && touch $@
 
 obj_glib/.lc_built: obj_glib/.lc_configured
 	touch obj_glib/cross_musl.txt
-	ninja -C obj_glib
-	touch $@
+	ninja -C obj_glib && touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
-	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" ) && touch $@
+	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" && touch $@
 
 install-musl: | obj_musl/.lc_built
 	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
@@ -347,10 +343,9 @@ install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-glib: | obj_glib/.lc_built
-	ninja -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install
+	ninja -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install && touch $@
 # DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) ninja -C obj_glib install
-	touch $@
-
+	
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))
 TARGET_ARCH_MANGLED = $(patsubst or1k,openrisc,$(patsubst i%86,x86,$(patsubst aarch64%,arm64%,$(TARGET_ARCH))))

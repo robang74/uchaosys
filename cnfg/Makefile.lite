@@ -18,6 +18,9 @@ TOOLCHAIN_CONFIG =
 XGCC_DIR = ../obj_gcc/gcc
 XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR) -DHAVE_DECL_BASENAME=1
 
+GCC_CONFIG += CFLAGS_FOR_BUILD="-DHAVE_DECL_BASENAME=1" 
+CXXFLAGS_FOR_BUILD="-DHAVE_DECL_BASENAME=1"
+
 -include config.mak
 
 ifneq ($(findstring fdpic,$(TARGET)),)
@@ -56,7 +59,7 @@ ifneq ($(LIBTOOL),)
 LIBTOOL_ARG  = LIBTOOL=$(LIBTOOL)
 endif
 
-CXXFLAGS += -DHAVE_DECL_BASENAME=1
+GCC_CONFIG_FOR_TARGET += HAVE_DECL_BASENAME=1
 LIBTOOL_ARG += HAVE_DECL_BASENAME=1
 MUSL_VARS += HAVE_DECL_BASENAME=1
 MAKE += HAVE_DECL_BASENAME=1
@@ -151,7 +154,7 @@ endif
 define set_decl_basename
 test ! -d obj_pcre2/ || \
 sed -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1," \
--i $(shell find $(CURDIR) -name config.h) 2>/dev/null | true
+-i $(shell find $(CURDIR) -name config.h) 2>/dev/null || true
 endef
 
 ifeq ($(TARGET),)
@@ -275,20 +278,20 @@ obj_sysroot/lib64: | obj_sysroot
 	ln -sf lib $@
 
 obj_binutils/.lc_configured: | obj_binutils src_binutils
-	$(set_decl_basename)
 	( cd obj_binutils && ../src_binutils/configure $(FULL_BINUTILS_CONFIG) ) && touch $@
 
 obj_binutils/.lc_built: | obj_binutils/.lc_configured
-	$(set_decl_basename)
 	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all ) && touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
-	$(set_decl_basename)
 	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
+	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-stage1-libcpp ) || true
 	$(set_decl_basename)
-	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@ 
+	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-stage1-gcc ) || true
+	$(set_decl_basename)
+	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
 
 obj_musl/.lc_configured: | obj_musl src_musl
 	( cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG) ) && touch $@
@@ -297,6 +300,7 @@ obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
 	( cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers ) && touch $@
 
 obj_gcc/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
+	$(set_decl_basename)
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" all-target-libgcc
 
 obj_musl/.lc_built: | obj_musl/.lc_configured

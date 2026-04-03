@@ -169,7 +169,8 @@ extra-libs: zlib install-zlib pcre2 install-pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-extra-libs: extra-libs meson install-meson
+install-extra-libs: extra-libs
+# meson install-meson
 #	$(MAKE) glib install-glib
 
 binutils: obj_binutils/.lc_built
@@ -329,6 +330,9 @@ install-binutils: | obj_binutils/.lc_built
 install-gcc: | obj_gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
+
+install-zlib: | obj_zlib/.lc_built
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install

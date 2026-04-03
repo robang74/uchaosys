@@ -100,6 +100,9 @@ FULL_ZLIB_CONFIG = --static --disable-crcvx \
 FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
+FULL_MESON_CONFIG = --static --disable-shared \
+	--prefix= --host=$(TARGET)
+
 FULL_GLIB_CONFIG = --prefix= \
     --cross-file $(OUTPUT)/../cross_musl.txt \
 		--buildtype=release --default-library=static \
@@ -166,7 +169,7 @@ extra-libs: zlib install-zlib pcre2 install-pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-extra-libs: extra-libs
+install-extra-libs: extra-libs meson install-meson
 #	$(MAKE) glib install-glib
 
 binutils: obj_binutils/.lc_built
@@ -176,6 +179,8 @@ gcc: obj_gcc/.lc_built
 zlib: obj_zlib/.lc_built
 
 pcre2: obj_pcre2/.lc_built
+
+meson: obj_meson/.lc_built
 
 glib: obj_glib/.lc_built
 
@@ -193,6 +198,11 @@ src_musl: | $(MUSL_SRCDIR)
 ifneq ($(PCRE2_SRCDIR),)
 src_pcre2: | $(PCRE2_SRCDIR)
 	ln -sf $(PCRE2_SRCDIR) $@
+endif
+
+ifneq ($(MESON_SRCDIR),)
+src_meson: | $(MESON_SRCDIR)
+	ln -sf $(MESON_SRCDIR) $@
 endif
 
 ifneq ($(ZLIB_SRCDIR),)
@@ -291,6 +301,14 @@ obj_zlib/.lc_built: | obj_zlib/.lc_configured
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 	( cd obj_pcre2 && ../src_pcre2/configure $(FULL_PCRE2_CONFIG) ) && touch $@
 
+obj_meson/.lc_built: | obj_meson/.lc_configured
+	cd obj_meson && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install
+	touch $@
+
+obj_meson/.lc_configured: | obj_meson src_meson obj_sysroot/.lc_headers
+	cd obj_meson && ../src_meson/configure $(FULL_MESON_CONFIG)
+	touch $@
+
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 	( cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
 
@@ -315,6 +333,12 @@ install-binutils: | obj_binutils/.lc_built
 install-gcc: | obj_gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
+
+install-pcre2: | obj_pcre2/.lc_built
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+
+install-meson: | obj_meson/.lc_built
+	cd obj_meson && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-zlib: | obj_zlib/.lc_built
 	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install

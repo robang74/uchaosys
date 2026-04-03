@@ -148,6 +148,12 @@ FULL_GCC_CONFIG += --build=$(BUILD) --host=$(HOST)
 MUSL_VARS =
 endif
 
+define set_decl_basename
+test ! -d obj_pcre2/ || \
+sed -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1," \
+-i $(shell find $(CURDIR) -name config.h) 2>/dev/null | true
+endef
+
 ifeq ($(TARGET),)
 
 all:
@@ -167,6 +173,7 @@ musl: obj_musl/.lc_built
 toolchain: gcc binutils
 
 extra-libs: zlib install-zlib pcre2 install-pcre2
+	$(set_decl_basename)
 
 install-toolchain: install-gcc install-binutils
 
@@ -268,17 +275,20 @@ obj_sysroot/lib64: | obj_sysroot
 	ln -sf lib $@
 
 obj_binutils/.lc_configured: | obj_binutils src_binutils
+	$(set_decl_basename)
 	( cd obj_binutils && ../src_binutils/configure $(FULL_BINUTILS_CONFIG) ) && touch $@
 
 obj_binutils/.lc_built: | obj_binutils/.lc_configured
+	$(set_decl_basename)
 	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all ) && touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
+	$(set_decl_basename)
 	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
-	sed -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1," -i $(shell find $(CURDIR) -name config.h 2>/dev/null)
-	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
+	$(set_decl_basename)
+	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@ 
 
 obj_musl/.lc_configured: | obj_musl src_musl
 	( cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG) ) && touch $@
@@ -304,14 +314,14 @@ obj_zlib/.lc_built: | obj_zlib/.lc_configured
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 	( cd obj_pcre2 && ../src_pcre2/configure $(FULL_PCRE2_CONFIG) ) && touch $@
 
+obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
+	( cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
+
 obj_meson/.lc_built: | obj_meson/.lc_configured
 	( cd obj_meson && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
 
 obj_meson/.lc_configured: | obj_meson src_meson obj_sysroot/.lc_headers
 	( cd obj_meson && ../src_meson/configure $(FULL_MESON_CONFIG) ) && touch $@
-
-obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
-	( cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install ) && touch $@
 
 obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
 	( cd obj_glib && meson setup ../src_glib $(FULL_GLIB_CONFIG) ) && touch $@

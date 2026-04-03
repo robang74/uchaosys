@@ -16,7 +16,7 @@ GCC_CONFIG =
 TOOLCHAIN_CONFIG =
 
 XGCC_DIR = ../obj_gcc/gcc
-XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR)
+XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR) -DHAVE_DECL_BASENAME=1
 
 -include config.mak
 
@@ -56,11 +56,12 @@ ifneq ($(LIBTOOL),)
 LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
 endif
 
-#ifneq ($(HAVE_DECL_BASENAME),)
+
+CLFLAGS += -DHAVE_DECL_BASENAME=1
 GCC_CONFIG += ac_cv_have_decl_basename=yes
 MUSL_VARS += HAVE_DECL_BASENAME=1
 MAKE += HAVE_DECL_BASENAME=1
-#endif
+
 MAKE += MULTILIB_OSDIRNAMES=
 MAKE += INFO_DEPS= infodir=
 MAKE += ac_cv_prog_lex_root=lex.yy
@@ -267,13 +268,13 @@ obj_sysroot/lib64: | obj_sysroot
 	ln -sf lib $@
 
 obj_binutils/.lc_configured: | obj_binutils src_binutils
-	( cd obj_binutils && ../src_binutils/configure $(FULL_BINUTILS_CONFIG) )&& touch $@
+	( cd obj_binutils && ../src_binutils/configure $(FULL_BINUTILS_CONFIG) ) && touch $@
 
 obj_binutils/.lc_built: | obj_binutils/.lc_configured
-	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all )&& touch $@
+	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all ) && touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
-	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) )&& touch $@
+	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
 	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@

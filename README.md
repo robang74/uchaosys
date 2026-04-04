@@ -103,6 +103,10 @@ Last but not least, the chaos engine is **exactly** the same in kernel and user 
 
 ### Quick Start
 
+> [!WARNING]
+>
+> Due to the recent and unusual network failures of the open source mirrors, make sources might need to be executed a few times before complete correctly and in full. Tarball repositories aren't related with this project or github, but run by 3rd parties.
+
 ```sh
 url="github.com/robang74/uchaosys.git"
 git clone https://$url --jobs $(nproc)

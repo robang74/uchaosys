@@ -19,7 +19,7 @@ ZLIB_VER = 1.3.2
 GLIB_VER = 2.88.0
 LINUX_VER = headers-5.15.202
 
-GNU_SITE = https://ftpmirror.gnu.org/gnu
+GNU_SITE = https://ftp.fau.de/gnu
 GCC_SITE = $(GNU_SITE)/gcc
 BINUTILS_SITE = $(GNU_SITE)/binutils
 GMP_SITE = $(GNU_SITE)/gmp

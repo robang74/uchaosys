@@ -62,6 +62,8 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 
 NCPU ?= $(shell nproc)
 
+.Phony: all clean distclean extract_all install
+
 all:
 
 clean:

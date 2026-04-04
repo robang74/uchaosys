@@ -176,7 +176,7 @@ pcre2: obj_pcre2/.lc_built
 
 glib: obj_glib/.lc_built
 
-.PHONY: all install musl toolchain extra-libs install-toolchain install-extra-libs prepare clean
+.PHONY: all prepare install musl toolchain extra-libs install-toolchain install-extra-libs binutils gcc zlib pcre2 glib install-musl install-binutils install-gcc install-pcre2 install-zlib kernel-headers src_kernel_headers install-kernel-headers clean
 
 src_binutils: | $(BINUTILS_SRCDIR)
 	ln -sf $(BINUTILS_SRCDIR) $@

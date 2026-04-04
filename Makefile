@@ -34,7 +34,7 @@ GZCMD_PATH  := refs/heads/main
 path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
-.PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean muslcfg
+.PHONY: all muslcfg sources toolchain bzImage busybox miniz uchaos rngtest install veryclean clean  buildall buildsys buildemu uemutest uemurset runqemu
 
 all: sources toolchain bzImage busybox uchaos rngtest buildemu install
 

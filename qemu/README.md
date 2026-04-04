@@ -21,14 +21,13 @@ I did a "trick of mine", possibly two, and the minimal footprint to have a x86-6
 The following instructions set builds a **qemu v10.2.2** binary:
 
 ```sh
-# pre-requisite: make buildall
-cd qemu
-sh make.sh veryclean sources
-cd ../virt
+# uChaoSys pre-requisite:
+#   make sources buildall
+cd virt
 sh start.sh -qm32
 ```
 
-Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) the outcoming elf64 binary is an experimental *frankenstein* [glibc-musl static](glibc-musl-fix.c) footprint reduced edition of the `qemu-system-x86_64` binary (7488&nbsp;KB) which uses a subset of ROMs (488&nbsp;KB).
+Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) the outcoming elf64 binary is an experimental *frankenstein* [glibc-musl static](glibc-musl-fix.c) footprint reduced edition of the `qemu-system-x86_64` binary (7264&nbsp;KB, v0.6.7) which uses a subset of ROMs (488&nbsp;KB).
 
 The outcoming `uqemu` system emulator supports `microvm` and `q35` machines, the `tgc` (sw) and the `kvm` (hw) acceleration, as long as the kernel module for `kvm` support and userland access privileges are granted, obviously.
 

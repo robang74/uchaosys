@@ -6,7 +6,7 @@
 # Settings /////////////////////////////////////////////////////////////////////
 ARCH        ?= x86_64
 
-NCPU        := $(shell nproc)
+NCPU        ?= $(shell nproc)
 MUSLCFGMAK  := cnfg/musl-125x.config.mak
 BBOX_CFG    := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 
@@ -47,11 +47,10 @@ cp -f cnfg/Makefile.musl musl/Makefile; fi
 # target: sources //////////////////////////////////////////////////////////////
 sources:
 	@echo Wait downloading sources ...
-	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
 	$(MAKE) -j$(NCPU) muslcfg
 	$(MAKE) -j$(NCPU) -C musl extract_all
-	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
-	sync & sh gzcmd.sh gzcmd.sh gzcmd
+	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
+	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh && sh gzcmd.sh gzcmd.sh gzcmd
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
@@ -128,7 +127,7 @@ install:
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
-	rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $(TMPD)
+	rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $(TMPD) || true
 	for dir in musl bbox kdev usrl prnd $(LNXPATH); do \
 		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir clean || true; \
 	done
@@ -138,18 +137,18 @@ clean:
 veryclean: clean
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
-	rm -f musl/config.mak
+	rm -f musl/config.mak || true
 	cp -f musl/Makefile.bak musl/Makefile
 # Protected by: test -e $lnxpath
-	rm -f $(LNXPATH)
+	rm -f $(LNXPATH) || true
 # Protected by: test -r $lnxpath/.config
-	rm -f $(KDIR)/.config
+	rm -f $(KDIR)/.config || true
 # Protected by: test -r bbox/.config
-	rm -f bbox/.config
+	rm -f bbox/.config || true
 # Additional cleanup for symlinks created in kdev
-	rm -f kdev/linux-kernel
+	rm -f kdev/linux-kernel || true
 # Remove all the hashes added, as well
-	rm -f musl/$(shell cd cnfg; ls -1 hashes/*)
+	rm -f musl/$(shell cd cnfg; ls -1 hashes/*) || true
 
 # target: buildall /////////////////////////////////////////////////////////////
 buildall: toolchain bzImage busybox uchaos install
@@ -163,7 +162,7 @@ buildemu:
 
 # target: uemutest //////////////////////////////////////////////////////////////
 uemutest:
-	rm -rf cpio.tmp/virt/
+	rm -rf cpio.tmp/virt/ || true
 	cp -arf cpio/* cpio.tmp/
 	sh cpio.sh -c || exit 1
 	cp -arf virt/ cpio.tmp/
@@ -171,7 +170,7 @@ uemutest:
 
 # target: uemurset //////////////////////////////////////////////////////////////
 uemurset:
-	rm -rf cpio.tmp/virt
+	rm -rf cpio.tmp/virt || true
 	sh cpio.sh -c
 
 # target: runqemu //////////////////////////////////////////////////////////////

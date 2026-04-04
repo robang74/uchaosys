@@ -48,7 +48,7 @@ OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
 
 REL_TOP = ../../..
 
--include config.mak
+include config.mak
 
 SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(GMP_VER),gmp-$(GMP_VER)) \
@@ -60,13 +60,17 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(GLIB_VER),glib-$(GLIB_VER)) \
 	$(if $(LINUX_VER),linux-$(LINUX_VER))
 
+NCPU ?= $(shell nproc)
+
 all:
 
 clean:
-	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* pcre2-* glib-* zlib-* build build-* linux-*
+	command ls -d binutils-*/ linux-*/ musl-*/ meson-*/ pcre2-*/ gmp-*/ \
+gcc-*/ isl-*/ glib-*/ build/ build-*/ mpfr-*/ mpc-*/ zlib-*/ output/ \
+2>/dev/null | xargs -P0 -I {} rm -rf "{}"
 
 distclean: clean
-	rm -rf sources
+	rm -rf sources || true
 
 
 # Rules for downloading and verifying sources. Treat an external SOURCES path as
@@ -96,18 +100,14 @@ $(SOURCES):
 
 $(SOURCES)/config.sub: | $(SOURCES)
 	mkdir -p $@.tmp
-	cd $@.tmp && $(DL_CMD) $(notdir $@) "https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)"
-	cd $@.tmp && touch $(notdir $@)
-	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).$(CONFIG_SUB_REV).sha1
-	mv $@.tmp/$(notdir $@) $@
+	cd $@.tmp && $(DL_CMD) $(notdir $@) "https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)" && touch $(notdir $@)
+	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).$(CONFIG_SUB_REV).sha1 && mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
 $(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
 	mkdir -p $@.tmp
-	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)
-	cd $@.tmp && touch $(notdir $@)
-	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).sha1
-	mv $@.tmp/$(notdir $@) $@
+	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@) && touch $(notdir $@)
+	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).sha1 && mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
 endif
@@ -115,51 +115,43 @@ endif
 
 # Rules for extracting and patching sources, or checking them out from git.
 
+define extract_tar
+if [ ! -d "$1" ]; then                    \
+case "$1" in */*) exit 1 ;; esac         ;\
+rm -rf $1.tmp                            ;\
+mkdir $1.tmp                             ;\
+echo "Estrazione in corso..."            ;\
+( cd $1.tmp && tar $2 - ) < $< || exit 1 ;\
+rm -rf $1                                ;\
+mv $1.tmp/$(patsubst %.orig,%,$1) $1     ;\
+rm -rf $1.tmp                            ;\
+fi
+endef
+
 musl-git-%:
 	rm -rf $@.tmp
-	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
-	cd $@.tmp && git fsck
-	mv $@.tmp $@
+	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp && cd $@.tmp && git fsck && mv $@.tmp $@
 
 %.orig: $(SOURCES)/%.tar.gz
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar zxvf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	$(call extract_tar,$@,xzvf)
 
 %.orig: $(SOURCES)/%.tar.bz2
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar jxvf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	$(call extract_tar,$@,xjvf)
 
 %.orig: $(SOURCES)/%.tar.xz
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar Jxvf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	$(call extract_tar,$@,xJvf)
 
 %: %.orig
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && $(COWPATCH) -I ../$< )
-	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
-	rm -rf $@
-	mv $@.tmp $@
-
+	if [ ! -d "$@" ]; then                 \
+case "$@" in */*) exit 1 ;; esac         ;\
+rm -rf $@.tmp                            ;\
+mkdir $@.tmp                             ;\
+( cd $@.tmp && $(COWPATCH) -I ../$< )    ;\
+test ! -d patches/$@ || cat patches/$@/* |\
+( cd $@.tmp && $(COWPATCH) -p1 )         ;\
+rm -rf $@                                ;\
+mv $@.tmp $@                             ;\
+fi
 
 # Add deps for all patched source dirs on their patchsets
 $(foreach dir,$(notdir $(basename $(basename $(basename $(wildcard hashes/*))))),$(eval $(dir): $$(wildcard patches/$(dir) patches/$(dir)/*)))
@@ -200,7 +192,6 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	"-include $(REL_TOP)/config.mak"
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
-	test -d "$(GLIB_SRCDIR)" && rm -rf $(GLIB_SRCDIR)/.git* || true
 	cd $(BUILD_DIR) && $(MAKE) $@
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
@@ -209,3 +200,4 @@ install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.ma
 endif
 
 .SECONDARY:
+

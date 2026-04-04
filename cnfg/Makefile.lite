@@ -69,7 +69,7 @@ FULL_BINUTILS_CONFIG = \
 	$(COMMON_CONFIG) $(BINUTILS_CONFIG) $(TOOLCHAIN_CONFIG) \
 	--disable-werror \
 	--target=$(TARGET) --prefix= \
-	--libdir=/lib --disable-multilib \
+	--libdir=/lib --disable-multilib --disable-shared \
 	--with-sysroot=$(SYSROOT) \
 	--enable-deterministic-archives
 
@@ -80,7 +80,7 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 	--disable-assembly \
 	--disable-werror \
 	--target=$(TARGET) --prefix= \
-	--libdir=/lib --disable-multilib \
+	--libdir=/lib --disable-multilib --disable-shared \
 	--with-sysroot=$(SYSROOT) \
 	--enable-tls \
 	--disable-libmudflap --disable-libsanitizer \
@@ -92,7 +92,7 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
 	--prefix= --host=$(TARGET)
 
-FULL_ZLIB_CONFIG = --static --disable-shared \
+FULL_ZLIB_CONFIG = --static --disable-crcvx \
 	--prefix= --host=$(TARGET)
 
 FULL_PCRE2_CONFIG = --disable-shared \
@@ -312,11 +312,11 @@ install-gcc: | obj_gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
 
-install-pcre2: | obj_pcre2/.lc_built
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
-
 install-zlib: | obj_zlib/.lc_built
 	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+
+install-pcre2: | obj_pcre2/.lc_built
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))
@@ -343,3 +343,4 @@ endif
 
 clean:
 	rm -rf src_* obj_*
+

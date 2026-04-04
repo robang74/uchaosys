@@ -47,9 +47,9 @@ cp -f cnfg/Makefile.musl musl/Makefile; fi
 # target: sources //////////////////////////////////////////////////////////////
 sources:
 	@echo Wait downloading sources ...
+	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
 	$(MAKE) -j$(NCPU) muslcfg
 	$(MAKE) -j$(NCPU) -C musl extract_all
-	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh && sh gzcmd.sh gzcmd.sh gzcmd
 	@echo
 

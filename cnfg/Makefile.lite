@@ -210,7 +210,6 @@ src_binutils: | $(BINUTILS_SRCDIR)
 
 src_gcc_base: | $(GCC_SRCDIR)
 	ln -sf $(GCC_SRCDIR) $@
-	#sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 
 src_musl: | $(MUSL_SRCDIR)
 	ln -sf $(MUSL_SRCDIR) $@
@@ -258,7 +257,6 @@ ifneq ($(ISL_SRCDIR),)
 src_gcc: src_isl
 src_isl: | $(ISL_SRCDIR)
 	ln -sf "$(ISL_SRCDIR)" $@
-	#sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 endif
 
 src_gcc: src_gcc_base
@@ -270,7 +268,6 @@ src_gcc: src_gcc_base
 	$(if $(MPFR_SRCDIR),cd $@.tmp && ln -sf ../src_mpfr mpfr)
 	$(if $(ISL_SRCDIR),cd $@.tmp && ln -sf ../src_isl isl)
 	mv $@.tmp $@
-	#sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 
 obj_%:
 	mkdir -p $@
@@ -294,14 +291,10 @@ obj_binutils/.lc_built: | obj_binutils/.lc_configured
 	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all ) && touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
-	( cd obj_gcc && export ac_cv_have_decl_basename=yes && \
-export gcc_cv_have_decl_basename=yes && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
-	#sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
+	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured 
 	sed -i $(shell find . -name Makefile) -e "s,\(BUILD_CONFIGARGS =\),\\1 HAVE_DECL_BASENAME=1,"
-	#( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" configure-host )
-	#sed -i $(shell find . -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
 
 obj_musl/.lc_configured: | obj_musl src_musl

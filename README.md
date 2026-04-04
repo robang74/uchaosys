@@ -105,7 +105,7 @@ Last but not least, the chaos engine is **exactly** the same in kernel and user 
 
 > [!WARNING]
 >
-> Due to the recent and unusual network failures of the open source mirrors, make sources might need to be executed a few times before complete correctly and in full. Tarball repositories aren't related with this project or github, but run by 3rd parties.
+> Due to the recent and unusual network failures of the open source mirrors placed across the ocean, `make sources` might need to be executed a few times before complete correctly and in full. Tarball repositories aren't related with this project or github, but run by 3rd parties. Edit `cnfg/Makefile.msul` and choose your geographically nearest mirrors for the best download performances.
 
 ```sh
 url="github.com/robang74/uchaosys.git"

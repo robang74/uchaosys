@@ -18,8 +18,9 @@ TOOLCHAIN_CONFIG =
 XGCC_DIR = ../obj_gcc/gcc
 XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR) -DHAVE_DECL_BASENAME=1
 
-export CFLAGS_EXTRA += -DHAVE_DECL_BASENAME=1 
-export CXXFLAGS_EXTRA += -DHAVE_DECL_BASENAME=1
+export   CFLAGS_FOR_BUILD += -DHAVE_DECL_BASENAME=1
+export CPPFLAGS_FOR_BUILD += -DHAVE_DECL_BASENAME=1
+export CXXFLAGS_FOR_BUILD += -DHAVE_DECL_BASENAME=1
 
 -include config.mak
 
@@ -68,6 +69,7 @@ MAKE += MULTILIB_OSDIRNAMES=
 MAKE += INFO_DEPS= infodir=
 MAKE += ac_cv_prog_lex_root=lex.yy
 MAKE += ac_cv_have_decl_basename=yes
+MAKE += gcc_cv_have_decl_basename=yes
 MAKE += MAKEINFO=false
 
 FULL_BINUTILS_CONFIG = \
@@ -151,6 +153,9 @@ FULL_GCC_CONFIG += --build=$(BUILD) --host=$(HOST)
 MUSL_VARS =
 endif
 
+FULL_GCC_CONFIG += gcc_cv_have_decl_basename=yes
+FULL_GCC_CONFIG += ac_cv_have_decl_basename=yes
+
 define set_decl_basename
 test ! -d obj_pcre2/ || \
 sed -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1," \
@@ -169,7 +174,9 @@ else
 
 all: musl toolchain install
 
-install: install-musl install-toolchain install-extra-libs
+prepare: install-musl install-toolchain
+
+install: prepare install-extra-libs
 
 musl: obj_musl/.lc_built
 
@@ -203,6 +210,7 @@ src_binutils: | $(BINUTILS_SRCDIR)
 
 src_gcc_base: | $(GCC_SRCDIR)
 	ln -sf $(GCC_SRCDIR) $@
+	#sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 
 src_musl: | $(MUSL_SRCDIR)
 	ln -sf $(MUSL_SRCDIR) $@
@@ -250,7 +258,7 @@ ifneq ($(ISL_SRCDIR),)
 src_gcc: src_isl
 src_isl: | $(ISL_SRCDIR)
 	ln -sf "$(ISL_SRCDIR)" $@
-	sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
+	#sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 endif
 
 src_gcc: src_gcc_base
@@ -262,6 +270,7 @@ src_gcc: src_gcc_base
 	$(if $(MPFR_SRCDIR),cd $@.tmp && ln -sf ../src_mpfr mpfr)
 	$(if $(ISL_SRCDIR),cd $@.tmp && ln -sf ../src_isl isl)
 	mv $@.tmp $@
+	#sed -i $(shell find $@ -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 
 obj_%:
 	mkdir -p $@
@@ -285,9 +294,14 @@ obj_binutils/.lc_built: | obj_binutils/.lc_configured
 	( cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all ) && touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
-	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
+	( cd obj_gcc && export ac_cv_have_decl_basename=yes && \
+export gcc_cv_have_decl_basename=yes && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
+	#sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 
-obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
+obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured 
+	sed -i $(shell find . -name Makefile) -e "s,\(BUILD_CONFIGARGS =\),\\1 HAVE_DECL_BASENAME=1,"
+	#( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" configure-host )
+	#sed -i $(shell find . -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
 
 obj_musl/.lc_configured: | obj_musl src_musl
@@ -297,6 +311,9 @@ obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
 	( cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers ) && touch $@
 
 obj_gcc/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
+	sed -i $(shell find obj_gcc -name Makefile) -e "s,\(BUILD_CONFIGARGS =\),\\1 HAVE_DECL_BASENAME=1,"
+	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" configure-target
+	sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" all-target-libgcc
 
 obj_musl/.lc_built: | obj_musl/.lc_configured
@@ -331,7 +348,10 @@ obj_glib/.lc_built: obj_glib/.lc_configured
 	ninja -C obj_glib && touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
+	sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
+	sed -i $(shell find obj_gcc -name Makefile) -e "s,\(BUILD_CONFIGARGS =\),\\1 HAVE_DECL_BASENAME=1,"
 	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" ) && touch $@
+	sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 
 install-musl: | obj_musl/.lc_built
 	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
@@ -340,6 +360,7 @@ install-binutils: | obj_binutils/.lc_built
 	cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 
 install-gcc: | obj_gcc/.lc_built
+	sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
 

@@ -287,9 +287,13 @@ obj_gcc/.lc_configured: | obj_gcc src_gcc
 	( cd obj_gcc && ../src_gcc/configure $(FULL_GCC_CONFIG) ) && touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
-	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-stage1-libcpp ) || true
+	( cd obj_gcc && { $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" maybe-all-libiberty || true; })
 	$(set_decl_basename)
-	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-stage1-gcc ) || true
+	( cd obj_gcc && { $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" maybe-all-mpc || true; })
+	$(set_decl_basename)
+	( cd obj_gcc && { $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-libbacktrace || true; })
+	$(set_decl_basename)
+	( cd obj_gcc && { $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" maybe-all-zlib || true; })
 	$(set_decl_basename)
 	( cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc ) && touch $@
 

@@ -202,7 +202,8 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	test -d "$(GLIB_SRCDIR)" && rm -rf $(GLIB_SRCDIR)/.git* || true
 	$(MAKE) -C $(BUILD_DIR) $@ || true
-	@echo "Failure is expected here on some systems, recovery in progress..."
+	test -d "$(GLIB_SRCDIR)" && rm -rf $(GLIB_SRCDIR)/.git* || true
+	@printf "\nFailure is expected here on some systems, recovery in progress...\n\n"
 	find $(BUILD_DIR) -name config.h -print0 |\
 xargs -0r -P0 sed -i -e "s/\(HAVE_DECL_BASENAME\).*0/\1 1/"
 	cd $(BUILD_DIR) && $(MAKE) $@

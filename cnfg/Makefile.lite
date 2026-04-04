@@ -304,9 +304,7 @@ obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
 	( cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers ) && touch $@
 
 obj_gcc/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
-	sed -i $(shell find obj_gcc -name Makefile) -e "s,\(BUILD_CONFIGARGS =\),\\1 HAVE_DECL_BASENAME=1,"
-	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" configure-target
-	sed -i $(shell find obj_gcc -name config.h) -e "s,\(HAVE_DECL_BASENAME\).*0,\\1 1,"
+	sed -i $(shell find . -name Makefile) -e "s,\(BUILD_CONFIGARGS =\),\\1 HAVE_DECL_BASENAME=1,"
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" all-target-libgcc
 
 obj_musl/.lc_built: | obj_musl/.lc_configured

@@ -113,7 +113,9 @@ Last but not least, this essential technical briefing provides practical grounds
 
 ![Linux RT schedulers latency jitters](linux-rt-schedulers-latency-jitters.png)
 
-Two series of graphs chosen from a paper (2013) and a tech blog (2025), and chosen in a conservative way, shows that in the most constrained system the latency is varying by 10&nbsp;us at least. Which is 13 bits, divided by two because it is a pink noise, divided by two because it is spiky, divided by two because it is intrinsically quantised, it remains 10 bits. The uChaos engine injects the whole pack, relies basically on the least significant 8 bits leveraging by stochastic branching the 5 five.
+Two series of graphs chosen from a paper (2013) and a tech blog (2025), and chosen in a conservative way, shows that in the most constrained system the latency is varying by 10&nbsp;us at least. Which is 13 bits, divided by two because it is a pink noise, divided by two because it is spiky, divided by two because it is intrinsically quantised, it remains 10 bits.
+
+The uChaos engine injects the whole pack, relies basically on the least significant 8 bits, and leverages the 3+2 LSB difference between two consecutive latencies (jitter) for stochastics branching.
 
 `--`<br>
 Best regards,<br>

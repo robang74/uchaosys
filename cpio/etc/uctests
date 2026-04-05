@@ -68,7 +68,7 @@ if grep -qe "UCTEST=9" /proc/cmdline; then
     free; echo virt: $(du -ks /virt/ | cut -f1; echo)
     echo; read -p "Press ENTER to continue: "
     cd /virt/ && sh start.sh -w1 -zm32 -M q35
-  else    
+  else
     free; head /proc/cpuinfo
   fi
 fi

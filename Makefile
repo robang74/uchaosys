@@ -40,9 +40,13 @@ all: sources toolchain bzImage busybox uchaos rngtest buildemu install
 
 # target: muslcfg //////////////////////////////////////////////////////////////
 muslcfg:
-	if [ ! -r musl/config.mak ]; then cp $(MUSLCFGMAK) musl/config.mak; \
-cp -arf cnfg/hashes musl/; cp -f musl/Makefile musl/Makefile.bak; \
-cp -f cnfg/Makefile.musl musl/Makefile; cp -f cnfg/Makefile.lite musl/litecross/Makefile; fi
+	if [ ! -r musl/config.mak ]; then \
+cp -arf cnfg/hashes musl/;           \
+cp -f $(MUSLCFGMAK) musl/config.mak;  \
+cp -f musl/Makefile musl/Makefile.bak; \
+cp -f cnfg/Makefile.musl musl/Makefile; \
+cp -f cnfg/Makefile.lite musl/litecross/Makefile; \
+fi
 
 # target: sources //////////////////////////////////////////////////////////////
 sources: update muslcfg

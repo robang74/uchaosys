@@ -37,9 +37,11 @@ qbin="qemu-system-$ARCH"
 to_clean="build/ slirp/libslirp.a slirp/build minz/miniz.o cpio.tmp/"
 if [ "${1:-}" = "clean" ]; then
   rm -rf $to_clean
+  test "${2:-}" = "" && exit
+  shift
 elif [ "${1:-}" = "veryclean" ]; then
   rm -rf $to_clean src/
-  rm -f $qbin $qbin.???
+  rm -f $qbin $qbin.??? $url_name
   test "${2:-}" = "" && exit
   shift
 fi

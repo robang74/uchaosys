@@ -61,6 +61,7 @@ update:
 # @echo "Sync and drop caches, ^C to skip root password"
 # sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
 toolchain: muslcfg
+	test -d musl/sources || make -j$(NCPU) sources
 	make -j$(NCPU) -C musl install
 	@echo
 	tar czf musl-output.tar.gz musl/output/

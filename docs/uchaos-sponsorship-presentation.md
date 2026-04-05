@@ -1,4 +1,4 @@
-## uChaos: Technical Proposal for Commercial Sponsorship
+## uChaos: Technical Presentation for Commercial Sponsorship
 
 `(c)` 2026, Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;
 

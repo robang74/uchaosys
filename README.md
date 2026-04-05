@@ -42,7 +42,7 @@ Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time: 1010 s  (16m 50s)`&hairsp;¹
 - `dev/build environment size: 6116 MB (5.97 GB)`
-- `repository .zip copy  size:  324 KB (pdf+img)`
+- `repository .zip copy  size:  444 KB (pdf+img)`
 
 Reference architecture **x86_64**, system footprint:
 

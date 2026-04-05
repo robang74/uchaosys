@@ -92,10 +92,10 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
 	--prefix= --host=$(TARGET)
 
-FULL_ZLIB_CONFIG = --static --disable-shared \
+FULL_ZLIB_CONFIG = --static --disable-crcvx \
 	--prefix= --host=$(TARGET)
 
-FULL_PCRE2_CONFIG = --static --disable-shared \
+FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
 ifneq ($(NATIVE),)
@@ -147,9 +147,9 @@ install: all
 
 else
 
-all: musl toolchain pcre2
+all: musl toolchain extra-libs
 
-install: install-musl install-gcc install-binutils install-libs
+install: install-musl install-toolchain install-libs
 
 musl: obj_musl/.lc_built
 
@@ -217,7 +217,7 @@ endif
 src_gcc: src_gcc_base
 	rm -rf $@ $@.tmp
 	mkdir $@.tmp
-	cd $@.tmp && ln -sf ../src_gcc_base/* . 
+	cd $@.tmp && ln -sf ../src_gcc_base/* .
 	$(if $(GMP_SRCDIR),cd $@.tmp && ln -sf ../src_gmp gmp)
 	$(if $(MPC_SRCDIR),cd $@.tmp && ln -sf ../src_mpc mpc)
 	$(if $(MPFR_SRCDIR),cd $@.tmp && ln -sf ../src_mpfr mpfr)
@@ -279,7 +279,7 @@ obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
 	touch $@
 
 obj_zlib/.lc_built: | obj_zlib/.lc_configured
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
@@ -287,7 +287,7 @@ obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 	touch $@
 
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(CURDIR)/obj_sysroot install
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
@@ -304,11 +304,11 @@ install-gcc: | obj_gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
 
-install-pcre2: | obj_pcre2/.lc_built
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
-
 install-zlib: | obj_zlib/.lc_built
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
+
+install-pcre2: | obj_pcre2/.lc_built
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))

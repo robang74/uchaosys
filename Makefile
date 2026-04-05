@@ -45,11 +45,15 @@ cp -arf cnfg/hashes musl/; cp -f musl/Makefile musl/Makefile.bak; \
 cp -f cnfg/Makefile.musl musl/Makefile; cp -f cnfg/Makefile.lite musl/litecross/Makefile; fi
 
 # target: sources //////////////////////////////////////////////////////////////
-sources:
+sources: update muslcfg
 	@echo Wait downloading sources ...
-	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
-	$(MAKE) -j$(NCPU) muslcfg
 	$(MAKE) -j$(NCPU) -C musl extract_all
+	@echo
+
+# target: update ///////////////////////////////////////////////////////////////
+update:
+	@echo Wait updating project dependencies ...
+	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh && sh gzcmd.sh gzcmd.sh gzcmd
 	@echo
 

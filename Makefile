@@ -138,15 +138,18 @@ install:
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
-	rm -rf gzcmd.sh gzcmd.sh.gz cpio.cpio $(TMPD)
-	for dir in musl bbox kdev usrl prnd $(LNXPATH); do \
-		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir clean || true; \
+	@echo "Cleaning ..."
+	rm -rf gzcmd.sh cpio.cpio $(TMPD) minz/_build
+	for dir in musl bbox kdev usrl prnd $(LNXPATH); do  \
+		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir clean ||:; \
 	done
 
 # target: veryclean ////////////////////////////////////////////////////////////
 # This removes files that the script normally protects with 'test' or 'if' logic
 veryclean: clean
 	@echo "Removing custom configuration files and links"
+# Remove musl output
+	rm -fr musl/output
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
 	cp -f musl/Makefile.bak musl/Makefile
@@ -159,7 +162,20 @@ veryclean: clean
 # Additional cleanup for symlinks created in kdev
 	rm -f kdev/linux-kernel
 # Remove all the hashes added, as well
-	rm -f musl/$(shell cd cnfg; ls -1 hashes/*)
+	rm -f musl/$(shell cd cnfg && command ls -1 hashes/* ||:)
+# Call qemu/make.sh clean
+	cd qemu && sh make.sh clean
+
+# target: distclean ////////////////////////////////////////////////////////////
+distclean: veryclean
+	@echo "Removing everything apart from the updated repo"
+	rm -fr musl/sources musl-output.tar.gz miniz/amalgamation
+	rm -f $(shell command ls -1 virt/* | command grep -v start.sh ||:)
+# Call qemu/make.sh veryclean
+	cd qemu && sh make.sh veryclean
+	for dir in musl bbox; do  \
+		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir distclean ||:; \
+	done
 
 # target: buildall /////////////////////////////////////////////////////////////
 buildall: toolchain bzImage busybox uchaos install

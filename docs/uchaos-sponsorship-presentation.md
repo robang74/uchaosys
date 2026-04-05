@@ -4,8 +4,6 @@
 
 &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project
 
-
-
 <br>
 
 ### Presentation of the uChaos Project
@@ -106,6 +104,16 @@ In case your company could be seriously interested in participating and funding 
 - [github.com/sponsors/robang74](https://github.com/sponsors/robang74)
 
 The github platform is the natural 1st-channel of contact and at least granted as 3rd party intermediation but is not necessarily the best one in all the cases.
+
+---
+
+### Linux Scheduler Jitter
+
+Last but not least, this essential technical briefing provides practical grounds to the uChaos implementation. Accepting that the CPU is the hardware source of entropy, it is worth understanding how the Linux scheduler filters that source and among many schedulers, the real-time ones are the most conservative and predictable in terms of latency thus jittering. Setting the "worst" case as the reference one is the safest choice to avoid entropy overestimation.
+
+![Linux RT schedulers latency jitters](linux-rt-schedulers-latency-jitters.png)
+
+Two series of graphs chosen from a paper (2013) and a tech blog (2025), and chosen in a conservative way, shows that in the most constrained system the latency is varying by 10&nbsp;us at least. Which is 13 bits, divided by two because it is a pink noise, divided by two because it is spiky, divided by two because it is intrinsically quantised, it remains 10 bits. The uChaos engine injects the whole pack, relies basically on the least significant 8 bits leveraging by stochastic branching the 5 five.
 
 `--`<br>
 Best regards,<br>

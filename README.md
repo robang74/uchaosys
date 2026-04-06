@@ -113,17 +113,17 @@ git clone https://$url --jobs $(nproc)
 cd uchaosys
 #    git switch <branch>
 time make sources
-#    real	2m14.851s
+#    real	 2m42.075s
 time make buildall
-#    real	16m44.828s
+#    real	22m33.494s
 # to run uChaoSys on u/qemu
 make runqemu
 
 # ancillary activities
 time make rngtest
-#    real	0m17.791s
+#    real	 0m20.835s
 time make buildemu
-#    real	4m44.253s
+#    real	 2m55.193s
 # to test self-hosting u/qemu
 make uemutest
 ```

@@ -103,7 +103,7 @@ $(SOURCES)/config.sub: | $(SOURCES)
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
-$(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
+$(SOURCES)/%: | hashes/%.sha1 $(SOURCES)
 	mkdir -p $@.tmp
 	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)
 	cd $@.tmp && touch $(notdir $@)
@@ -113,8 +113,19 @@ $(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
 
 endif
 
-
 # Rules for extracting and patching sources, or checking them out from git.
+
+.PRECIOUS: $(SOURCES)/%.tar.gz $(SOURCES)/%.tar.bz2 $(SOURCES)/%.tar.xz
+
+define extract_tar
+	@case "$1" in */*) exit 1 ;; esac
+	@rm -rf $1.tmp $1; mkdir $1.tmp
+	@echo "Tarball '$<' extraction ..." >&2
+	( cd $1.tmp && tar $2 - ) < $3
+	@touch $1.tmp/$(patsubst %.orig,%,$1)
+	@mv $1.tmp/$(patsubst %.orig,%,$1) $1
+	@rm -rf $1.tmp &
+endef
 
 musl-git-%:
 	@echo "musl-git branch" >&2
@@ -124,34 +135,13 @@ musl-git-%:
 	mv $@.tmp $@
 
 %.orig: $(SOURCES)/%.tar.gz
-	@case "$@" in */*) exit 1 ;; esac
-	@rm -rf $@.tmp $@
-	@mkdir $@.tmp
-	@echo "Tarball '$<' extraction ..." >&2
-	( cd $@.tmp && tar zxf - ) < $<
-	@touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	@rm -rf $@.tmp &
+	$(call extract_tar,$@,xzvf,$<)
 
 %.orig: $(SOURCES)/%.tar.bz2
-	@case "$@" in */*) exit 1 ;; esac
-	@rm -rf $@.tmp $@
-	@mkdir $@.tmp
-	@echo "Tarball '$<' extraction ..." >&2
-	( cd $@.tmp && tar jxf - ) < $<
-	@touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	@rm -rf $@.tmp &
+	$(call extract_tar,$@,xjvf,$<)
 
 %.orig: $(SOURCES)/%.tar.xz
-	@case "$@" in */*) exit 1 ;; esac
-	@rm -rf $@.tmp $@
-	@mkdir $@.tmp
-	@echo "Tarball '$<' extraction ..." >&2
-	( cd $@.tmp && tar Jxf - ) < $<
-	@touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	@rm -rf $@.tmp &
+	$(call extract_tar,$@,xJvf,$<)
 
 %: %.orig
 	@echo "orig branch: $@" >&2

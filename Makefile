@@ -44,7 +44,8 @@ all: sources buildall rngtest buildemu
 
 muslcfg-force:
 	cp -arf cnfg/hashes musl/
-	cp -f musl/Makefile musl/Makefile.bak
+	for a in musl/Makefile musl/litecross/Makefile; \
+	  do test -r $$a.bak || cp -f $$a $$a.bak; done
 	cp -f cnfg/Makefile.musl musl/Makefile
 	cp -f cnfg/Makefile.lite musl/litecross/Makefile
 	cp -f $(MUSLCFGMAK) musl/config.mak
@@ -200,9 +201,9 @@ install: $(TMPD)/.done
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
 	@echo "Cleaning ..."
-	rm -rf gzcmd.sh cpio.cpio $(TMPD) minz/_build
+	ls -1d gzcmd.sh cpio.cpio $(TMPD)/ minz/_build/ 2>/dev/null | xargs -P0 -I {} rm -rf "{}"
 	for dir in musl bbox kdev usrl prnd $(LNXPATH); do  \
-		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir clean ||:; \
+		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; \
 	done
 
 # target: veryclean ////////////////////////////////////////////////////////////
@@ -213,7 +214,7 @@ veryclean: clean
 	rm -fr musl/output
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
-	cp -f musl/Makefile.bak musl/Makefile
+	for a in musl/Makefile musl/litecross/Makefile; do cp -f $$a.bak $$a; done
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
 # Protected by: test -r $lnxpath/.config
@@ -227,7 +228,7 @@ veryclean: clean
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh clean
 # Call prnd/make veryclean
-	$(MAKE) -C prnd $@
+	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
 
 # target: distclean ////////////////////////////////////////////////////////////
 distclean: veryclean
@@ -236,9 +237,7 @@ distclean: veryclean
 	rm -f $(shell command ls -1 virt/* | command grep -v start.sh ||:)
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean
-	for dir in musl bbox; do  \
-		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir distclean ||:; \
-	done
+	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
 
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys: bzImage busybox uchaos install

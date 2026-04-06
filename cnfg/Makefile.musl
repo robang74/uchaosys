@@ -60,10 +60,15 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* pcre2-* zlib-* build build-* linux-*
+	command ls -1d binutils-*/ linux-*/ musl-*/ meson-*/ pcre2-*/ gmp-*/ \
+gcc-*/ isl-*/ glib-*/ build/ build-*/ mpfr-*/ mpc-*/ zlib-*/ \
+2>/dev/null | xargs -P0 -I {} rm -rf "{}"
 
-distclean: clean
-	rm -rf sources
+veryclean: clean
+	rm -rf output/
+
+distclean: veryclean
+	rm -rf sources/
 
 
 # Rules for downloading and verifying sources. Treat an external SOURCES path as

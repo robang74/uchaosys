@@ -13,6 +13,9 @@ KO_FILE := $(MODULE_NAME).ko
 KDIR := linux-kernel/
 PWD  := $(shell pwd)
 
+$(KDIR)/System.map:
+	@echo "ERROR: file '$(KDIR)/System.map' is required, exit 1."; exit 1
+
 KMAP := $(KDIR)/System.map System.map
 ADDR := 0x$(shell grep " _credit_init_bits" $(KMAP) 2>/dev/null |\
             tail -n1 | cut -d' ' -f1 | cut -d: -f2)
@@ -32,7 +35,8 @@ PRINTK := 0x$(shell grep -w "_printk" $(KMAP) 2>/dev/null |\
              tail -n1 | cut -d' ' -f1 | cut -d: -f2)
 ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 
-default:
+default: $(KDIR)/System.map
+	yes "" | $(MAKE) -C $(KDIR) syncconfig
 	@echo "_CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
 	$(MAKE) -C $(KDIR) M=$(PWD) modules_prepare modules
 

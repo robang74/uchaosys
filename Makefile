@@ -27,13 +27,16 @@ KMOD        := uchaos_dev.ko
 HOSTCC      := gcc
 CC          := $(CCPREFIX)gcc
 OPTS        := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
-OPTS        += CFLAGS_EXTRA="-falign-functions=32"
+OPTS        += CFLAGS_EXTRA="-falign-functions=32" KERNVER=$(KERNVER)
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
 
 OUTPUT      ?= musl/output
 KIMG        := $(OUTPUT)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
+
+ARTIFACTS   := bbox/busybox.elf musl-output.tar.gz gzcmd.gz.sh $(LNXPATH)
+ARTIFACTS   += musl/sources/ musl/output/ miniz/amalgamation/
 
 .PHONY: all sources buildall rngtest buildemu
 
@@ -106,12 +109,15 @@ $(LNXPATH): $(KDIR)
 	ln -sf ../$(KDIR) $(LNXPATH)
 
 $(LNXPATH)/.config: | $(LNXPATH)
-	cp -f cnfg/linux-$(KVER_SHORT).config $(LNXPATH)/.config
+	cp -Lf cnfg/linux-$(KVER_SHORT).config $(LNXPATH)/.config
 
 $(KIMG): | $(LNXPATH)/.config
-	rm -f $(KIMG)
-	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) syncconfig modules_prepare bzImage modules
-	cp -arLf $(KIMGPATH) $(KIMG)
+	rm -f $(KIMG) $(KDIR)/System.map
+	yes "" | $(MAKE) -j$(NCPU) syncconfig
+	$(MAKE) -j$(NCPU) modules_prepare
+	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) bzImage
+	cp -Lf $(KDIR)/System.map $(OUTPUT)
+	cp -Lf $(KIMGPATH) $(KIMG)
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
 	@du -k $(KIMG) | sed -e "s/^/size: /" -e "s/\t/ KB /"
@@ -148,13 +154,21 @@ miniz: minz/amalgamation/.done
 # target: uchaos ///////////////////////////////////////////////////////////////
 .PHONY: uchaos
 
-kdev/$(KMOD).gz: | $(LNXPATH)
+$(KDIR)/System.map:
+	cp -Lf $(OUTPUT)/System.map $(KDIR)/System.map || { \
+	  echo "ERROR: try 'make bzImage' before this"; exit 1; }
+
+kdev/$(KMOD).gz: | $(KDIR)/System.map
+	@echo
 	$(MAKE) -j$(NCPU) -C kdev $(OPTS) dist
+	@echo
 
 usrl/uchaosbox:
+	@echo
 	$(MAKE) -j$(NCPU) -C usrl $(OPTS) uchaosbox
+	@echo
 
-uchaos: miniz kdev/$(KMOD).gz usrl/uchaosbox
+uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 	@echo
 	@file kdev/$(KMOD).gz | sed -e "s/\",/\"\\n/" -e "s/n,/n\\n/"
 	@du -b kdev/$(KMOD).gz | sed -e "s/^/size: /" -e "s/\t/ bytes /"
@@ -178,10 +192,9 @@ rngtest: prnd/RNG_test
 $(TMPD)/.done:
 	cp -arf cpio/ $(TMPD)/
 	mkdir -p $(TMPD)/tmp/ $(TMPD)/var/log/ $(TMPD)/lib/modules/ $(TMPD)/usr/bin/
-	cp -Lf $(KIMG) $(VDIR)/
 	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)
-	cp -Lf usrl/uchaosbox $(TMPD)/usr/bin/
 	cp -Lf bbox/busybox.elf $(TMPD)/usr/bin/busybox
+	cp -Lf usrl/uchaosbox $(TMPD)/usr/bin/
 	chmod +x $(TMPD)/init
 	# Symbolic links
 	ln -sf bin $(TMPD)/usr/sbin
@@ -193,7 +206,9 @@ $(TMPD)/.done:
 
 install: $(TMPD)/.done
 	@echo
-	cd $(VDIR) && sh start.sh -U
+	cp -Lf $(KIMG) $(VDIR)/
+	cd $(VDIR) && sh start.sh -U 
+	@cd $(VDIR) && du -k qemu-system-$(ARCH) | sed -e "s/\t/ /"
 	@echo
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -203,7 +218,7 @@ install: $(TMPD)/.done
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
 	@echo "Cleaning ..."
-	ls -1d gzcmd.sh cpio.cpio $(TMPD)/ minz/_build/ 2>/dev/null | xargs -P0 -I {} rm -rf "{}"
+	echo gzcmd.sh cpio.cpio $(TMPD)/ minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
 	for dir in musl bbox kdev usrl prnd $(LNXPATH); do  \
 		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; \
 	done
@@ -212,8 +227,6 @@ clean:
 # This removes files that the script normally protects with 'test' or 'if' logic
 veryclean: clean
 	@echo "Removing custom configuration files and links"
-# Remove musl output
-	rm -fr musl/output
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
 	for a in musl/Makefile musl/litecross/Makefile; do cp -f $$a.bak $$a; done
@@ -222,9 +235,7 @@ veryclean: clean
 # Protected by: test -r $lnxpath/.config
 	rm -f $(KDIR)/.config
 # Protected by: test -r bbox/.config
-	rm -f bbox/.config
-# Additional cleanup for symlinks created in kdev
-	rm -f kdev/linux-kernel
+	rm -f bbox/.config 
 # Remove all the hashes added, as well
 	rm -f musl/$(shell cd cnfg && command ls -1 hashes/* ||:)
 # Call qemu/make.sh clean
@@ -235,8 +246,8 @@ veryclean: clean
 # target: distclean ////////////////////////////////////////////////////////////
 distclean: veryclean
 	@echo "Removing everything apart from the updated repo"
-	rm -fr musl/sources musl-output.tar.gz miniz/amalgamation bbox/busybox.elf
-	rm -f $(shell command ls -1 virt/* | command grep -v start.sh ||:)
+	echo $(ARTIFACTS) | xargs -P0 -I {} rm -rf "{}"
+	rm -f $(shell ls -1 virt/* | grep -v start.sh ||:)
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean
 	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
@@ -248,10 +259,10 @@ buildsys: bzImage busybox uchaos install
 buildall: toolchain buildsys
 
 # target: buildemu /////////////////////////////////////////////////////////////
-qemu/qemu-system-x86_64:
+qemu/qemu-system-$(ARCH):
 	cd qemu && time -p sh make.sh sources
 
-buildemu: qemu/qemu-system-x86_64
+buildemu: qemu/qemu-system-$(ARCH)
 
 # target: uemutest //////////////////////////////////////////////////////////////
 uemutest: buildemu

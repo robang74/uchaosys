@@ -81,7 +81,7 @@ fi
 if [ $imgupdte -ne 0 ]; then
   sh -c "cd ..; ./cpio.sh -c"
   if [ $updtquit -ne 0 ]; then
-    cp -f $(find ../musl -name bzImage -type f) .
+#   cp -f $(find ../musl -name bzImage -type f | head -n1) .
     du -k bzImage | sed -e "s/\t/ KB /"
     exit 0
   fi

@@ -60,9 +60,7 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	command ls -1d binutils-*/ linux-*/ musl-*/ meson-*/ pcre2-*/ gmp-*/ \
-gcc-*/ isl-*/ glib-*/ build/ build-*/ mpfr-*/ mpc-*/ zlib-*/ \
-2>/dev/null | xargs -P0 -I {} rm -rf "{}"
+	echo build/ $(SRC_DIRS) | xargs -P0 -I {} rm -rf "{}"
 
 veryclean: clean
 	rm -rf output/
@@ -195,6 +193,8 @@ all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@
+	rm -rf $(OUTPUT)/include/linux-$(LINUX_VER)
+	cp -arf linux-$(LINUX_VER)/include $(OUTPUT)/include/linux
 
 endif
 

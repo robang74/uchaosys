@@ -17,7 +17,7 @@ KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 # Paths
 VDIR        := virt
 KDIR        := musl/linux-$(KERNVER)
-KIMG        := $(KDIR)/arch/$(ARCH)/boot/bzImage
+KIMGPATH    := $(KDIR)/arch/$(ARCH)/boot/bzImage
 LNXPATH     := kdev/linux-kernel
 CCPREFIX    := $(ARCH)-linux-musl-
 TMPD        := cpio.tmp
@@ -31,8 +31,9 @@ OPTS        += CFLAGS_EXTRA="-falign-functions=32"
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
 
-path        ?= musl/output
-export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
+OUTPUT      ?= musl/output
+KIMG        := $(OUTPUT)/bzImage
+export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
 .PHONY: all sources buildall rngtest buildemu
 
@@ -85,7 +86,7 @@ musl/output/.done:
 musl-output.tar.gz:
 	@echo
 	tar czf musl-output.tar.gz musl/output/
-	du -ms musl-output.tar.gz musl/output/
+	@du -ms musl-output.tar.gz musl/output/  | sed -e "s/^/size: /" -e "s/\t/ MB /"
 	@echo
 
 # @echo "Sync and drop caches, ^C to skip root password"
@@ -95,17 +96,22 @@ toolchain: muslcfg musl/sources/.done musl/output/.done musl-output.tar.gz
 # target: bzImage //////////////////////////////////////////////////////////////
 .PHONY: bzImage
 
-$(LNXPATH):
+$(KDIR):
+	@echo "Error do 'make sources' before, exit 1."; exit 1
+
+$(LNXPATH): $(KDIR)
 	ln -sf ../$(KDIR) $(LNXPATH)
 
 $(LNXPATH)/.config: | $(LNXPATH)
 	cp -f cnfg/linux-$(KVER_SHORT).config $(LNXPATH)/.config
 
 $(KIMG): | $(LNXPATH)/.config
+	rm -f $(KIMG)
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) syncconfig modules_prepare bzImage modules
+	cp -arLf $(KIMGPATH) $(KIMG)
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
-	du -Lk  $(KIMG)
+	@du -k $(KIMG) | sed -e "s/^/size: /" -e "s/\t/ KB /"
 	@echo
 
 bzImage: $(KIMG)
@@ -120,8 +126,7 @@ bbox/busybox: bbox/.config
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
 	@echo
-	file bbox/busybox
-	du -k bbox/busybox
+	@file $@; du -k $@ | sed -e "s/^/size: /" -e "s/\t/ KB /"
 	@echo
 
 busybox: bbox/busybox

@@ -82,6 +82,7 @@ musl/sources/.done:
 
 musl/output/.done:
 	make -j$(NCPU) -C musl install
+	rm -f musl-output.tar.gz
 	touch $@
 
 musl-output.tar.gz:
@@ -98,7 +99,8 @@ toolchain: muslcfg musl/sources/.done musl/output/.done musl-output.tar.gz
 .PHONY: bzImage
 
 $(KDIR):
-	@echo "Error do 'make sources' before, exit 1."; exit 1
+	@test -r $(KIMG) || { echo "Error do 'make sources' before, exit 1."; exit 1; }
+	@test -r $(KIMG) && { du -k $(KIMG) | sed -e "s/^/size: /" -e "s/\t/ KB /"; exit 1; }
 
 $(LNXPATH): $(KDIR)
 	ln -sf ../$(KDIR) $(LNXPATH)

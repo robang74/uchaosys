@@ -56,12 +56,13 @@ ifneq ($(LIBTOOL),)
 LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
 endif
 
-#ifneq ($(HAVE_DECL_BASENAME),)
-MAKE += HAVE_DECL_BASENAME=1
-#endif
+MAKE += HAVE_DECL_BASENAME=0
 MAKE += MULTILIB_OSDIRNAMES=
 MAKE += INFO_DEPS= infodir=
 MAKE += ac_cv_prog_lex_root=lex.yy
+MAKE += gcc_cv_have_decl_basename=no
+MAKE +=  ac_cv_have_decl_basename=no
+MAKE +=  ac_cv_func_basename=no
 MAKE += MAKEINFO=false
 
 FULL_BINUTILS_CONFIG = \

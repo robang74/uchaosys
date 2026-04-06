@@ -34,59 +34,85 @@ GZCMD_PATH  := refs/heads/main
 path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
-.PHONY: all sources toolchain bzImage busybox uchaos rngtest install clean muslcfg
+.PHONY: all sources toolchain bzImage busybox uchaos rngtest buildemu install
 
 all: sources toolchain bzImage busybox uchaos rngtest buildemu install
 
-# target: muslcfg-force ////////////////////////////////////////////////////////
+# target: sources //////////////////////////////////////////////////////////////
+
+.PHONY: update muslcfg muslcfg-force
+
 muslcfg-force:
 	cp -arf cnfg/hashes musl/
-	cp -f $(MUSLCFGMAK) musl/config.mak
 	cp -f musl/Makefile musl/Makefile.bak
 	cp -f cnfg/Makefile.musl musl/Makefile
 	cp -f cnfg/Makefile.lite musl/litecross/Makefile
+	cp -f $(MUSLCFGMAK) musl/config.mak
 
-# target: muslcfg //////////////////////////////////////////////////////////////
-muslcfg:
-	if [ ! -r musl/config.mak ]; then make -j$(NCPU) muslcfg-force; fi
+musl/config.mak:
+	$(MAKE) -j$(NCPU) muslcfg-force
 
-# target: sources //////////////////////////////////////////////////////////////
-sources: update muslcfg
+muslcfg: musl/config.mak
+
+gzcmd.sh:
+	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
+
+gzcmd.gz.sh: gzcmd.sh
+	sh gzcmd.sh gzcmd.sh gzcmd
+
+update:
+	@echo Wait updating project dependencies ...
+	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
+	@echo
+
+sources: update gzcmd.gz.sh muslcfg
 	@echo Wait downloading sources ...
 	$(MAKE) -j$(NCPU) -C musl extract_all
 	@echo
 
-# target: update ///////////////////////////////////////////////////////////////
-update:
-	@echo Wait updating project dependencies ...
-	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
-	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh && sh gzcmd.sh gzcmd.sh gzcmd
-	@echo
-
 # target: toolchain ////////////////////////////////////////////////////////////
-# @echo "Sync and drop caches, ^C to skip root password"
-# sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
-toolchain: muslcfg
-	test -d musl/sources || make -j$(NCPU) sources
+
+musl/sources/.done:
+	make -j$(NCPU) sources
+	touch $@
+
+musl/output/.done:
 	make -j$(NCPU) -C musl install
+	touch $@
+
+musl-output.tar.gz:
 	@echo
 	tar czf musl-output.tar.gz musl/output/
 	du -ms musl-output.tar.gz musl/output/
 	@echo
 
+# @echo "Sync and drop caches, ^C to skip root password"
+# sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
+toolchain: muslcfg musl/sources/.done musl/output/.done musl-output.tar.gz
+
 # target: bzImage //////////////////////////////////////////////////////////////
-bzImage:
-	@test -e $(LNXPATH) || ln -sf ../$(KDIR) $(LNXPATH)
-	@test -r $(LNXPATH)/.config || cp -f cnfg/linux-$(KVER_SHORT).config $(KDIR)/.config
+
+$(LNXPATH):
+	ln -sf ../$(KDIR) $(LNXPATH)
+
+$(LNXPATH)/.config: $(LNXPATH)
+	cp -f cnfg/linux-$(KVER_SHORT).config $(KDIR)/.config
+
+$(KIMG): $(LNXPATH)/.config
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) syncconfig modules_prepare bzImage modules
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
 	du -Lk  $(KIMG)
 	@echo
 
+bzImage: $(KIMG)
+
 # target: busybox //////////////////////////////////////////////////////////////
-busybox:
-	@test -r bbox/.config || cp $(BBOX_CFG) bbox/.config
+
+bbox/.config:
+	cp $(BBOX_CFG) bbox/.config
+
+bbox/busybox: bbox/.config
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
 	@echo
@@ -94,32 +120,51 @@ busybox:
 	du -k bbox/busybox
 	@echo
 
+busybox: bbox/busybox
+
 # target: miniz ////////////////////////////////////////////////////////////////
-miniz:
-	cd minz; sh amalgamate.sh; cd ..
+
+.PHONY: miniz
+
+minz/amalgamate/.done:
+	cd minz && sh amalgamate.sh
+	touch $@
+
+miniz: minz/amalgamate/.done
 
 # target: uchaos ///////////////////////////////////////////////////////////////
-uchaos: miniz
-	ln -sf $(KDIR)/ kdev
+
+kdev/$(KDIR):
+	ln -sf $(KDIR)/ kdev/
+
+kdev/$(KMOD).gz: kdev/$(KDIR)
 	$(MAKE) -j$(NCPU) -C kdev $(OPTS) dist
+
+usrl/uchaosbox:
 	$(MAKE) -j$(NCPU) -C usrl $(OPTS) uchaosbox
+
+uchaos: miniz kdev/$(KMOD).gz usrl/uchaosbox
 	@echo
 	file kdev/$(KMOD).gz | sed -e s/\",/\"\\n/ -e s/n,/n\\n/
-	du -k   kdev/$(KMOD).gz
+	du -k kdev/$(KMOD).gz
 	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
-rngtest:
+
+prnd/RNG_test:
 	$(MAKE) -j$(NCPU) $(OPTS) -C prnd/ RNG_test \
 	  CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX)
+
+rngtest:
 	@echo
 	file prnd/RNG_test
 	du -k prnd/RNG_test
 	@echo
 
 # target: install //////////////////////////////////////////////////////////////
-install:
-	cp -arf cpio $(TMPD)/
+
+$(TMPD)/.done:
+	cp -arf cpio/ $(TMPD)/
 	mkdir -p $(TMPD)/tmp/ $(TMPD)/var/log/ $(TMPD)/lib/modules/ $(TMPD)/usr/bin/
 	cp -Lf $(KIMG) $(VDIR)/
 	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)
@@ -132,9 +177,16 @@ install:
 	ln -sf usr/sbin $(TMPD)/sbin
 	ln -sf usr/bin $(TMPD)/bin
 	ln -sf busybox $(TMPD)/bin/sh
+	touch $@
+
+install: $(TMPD)
 	@echo
-	cd $(VDIR); sh start.sh -U; cd ..
+	cd $(VDIR) && sh start.sh -U
 	@echo
+
+# //////////////////////////////////////////////////////////////////////////////
+
+.PHONY: clean veryclean distclean buildall buildsys buildemu uemutest uemurset runqemu
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
@@ -184,14 +236,16 @@ buildall: toolchain bzImage busybox uchaos install
 buildsys: bzImage busybox uchaos install
 
 # target: buildemu /////////////////////////////////////////////////////////////
-buildemu:
+qemu/qemu-system-x86_64:
 	cd qemu && time -p sh make.sh sources
 
+buildemu: qemu/qemu-system-x86_64
+
 # target: uemutest //////////////////////////////////////////////////////////////
-uemutest:
+uemutest: buildemu
 	rm -rf cpio.tmp/virt/
 	cp -arf cpio/* cpio.tmp/
-	sh cpio.sh -c || exit 1
+	sh cpio.sh -c
 	cp -arf virt/ cpio.tmp/
 	cd virt && KARGS="UCTEST=9" sh start.sh -uqm64
 
@@ -201,7 +255,7 @@ uemurset:
 	sh cpio.sh -c
 
 # target: runqemu //////////////////////////////////////////////////////////////
-runqemu:
+runqemu: buildemu
 	@echo Prepare and start the KVM 32MB machine
-	cd virt; sh start.sh -q -m 32
+	cd virt && sh start.sh -qm32
 

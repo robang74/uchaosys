@@ -270,7 +270,10 @@ if [ ! -x $qbin ] ; then
   [ "$ldck" = "yes" ] && read -p "Press ENTER to continue: " pkey
   rm -f $qbin; cp -f $qbin.rsp $qbin.rsp.bak
   echo
+  echo "==============================="
+  echo
   echo "Fix the linking stage and repeat ..."
+  echo
   CFLAGS=""
   LDFLAGS=""
   for i in open stat; do

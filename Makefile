@@ -112,9 +112,9 @@ $(LNXPATH)/.config: | $(LNXPATH)
 	cp -Lf cnfg/linux-$(KVER_SHORT).config $(LNXPATH)/.config
 
 $(KIMG): | $(LNXPATH)/.config
-	rm -f $(KIMG) $(KDIR)/System.map
-	yes "" | $(MAKE) -j$(NCPU) syncconfig
-	$(MAKE) -j$(NCPU) modules_prepare
+	rm -f $(KIMG) $(LNXPATH)/System.map
+	yes "" | $(MAKE)  -C $(LNXPATH) syncconfig
+	$(MAKE) -j$(NCPU) -C $(LNXPATH) modules_prepare
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) bzImage
 	cp -Lf $(KDIR)/System.map $(OUTPUT)
 	cp -Lf $(KIMGPATH) $(KIMG)
@@ -138,7 +138,7 @@ bbox/busybox.elf: bbox/.config
 	@ln -f bbox/busybox $@
 	@echo
 	@file $@; du -k $@ | sed -e "s/^/size: /" -e "s/\t/ KB /"
-	@echo 
+	@echo
 
 busybox: bbox/busybox.elf
 
@@ -207,7 +207,7 @@ $(TMPD)/.done:
 install: $(TMPD)/.done
 	@echo
 	cp -Lf $(KIMG) $(VDIR)/
-	cd $(VDIR) && sh start.sh -U 
+	cd $(VDIR) && sh start.sh -U
 	@cd $(VDIR) && du -k qemu-system-$(ARCH) | sed -e "s/\t/ /"
 	@echo
 
@@ -235,7 +235,7 @@ veryclean: clean
 # Protected by: test -r $lnxpath/.config
 	rm -f $(KDIR)/.config
 # Protected by: test -r bbox/.config
-	rm -f bbox/.config 
+	rm -f bbox/.config
 # Remove all the hashes added, as well
 	rm -f musl/$(shell cd cnfg && command ls -1 hashes/* ||:)
 # Call qemu/make.sh clean

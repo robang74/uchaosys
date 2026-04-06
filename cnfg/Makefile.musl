@@ -112,48 +112,49 @@ endif
 # Rules for extracting and patching sources, or checking them out from git.
 
 musl-git-%:
-	rm -rf $@.tmp
+	@echo "musl-git branch" >&2
+	@rm -rf $@.tmp $@
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
-	cd $@.tmp && git fsck
+	@cd $@.tmp && git fsck
 	mv $@.tmp $@
 
 %.orig: $(SOURCES)/%.tar.gz
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar zxvf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
+	@case "$@" in */*) exit 1 ;; esac
+	@rm -rf $@.tmp $@
+	@mkdir $@.tmp
+	@echo "Tarball '$<' extraction ..." >&2
+	( cd $@.tmp && tar zxf - ) < $<
+	@touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	@rm -rf $@.tmp &
 
 %.orig: $(SOURCES)/%.tar.bz2
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar jxvf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
+	@case "$@" in */*) exit 1 ;; esac
+	@rm -rf $@.tmp $@
+	@mkdir $@.tmp
+	@echo "Tarball '$<' extraction ..." >&2
+	( cd $@.tmp && tar jxf - ) < $<
+	@touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	@rm -rf $@.tmp &
 
 %.orig: $(SOURCES)/%.tar.xz
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar Jxvf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
+	@case "$@" in */*) exit 1 ;; esac
+	@rm -rf $@.tmp $@
+	@mkdir $@.tmp
+	@echo "Tarball '$<' extraction ..." >&2
+	( cd $@.tmp && tar Jxf - ) < $<
+	@touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	@rm -rf $@.tmp &
 
 %: %.orig
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && $(COWPATCH) -I ../$< )
-	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
-	rm -rf $@
+	@echo "orig branch: $@" >&2
+	@case "$@" in */*) exit 1 ;; esac
+	@rm -rf $@.tmp $@
+	@mkdir $@.tmp
+	cd $@.tmp && $(COWPATCH) -I ../$<
+	@test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
 	mv $@.tmp $@
 
 

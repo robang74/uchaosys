@@ -16,7 +16,7 @@ KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 
 # Paths
 VDIR        := virt
-KDIR        := musl/linux-$(KERNVER).orig
+KDIR        := musl/linux-$(KERNVER)
 KIMG        := $(KDIR)/arch/$(ARCH)/boot/bzImage
 LNXPATH     := kdev/linux-kernel
 CCPREFIX    := $(ARCH)-linux-musl-
@@ -34,12 +34,11 @@ GZCMD_PATH  := refs/heads/main
 path        ?= musl/output
 export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
-.PHONY: all sources toolchain bzImage busybox uchaos rngtest buildemu install
+.PHONY: all sources buildall rngtest buildemu
 
-all: sources toolchain bzImage busybox uchaos rngtest buildemu install
+all: sources buildall rngtest buildemu
 
 # target: sources //////////////////////////////////////////////////////////////
-
 .PHONY: update muslcfg muslcfg-force
 
 muslcfg-force:
@@ -61,16 +60,19 @@ gzcmd.gz.sh: gzcmd.sh
 	sh gzcmd.sh gzcmd.sh gzcmd
 
 update:
+	@echo
 	@echo Wait updating project dependencies ...
 	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
 	@echo
 
 sources: update gzcmd.gz.sh muslcfg
+	@echo
 	@echo Wait downloading sources ...
 	$(MAKE) -j$(NCPU) -C musl extract_all
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
+.PHONY: toolchain
 
 musl/sources/.done:
 	make -j$(NCPU) sources
@@ -91,14 +93,15 @@ musl-output.tar.gz:
 toolchain: muslcfg musl/sources/.done musl/output/.done musl-output.tar.gz
 
 # target: bzImage //////////////////////////////////////////////////////////////
+.PHONY: bzImage
 
 $(LNXPATH):
 	ln -sf ../$(KDIR) $(LNXPATH)
 
-$(LNXPATH)/.config: $(LNXPATH)
-	cp -f cnfg/linux-$(KVER_SHORT).config $(KDIR)/.config
+$(LNXPATH)/.config: | $(LNXPATH)
+	cp -f cnfg/linux-$(KVER_SHORT).config $(LNXPATH)/.config
 
-$(KIMG): $(LNXPATH)/.config
+$(KIMG): | $(LNXPATH)/.config
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) syncconfig modules_prepare bzImage modules
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
@@ -108,6 +111,7 @@ $(KIMG): $(LNXPATH)/.config
 bzImage: $(KIMG)
 
 # target: busybox //////////////////////////////////////////////////////////////
+.PHONY: busybox
 
 bbox/.config:
 	cp $(BBOX_CFG) bbox/.config
@@ -123,21 +127,18 @@ bbox/busybox: bbox/.config
 busybox: bbox/busybox
 
 # target: miniz ////////////////////////////////////////////////////////////////
-
 .PHONY: miniz
 
-minz/amalgamate/.done:
+minz/amalgamation/.done:
 	cd minz && sh amalgamate.sh
 	touch $@
 
-miniz: minz/amalgamate/.done
+miniz: minz/amalgamation/.done
 
 # target: uchaos ///////////////////////////////////////////////////////////////
+.PHONY: uchaos
 
-kdev/$(KDIR):
-	ln -sf $(KDIR)/ kdev/
-
-kdev/$(KMOD).gz: kdev/$(KDIR)
+kdev/$(KMOD).gz: | $(LNXPATH)
 	$(MAKE) -j$(NCPU) -C kdev $(OPTS) dist
 
 usrl/uchaosbox:
@@ -145,8 +146,8 @@ usrl/uchaosbox:
 
 uchaos: miniz kdev/$(KMOD).gz usrl/uchaosbox
 	@echo
-	file kdev/$(KMOD).gz | sed -e s/\",/\"\\n/ -e s/n,/n\\n/
-	du -k kdev/$(KMOD).gz
+	@file kdev/$(KMOD).gz | sed -e "s/\",/\"\\n/" -e "s/n,/n\\n/"
+	@du -b kdev/$(KMOD).gz | sed -e "s/^/size: /" -e "s/\t/ bytes /"
 	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
@@ -155,13 +156,14 @@ prnd/RNG_test:
 	$(MAKE) -j$(NCPU) $(OPTS) -C prnd/ RNG_test \
 	  CCSYSROOT="-static -mavx2" CCPREFIX=$(CCPREFIX)
 
-rngtest:
+rngtest: prnd/RNG_test
 	@echo
-	file prnd/RNG_test
-	du -k prnd/RNG_test
+	@file prnd/RNG_test #| sed -e "s/V),/V)\\n/" -e "s/n,/n\\n/"
+	@du -k prnd/RNG_test | sed -e "s/^/size: /" -e "s/\t/ KB /"
 	@echo
 
 # target: install //////////////////////////////////////////////////////////////
+.PHONY: install
 
 $(TMPD)/.done:
 	cp -arf cpio/ $(TMPD)/
@@ -179,14 +181,14 @@ $(TMPD)/.done:
 	ln -sf busybox $(TMPD)/bin/sh
 	touch $@
 
-install: $(TMPD)
+install: $(TMPD)/.done
 	@echo
 	cd $(VDIR) && sh start.sh -U
 	@echo
 
 # //////////////////////////////////////////////////////////////////////////////
 
-.PHONY: clean veryclean distclean buildall buildsys buildemu uemutest uemurset runqemu
+.PHONY: clean veryclean distclean buildsys uemutest uemurset runqemu
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
@@ -229,11 +231,11 @@ distclean: veryclean
 		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir distclean ||:; \
 	done
 
-# target: buildall /////////////////////////////////////////////////////////////
-buildall: toolchain bzImage busybox uchaos install
-
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys: bzImage busybox uchaos install
+
+# target: buildall /////////////////////////////////////////////////////////////
+buildall: toolchain buildsys
 
 # target: buildemu /////////////////////////////////////////////////////////////
 qemu/qemu-system-x86_64:

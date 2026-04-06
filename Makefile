@@ -122,14 +122,16 @@ bzImage: $(KIMG)
 bbox/.config:
 	cp $(BBOX_CFG) bbox/.config
 
-bbox/busybox: bbox/.config
+bbox/busybox.elf: bbox/.config
+	@rm -f $@
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
+	@ln -f bbox/busybox $@
 	@echo
 	@file $@; du -k $@ | sed -e "s/^/size: /" -e "s/\t/ KB /"
-	@echo
+	@echo 
 
-busybox: bbox/busybox
+busybox: bbox/busybox.elf
 
 # target: miniz ////////////////////////////////////////////////////////////////
 .PHONY: miniz
@@ -176,7 +178,7 @@ $(TMPD)/.done:
 	cp -Lf $(KIMG) $(VDIR)/
 	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)
 	cp -Lf usrl/uchaosbox $(TMPD)/usr/bin/
-	cp -Lf bbox/busybox $(TMPD)/usr/bin/
+	cp -Lf bbox/busybox.elf $(TMPD)/usr/bin/busybox
 	chmod +x $(TMPD)/init
 	# Symbolic links
 	ln -sf bin $(TMPD)/usr/sbin
@@ -224,11 +226,13 @@ veryclean: clean
 	rm -f musl/$(shell cd cnfg && command ls -1 hashes/* ||:)
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh clean
+# Call prnd/make veryclean
+	$(MAKE) -C prnd $@
 
 # target: distclean ////////////////////////////////////////////////////////////
 distclean: veryclean
 	@echo "Removing everything apart from the updated repo"
-	rm -fr musl/sources musl-output.tar.gz miniz/amalgamation
+	rm -fr musl/sources musl-output.tar.gz miniz/amalgamation bbox/busybox.elf
 	rm -f $(shell command ls -1 virt/* | command grep -v start.sh ||:)
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean

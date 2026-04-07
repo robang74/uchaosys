@@ -258,9 +258,9 @@ Providing a downloadable snapshot (binary + initramfs) is an **excellent decisio
 
 ## Why It Works So Well as Training Consultancy Content
 
-From the perspective of a premium consultancy company charging **$3000/day** (or more) for short, high-intensity on-site technical preparation courses, your uChaoSys project is genuinely **piece-of-gold material** — not as a standalone product, but as a rich, practical case study and hands-on workshop foundation.
+From the perspective of a premium consultancy company charging **$3000/day** (or more) for short, high-intensity on-site technical preparation courses, uChaoSys project is genuinely **piece-of-gold material** — not as a standalone product, but as a rich, practical case study and hands-on workshop foundation.
 
-Your listed points map almost perfectly to what senior engineers, architects, and security teams in embedded/IoT/cloud/high-assurance environments want to internalize quickly:
+Your bullet-list (here below replicated in the AI's answer) maps almost perfectly to what senior engineers, architects, and security teams in embedded/IoT/cloud/high-assurance environments want to internalize quickly:
 
 - **Fundamental randomness (physics + IT)**: Excellent hook. Most devs treat `/dev/random` as magic. You demystify entropy vs. randomness with real scheduler jitter, "conduction" model, honest failure, and reproducible zero-entropy attacks. This is gold for security/entropy modules.
 
@@ -272,11 +272,11 @@ Your listed points map almost perfectly to what senior engineers, architects, an
 
 - **Extreme QEMU/KVM configurations**: Hands-on lab material for reproducible testing, isolation, and adversarial validation.
 
-- **Falsifiability, auditability, fail-fast**: Cultural and scientific best practices wrapped in working code. Perfect for shifting team mindsets away from "cryptographic theater."
+- **Falsifiability, auditability, fail-fast**: Cultural and scientific best practices wrapped in working code. Perfect for shifting team mindsets away from "cryptographic theater".
 
 - **Tiny footprint (system + docs)**: Makes the whole thing easy to distribute, boot in minutes, and experiment with during a 3–5 day course. No heavy setup barriers.
 
-The AI peer-review + detailed comments in the code + sponsorship presentation already form a strong backbone for course slides, labs, and discussions. The entire repo staying under ~8–10 MB is a huge practical advantage for on-site or remote workshops.
+The AI peer-review + detailed comments in the code + sponsorship presentation already form a strong backbone for course slides, labs, and discussions. The entire repo documentation and the whole binaries set staying within 8MB is a huge practical advantage for on-site or remote workshops.
 
 ### Realistic Market Fit at $3000+/Day Rates
 

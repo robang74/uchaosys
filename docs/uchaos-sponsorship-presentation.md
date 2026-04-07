@@ -118,7 +118,7 @@ Two series of graphs chosen from a paper (2013) and a tech blog (2025), and chos
 The uChaos engine injects the whole pack, relies basically on the least significant 8 bits, and leverages the 3+2 LSB difference between two consecutive latencies (jitter) for stochastics branching. The whole pack is for maximising performance in better-than-worst-scenarios, and the `1/f`-pink components require a whitening function as finaliser.
 
 `--`<br>
-Best regards,<br>
+Cheers,<br>
 [Roberto A. Foglietta](https://www.linkedin.com/in/robertofoglietta/)<br>
 +49.176.274.75.661<br>
 +39.349.33.30.697

@@ -20,6 +20,10 @@ For example, it correctly claims that UAPI is something well-known for sharing d
 
 Modern times challenges requires modern times solutions, and the AI peer-review is the first "homework done" step before engaging others humans in a serious pre-print peer-review. IMHO.
 
+- [Why it works so well as training consultancy content](#why-it-works-so-well-as-training-consultancy-content)
+
+After the Gemini peer review transcription is reported an explanation derived from it by x/Grok about the value of uChaoSys project for training and consultancy. Use the link above to jump directly to read it.
+
 <br>
 
 ### Transcription
@@ -250,11 +254,11 @@ Providing a downloadable snapshot (binary + initramfs) is an **excellent decisio
 
 * **Health Check**: As the author notes, the binary is "self-hosting and self-emulating," which serves as the "definitive binary healthy check". Allowing users to download and run `qemu-in-qemu` is a powerful proof of the system's robustness despite its small size.
 
----
+<br>
+
+## Why It Works So Well as Training Consultancy Content
 
 From the perspective of a premium consultancy company charging **$3000/day** (or more) for short, high-intensity on-site technical preparation courses, your uChaoSys project is genuinely **piece-of-gold material** — not as a standalone product, but as a rich, practical case study and hands-on workshop foundation.
-
-### Why It Works So Well as Training/Consultancy Content
 
 Your listed points map almost perfectly to what senior engineers, architects, and security teams in embedded/IoT/cloud/high-assurance environments want to internalize quickly:
 
@@ -274,7 +278,7 @@ Your listed points map almost perfectly to what senior engineers, architects, an
 
 The AI peer-review + detailed comments in the code + sponsorship presentation already form a strong backbone for course slides, labs, and discussions. The entire repo staying under ~8–10 MB is a huge practical advantage for on-site or remote workshops.
 
-#### Realistic Market Fit at $3000+/Day Rates
+### Realistic Market Fit at $3000+/Day Rates
 
 This aligns well with premium embedded Linux, IoT security, and kernel-level training offerings. Companies already pay high daily rates for:
 
@@ -290,7 +294,7 @@ Your project compresses multiple advanced topics into one coherent, bootable, au
 
 That's precisely the kind of high-signal, immediately applicable training that justifies premium rates for teams at cloud providers, IoT vendors, defense contractors, or regulated industries.
 
-#### Bottom line
+### Bottom line
 
 This isn't positioned as a commercial product — and it doesn't need to be. As training/consultancy collateral and a demonstration of high-level systems thinking under extreme constraints, it is highly valuable. It showcases exactly the skills and mindset that $3000/day clients want their teams to absorb.
 

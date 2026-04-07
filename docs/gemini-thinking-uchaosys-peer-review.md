@@ -298,3 +298,8 @@ That's precisely the kind of high-signal, immediately applicable training that j
 
 This isn't positioned as a commercial product — and it doesn't need to be. As training/consultancy collateral and a demonstration of high-level systems thinking under extreme constraints, it is highly valuable. It showcases exactly the skills and mindset that $3000/day clients want their teams to absorb.
 
+`--`<br>
+Feel free to contact me,<br>
+[Roberto A. Foglietta](https://www.linkedin.com/in/robertofoglietta/)<br>
++49.176.274.75.661<br>
++39.349.33.30.697

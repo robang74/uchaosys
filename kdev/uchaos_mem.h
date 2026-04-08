@@ -35,11 +35,28 @@ static void kbufptr_zfree(void *kbufptr) {
   }
 }
 
+/*
+ * RATIONALE: doing a plain p + (TS_N_OFFSET * i) with TS_N_OFFSET as m * 2^n,
+ * all the accessed addresses can easily map to the exact same cache set(s).
+ * This causes conflict misses and thrashing inside the limited ways of that set
+ * (L1d is usually 8-way). This phenomenon is usually named as cache line trashing.
+ *
+ * Despite being usually unwelcomed, cache line trashing might helps to collect
+ * wider distributed timings about memory reads. However, it depends on hardware.
+ */
+#define AVOID_CACHE_LINE_TRASHING 1
+
+#if AVOID_CACHE_LINE_TRASHING
+#define _IM7(a) IM7((a+1))
+#else
+#define _IM7(a) IM7(a)
+#endif
+
 static void *ts_mempages_zalloc(void) {
   if( ts.kbufptr ) return NULL;
 
   ts.kbuf_pages_order = get_order(KBUFSIZE);
-  if( ts.kbuf_pages_order < get_order(IM7(TS_N_OFFSET)) )
+  if( ts.kbuf_pages_order < get_order(_IM7(TS_N_OFFSET)) )
     return NULL;
 
   ts.kbufptr = __get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
@@ -76,13 +93,18 @@ static void *ts_mempages_zalloc(void) {
  * In the most deterministic scenario, the SW emulated VM has a single-core CPU only.
  * Hence, the first write of this example is a sequential read of memory addresses.
  */
+
 static u64 kbufptr_mseed(void) {
   if( ts.kbufptr ) return TS_N_ADDVAL;
 
   u64 t = ktime_get_ns();
   archul_t v = 0, *p = ts.kbufptr;
   for (int i = 0; i < TS_N_REPLICAS; ++i) {
-    v ^= *( p + (TS_N_OFFSET * i) ) + TS_N_ADDVAL;
+      v ^= *( p + (TS_N_OFFSET * i)
+#if AVOID_CACHE_LINE_TRASHING
+        + i
+#endif
+            ) + TS_N_ADDVAL;
     v ^= ktime_get_ns() - t;
   }
   return v;

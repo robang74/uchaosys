@@ -46,10 +46,23 @@ typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 
 static archul_t *kbuf = NULL; // Stack allocation, one char device only
 
+/*
+ * ABOUT CODE INVARIABILITY: among different optimisation levels than the current:
+ *
+ * objdump -d kdev/uchaos_dev.ko | grep -E "rotlbit|knuthmx|murmux3"
+ * 0000000000000000 <knuthmx>:
+ *
+ * with -O2 (current) only knuthmx remains a function, while others two are inlined.
+ * Forcing the always_inline attribute the code porting is more robust and uniform.
+ * After this change .ko size shrunk: 17752 --> 17648, .ko.gz: 5382 --> 5350 bytes.
+ */
+
+__attribute__((always_inline))
 static inline archul_t rotlbit(archul_t n, u8 c) {
     c &= ABX; return (n << c) | (n >> ((-c) & ABX));
 }
 
+__attribute__((always_inline))
 static inline archul_t knuthmx(archul_t iw) {
     register archul_t w = iw;
     w  = rotlbit(w, getprmx16(w));
@@ -58,6 +71,7 @@ static inline archul_t knuthmx(archul_t iw) {
     return w;
 }
 
+__attribute__((always_inline))
 static inline archul_t murmux3(archul_t ks, archul_t p) {
     register archul_t z = ks;
     z =  p ^ ((z >> (ABx-2)) * murmul1);
@@ -74,9 +88,13 @@ static inline archul_t murmux3(archul_t ks, archul_t p) {
  * The 'volatile' isn't a SMP memory barrier as we expect but each CPU core
  * cache therefore for the most general implementation 'atomic_t' is the way.
  */
-
 static atomic_t loop_failure = ATOMIC_INIT(0);
 
+/*
+ * Every static inline function called in djb2tum will be
+ * forced into inlining, regardless of its own attributes.
+ */
+__attribute__((flatten))
 static archul_t djb2tum(archul_t seed, size_t num)
 {
     static unsigned long failure_jiff = 0;
@@ -92,11 +110,11 @@ static archul_t djb2tum(archul_t seed, size_t num)
     u8 b0, b1, excp = 0;
 
 #ifdef _CHK_LOOP_FAIL
-    /*
-     * RATIONALE: also flooding the system of printks isn't a good idea, after all.
-     * There is not an easy way to fall in this "SYSBUG" but also not an easy way to
-     * deal with it because it is not within the coding/logic of this driver's scope.
-     */
+/*
+ * RATIONALE: also flooding the system of printks isn't a good idea, after all.
+ * There is not an easy way to fall in this "SYSBUG" but also not an easy way to
+ * deal with it because it is not within the coding/logic of this driver's scope.
+ */
     if( atomic_read( &loop_failure ) ) {
         if ( time_after(jiffies, failure_jiff + ONESEC) ) {
             failure_jiff = 0;
@@ -121,19 +139,19 @@ static archul_t djb2tum(archul_t seed, size_t num)
  * -------------------------------------------------------------------------- */
 reschedule:
 #ifdef _CHK_LOOP_FAIL
-        /*
-         * RATIONALE: we cannot ignore that in some extreme conditions this code can
-         * create a livelock rescheduling for an unlimited number of times. Something
-         * exotic like ktime_get_ns() function pointer was corrupted in a way that it
-         * returns always the same value. The expectation is 3-12 range of reschedules
-         * for each function cold-call. When 1% might require 100x more, performance
-         * is halved and it is a degradation of the service but never a lock. Hopefully,
-         * we never see this kind of failure in a production system. In critical systems
-         * a lock/hack by ktime_get_ns() can cost a disaster, not just low-quality entropy
-         * or scarcity. Anyway, when ktime_get_ns() systematically fails much probably
-         * other parts of the kernel would create DoS or SysFail in such a way that
-         * uChaos will be the least of the issues. Not being a critical one, is enough.
-         */
+/*
+ * RATIONALE: we cannot ignore that in some extreme conditions this code can
+ * create a livelock rescheduling for an unlimited number of times. Something
+ * exotic like ktime_get_ns() function pointer was corrupted in a way that it
+ * returns always the same value. The expectation is 3-12 range of reschedules
+ * for each function cold-call. When 1% might require 100x more, performance
+ * is halved and it is a degradation of the service but never a lock. Hopefully,
+ * we never see this kind of failure in a production system. In critical systems
+ * a lock/hack by ktime_get_ns() can cost a disaster, not just low-quality entropy
+ * or scarcity. Anyway, when ktime_get_ns() systematically fails much probably
+ * other parts of the kernel would create DoS or SysFail in such a way that
+ * uChaos will be the least of the issues. Not being a critical one, is enough.
+ */
         // 2^10 is a large arbitrary value, don't overlook 'arbitrary' when coding
         if( (++j) >> 10 ) {
             failure_jiff = jiffies;
@@ -226,11 +244,11 @@ reschedule:
     tcyl += num;
 #endif
 
-    /*
-     * RATIONALE: if 'goto enforcedquit' is enforced, the system is probably done
-     * and near an imminent collapse but this wouldn't allow to creates a DoS here
-     * rather than a soft-degradation of the service quality like doing LCG as RNG.
-     */
+/*
+ * RATIONALE: if 'goto enforcedquit' is enforced, the system is probably done
+ * and near an imminent collapse but this wouldn't allow to creates a DoS here
+ * rather than a soft-degradation of the service quality like doing LCG as RNG.
+ */
 enforcedquit:
     ent = hsh;                             // forget the entropy mixed in hash
     hsh = murmux3(hsh, ohs);               // whitening the hash before deliver

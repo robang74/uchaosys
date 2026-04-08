@@ -6,6 +6,10 @@ obj-m += $(MODULE_NAME).o
 # Add GDB flags to force symbol generation during compilation
 EXTRA_CFLAGS += -g0 -O2 -Wall
 
+# Automatically create dependencies by c code files
+EXTRA_CFLAGS += -MD
+-include $(sources:.c=.d)
+
 KERNVER ?= $(shell uname -r)
 
 # Point to your compiled kernel source or headers
@@ -35,7 +39,7 @@ PRINTK := 0x$(shell grep -w "_printk" $(KMAP) 2>/dev/null |\
              tail -n1 | cut -d' ' -f1 | cut -d: -f2)
 ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 
-default: $(KDIR)/System.map
+default: uchaos_dev.h $(KDIR)/System.map
 	yes "" | $(MAKE) -C $(KDIR) syncconfig
 	@echo "_CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
 	$(MAKE) -C $(KDIR) M=$(PWD) modules_prepare modules
@@ -54,6 +58,10 @@ sign: default
 	@echo ""
 	@echo "The signature is valid only if it is enrolled in UEFI"
 	@echo "Check the signature with 'sudo mokutil --list-enrolled'"
+
+%.ko: %.o
+
+%.o: %.c %.h
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

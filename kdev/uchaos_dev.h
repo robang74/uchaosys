@@ -282,7 +282,12 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
 
 static inline void __init4_djb2tum(archul_t *ebuf) {
     archul_t seed;
-    seed = knuthmx(ktime_get_ns());
+#ifdef _USE_TSMEM_SEED
+    seed = (!kbuf) ? ktime_get_ns() : kbufptr_mseed();
+#else
+    seed =           ktime_get_ns();
+#endif
+    seed = knuthmx(seed);
     ebuf[0] = djb2tum(seed, loop_mult * init_runs);
     // by default settings, the previous call with init_runs brings in variance
     seed = murmux3(ktime_get_ns(), seed);

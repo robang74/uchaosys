@@ -202,6 +202,10 @@ static struct file_operations fops = {
 #include <linux/bitops.h>
 #include <linux/hw_random.h>
 
+#ifdef _USE_TSMEM_SEED
+#include "uchaos_mem.h"
+#endif
+
 /*
  * RATIONALE: reset the buffer to avoid the risk of leaking precious information
  */
@@ -258,8 +262,11 @@ static int __init uchaos_init(void)
     // It is a mode index, every value is fine
     // badb_init = badb_init
 
-    prtkinfo("Init (bb:%d) auxiliary entropy source, quality: %d\n",
-        badb_init, entr_qlty);
+#ifdef _USE_TSMEM_SEED
+    kbuf = ts_mempages_zalloc();
+#endif
+    prtkinfo("Init (bb:%d,ts:%d) auxiliary entropy source, quality: %d\n",
+        badb_init, !!(kbuf), entr_qlty);
     __init4_djb2tum(ebuf);
 
     /* -------------------------------------------------------------------- */ {

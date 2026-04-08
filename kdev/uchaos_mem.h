@@ -41,8 +41,10 @@ static void kbufptr_zfree(void *kbufptr) {
  * This causes conflict misses and thrashing inside the limited ways of that set
  * (L1d is usually 8-way). This phenomenon is usually named as cache line trashing.
  *
- * Despite being usually unwelcomed, cache line trashing might helps to collect
- * wider distributed timings about memory reads. However, it depends on hardware.
+* Despite being usually unwelcome, cache line trashing might help to collect
+ * wider distributed timings about memory reads. However, it depends on hardware.
+ * On the other hand, increasing the address to read by an incremental unit,
+ * disrupts the 64bit alignment which also affects the access time spread.
  */
 #define AVOID_CACHE_LINE_TRASHING 1
 

@@ -1,0 +1,91 @@
+/*
+ * uchaos_mem.h - Character device for uchaos-based jitter hashing
+ * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
+ *
+ */
+
+#ifndef UCHAOS_MEM_H
+#define UCHAOS_MEM_H
+
+#define TS_N_ORDER 3
+#define TS_N_ADDVAL murmul2
+#define TS_N_OFFSET (HASHSIZE << 1)
+#define TS_N_REPLICAS ((1 << TS_N_ORDER) - 1)
+#define GPF_KBUF_FLAGS (GFP_KERNEL | __GFP_ZERO | __GFP_COMP | __GFP_NOWARN)
+#define IM7(a) ({ size_t _a = (a); ((_a << TS_N_ORDER) - _a); }) // 2^n - 1
+#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+
+static struct {
+  void *kbufptr;
+  unsigned kbuf_pages_order;
+//archul_t *replicas[TS_N_REPLICAS];
+} ts = { 0 };
+
+/*
+ * RATIONALE: reset the buffer to avoid the risk of leaking precious information
+ */
+static void kbufptr_zfree(void *kbufptr) {
+  if(kbufptr) {
+    memset(kbufptr, 0, __a);
+    kfree(kbufptr);
+  } else
+  if(ts.kbufptr && ts.kbuf_pages_order) {
+    memset(ts.kbufptr, 0, (size_t)1 << ts.kbuf_pages_order);
+    free_pages((unsigned long)ts.kbufptr, ts.kbuf_pages_order);
+  }
+}
+
+static void *ts_mempages_zalloc(void) {
+  if( ts.kbufptr ) return NULL;
+
+  ts.kbuf_pages_order = get_order(KBUFSIZE);
+  if( ts.kbuf_pages_order < get_order(IM7(TS_N_OFFSET)) )
+    return NULL;
+
+  ts.kbufptr = __get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
+  if(!ts.kbufptr) return NULL;
+/*
+  for (i = 0; i < TS_N_REPLICAS; ++i)
+    ts_replicas[i] = (archul_t *)(base + (TS_N_OFFSET * i));
+*/
+  return ts.kbufptr;
+}
+
+/*
+ * RATIONALE: tail-slayer style DRAM channel hedging for RAM read tail latency
+ *
+ * An isolated virtual machine with a software emulation doesn't provide entropy
+ * from the scheduler jittering because it is deterministic unless KVM passthrough
+ * However, from a recent Laurie Wired's work (+), the RAM access provide latencies
+ * which, in particular, have a relatively long tail, sometimes. Can it seed?
+ *
+ * (+) Tailslayer - https://github.com/robang74/tailslayer (fork)
+ *
+ * An isolated qemu software virtual machine still has access to RAM and therefore
+ * it might leak some hardware-related latency and related jittering which can
+ * provide an unpredictable seed. Which would be great for a deterministic scenario.
+ *
+ * In fact, in an isolated software virtual machine, as expected. uChaos shown to
+ * be deterministic, thus repetible among reboots, thus predictable but RAM access?
+ *
+ * The straightforward answer is no, it cannot provide entropy, because -icount.
+ * In fact, time w/-icount isn't flowing but it is a counter based on the number of
+ * instructions executed and RAM accesses are just instructions. Moreover the work
+ * by Laurie Wired is based on the first returning among parallel concurrent threads.
+ *
+ * In the most deterministic scenario, the SW emulated VM has a single-core CPU only.
+ * Hence, the first write of this example is a sequential read of memory addresses.
+ */
+static u64 kbufptr_mseed(void) {
+  if( ts.kbufptr ) return TS_N_ADDVAL;
+
+  u64 t = ktime_get_ns();
+  archul_t v = 0, *p = ts.kbufptr;
+  for (int i = 0; i < TS_N_REPLICAS; ++i) {
+    v ^= *( p + (TS_N_OFFSET * i) ) + TS_N_ADDVAL;
+    v ^= ktime_get_ns() - t;
+  }
+  return v;
+}
+
+#endif /* UCHAOS_MEM_H */

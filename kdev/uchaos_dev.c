@@ -49,7 +49,7 @@
 #define MODULE_NAME "uchaos"
 #define DEVICE_NAME MODULE_NAME
 #define  CLASS_NAME MODULE_NAME"_cls"
-#define DRIVER_VERSION "0.5.9.1"
+#define DRIVER_VERSION "0.6"
 #define DRIVER_LICENSE "GPL v2"
 #define DRIVER_AUTHOR  "Roberto A. Foglietta <roberto.foglietta@gmail.com>"
 #define DRIVER_DESCRIPTION "Stochastic scheduler-jitter chaos RNG stream device"
@@ -202,6 +202,13 @@ static struct file_operations fops = {
 #include <linux/bitops.h>
 #include <linux/hw_random.h>
 
+/*
+ * RATIONALE: reset the buffer to avoid the risk of leaking precious information
+ */
+#define _p kbufptr
+#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+#define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kfree(p); }
+
 #ifdef hwrng_register
 static int uchaos_read(struct hwrng *rng, void *buf, size_t max, bool wait) {
     mutex_lock(&uchaos_lock);
@@ -215,9 +222,9 @@ static struct hwrng uchaos_rng = {
     .read = uchaos_read,
     .quality = 100,
 };
-#define retnfree(x) { hwrng_unregister(&uchaos_rng); if(kbufptr) kfree(kbufptr); return (x); }
+#define retnfree(x) { hwrng_unregister(&uchaos_rng); zfree(_p); return (x); }
 #else
-#define retnfree(x) { if(kbufptr) kfree(kbufptr); return (x); }
+#define retnfree(x) {                                zfree(_p); return (x); }
 #endif
 
 static archul_t *kbufptr = NULL;
@@ -298,7 +305,7 @@ static int __init uchaos_init(void)
     /* -------------------------------------------------------------------- */ }
 
     // static *ptr allocation at init means: go or not-go, there is not try
-    kbufptr = kzalloc(MAX_INPUT_SIZE + HASHSIZE, GFP_KERNEL);
+    kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
     if (!kbufptr) retnfree( -ENOMEM );
     kbuf = (archul_t *)ABL_ALIGN( kbufptr );
 
@@ -355,7 +362,7 @@ static void __exit uchaos_exit(void)
     device_destroy(uchaos_class, MKDEV(major, 0));
     class_destroy(uchaos_class);
     unregister_chrdev(major, DEVICE_NAME);
-    if(verbosity)  printk(KERN_INFO MODULE_NAME ": unloaded\n");
+    if(verbosity) printk(KERN_INFO MODULE_NAME ": unloaded\n");
     retnfree((void)0);
 }
 

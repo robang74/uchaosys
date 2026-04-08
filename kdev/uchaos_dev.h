@@ -106,7 +106,7 @@ static archul_t djb2tum(archul_t seed, size_t num)
 
 #ifdef _PROVIDE_STATS
     static u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
-    static archul_t avg = 0, jmn = -1, jmx = 0;
+    static archul_t avg = 0, jmn = -1, jmx = 0, javg = 0;
 #endif
     volatile int i, j = 0; // volatile as current CPU memory barrier in the loop
     register archul_t ent = 0, hsh = ohs; // these two in particular need accel.

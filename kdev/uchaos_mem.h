@@ -42,7 +42,7 @@ static void kbufptr_zfree(void *kbufptr) {
  * This causes conflict misses and thrashing inside the limited ways of that set
  * (L1d is usually 8-way). This phenomenon is usually named as cache line trashing.
  *
-* Despite being usually unwelcome, cache line trashing might help to collect
+ * Despite being usually unwelcome, cache line trashing might help to collect
  * wider distributed timings about memory reads. However, it depends on hardware.
  * On the other hand, increasing the address to read by an incremental unit,
  * disrupts the 64bit alignment which also affects the access time spread.
@@ -98,12 +98,18 @@ static void *ts_mempages_zalloc(void) {
  * As expected with QZERO=1 the TS mem access seeding is repeatable among reboots.
  */
 
+#define IDIV(a,b) ({ u64 _a=(a), _b=(b); (_a + (_b >> 1)) / _b; })
+
 static u64 kbufptr_mseed(u64 t) {
   register int i;
   register archul_t v = 0;
   archul_t *p = ts.kbufptr;
-
-  if( p ) return TS_N_ADDVAL;
+  u64 t2;
+#ifdef _PROVIDE_STATS
+  u64 dt, t1 = t, mint = -1, maxt = 0, avgt = 0;
+#endif
+  //printk("__kbuf: 0x%llx, p: 0x%llx\n", (u64)kbuf, (u64)p);
+  if( !p ) return TS_N_ADDVAL;
 
   for (i = 0; i < TS_N_REPLICAS; ++i) {
       v ^= *( p + (TS_N_OFFSET * i)
@@ -111,8 +117,21 @@ static u64 kbufptr_mseed(u64 t) {
         + i
 #endif
             ) + TS_N_ADDVAL;
-    v ^= ktime_get_ns() - t;
+    t2 = ktime_get_ns();
+#ifdef _PROVIDE_STATS
+    dt = t2 - t1; avgt += dt; t1 = t2;
+    if(mint > dt) mint = dt;
+    if(maxt < dt) maxt = dt;
+#else
+    v ^= t2 - t;
+#endif
   }
+
+#ifdef _PROVIDE_STATS
+  dt = IDIV(avgt * 10, TS_N_REPLICAS);
+  prtkinfo("Init: ts RAM access time within %llu < %llu.%llu > %llu nS\n",
+    mint, dt / 10, dt % 10, maxt);
+#endif
   return v * TS_N_MULVAL;
 }
 

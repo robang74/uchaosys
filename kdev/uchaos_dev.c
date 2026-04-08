@@ -202,16 +202,15 @@ static struct file_operations fops = {
 #include <linux/bitops.h>
 #include <linux/hw_random.h>
 
-#ifdef _USE_TSMEM_SEED
-#include "uchaos_mem.h"
-#endif
-
 /*
  * RATIONALE: reset the buffer to avoid the risk of leaking precious information
  */
 #define _p kbufptr
-#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+#ifdef  _USE_TSMEM_SEED
+#define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kbufptr_zfree(p); }
+#else
 #define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kfree(p); }
+#endif
 
 #ifdef hwrng_register
 static int uchaos_read(struct hwrng *rng, void *buf, size_t max, bool wait) {
@@ -310,11 +309,13 @@ static int __init uchaos_init(void)
         prtkinfo("crng begins w/: 0x%016llx 0x%016llx\n", ebuf[0], ebuf[1]);
     }
     /* -------------------------------------------------------------------- */ }
-
+#ifdef _USE_TSMEM_SEED
+#else
     // static *ptr allocation at init means: go or not-go, there is not try
     kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
     if (!kbufptr) retnfree( -ENOMEM );
     kbuf = (archul_t *)ABL_ALIGN( kbufptr );
+#endif
 
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) retnfree( major );

@@ -7,8 +7,6 @@
 #ifndef UCHAOS_DEV_H
 #define UCHAOS_DEV_H
 
-#define MAX_INPUT_SIZE (1024 << 3)
-
 #define AB  (6)
 #define ABL (AB-3)        //  2 or  3
 #define ABN (1<<AB)       // 32 or 64
@@ -37,14 +35,20 @@
 #define rot2    17
 #define rot3    13
 
-#define HASHSEED 14695981039346656037ULL
 #define HASHSIZE (ABN >> 3)
+#define MAX_INPUT_SIZE (1024 << 3)
+#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+#define HASHSEED 14695981039346656037ULL
 
 typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 
 #define ABL_ALIGN(x) align_t(archul_t, x)
 
 static archul_t *kbuf = NULL; // Stack allocation, one char device only
+
+#ifdef  _USE_TSMEM_SEED
+#include "uchaos_mem.h"
+#endif
 
 /*
  * ABOUT CODE INVARIABILITY: among different optimisation levels than the current:

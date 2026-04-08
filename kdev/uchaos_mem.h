@@ -26,7 +26,7 @@ static struct {
  */
 static void kbufptr_zfree(void *kbufptr) {
   if(kbufptr) {
-    memset(kbufptr, 0, __a);
+    memset(kbufptr, 0, KBUFSIZE);
     kfree(kbufptr);
   } else
   if(ts.kbufptr && ts.kbuf_pages_order) {
@@ -61,7 +61,7 @@ static void *ts_mempages_zalloc(void) {
   if( ts.kbuf_pages_order < get_order(_IM7(TS_N_OFFSET)) )
     return NULL;
 
-  ts.kbufptr = __get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
+  ts.kbufptr = (void *)__get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
   if(!ts.kbufptr) return NULL;
 /*
   for (i = 0; i < TS_N_REPLICAS; ++i)
@@ -97,11 +97,13 @@ static void *ts_mempages_zalloc(void) {
  */
 
 static u64 kbufptr_mseed(void) {
-  if( ts.kbufptr ) return TS_N_ADDVAL;
-
+  int i;
   u64 t = ktime_get_ns();
   archul_t v = 0, *p = ts.kbufptr;
-  for (int i = 0; i < TS_N_REPLICAS; ++i) {
+
+  if( p ) return TS_N_ADDVAL;
+
+  for (i = 0; i < TS_N_REPLICAS; ++i) {
       v ^= *( p + (TS_N_OFFSET * i)
 #if AVOID_CACHE_LINE_TRASHING
         + i

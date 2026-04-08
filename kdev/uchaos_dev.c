@@ -49,7 +49,7 @@
 #define MODULE_NAME "uchaos"
 #define DEVICE_NAME MODULE_NAME
 #define  CLASS_NAME MODULE_NAME"_cls"
-#define DRIVER_VERSION "0.6.1"
+#define DRIVER_VERSION "0.6.2"
 #define DRIVER_LICENSE "GPL v2"
 #define DRIVER_AUTHOR  "Roberto A. Foglietta <roberto.foglietta@gmail.com>"
 #define DRIVER_DESCRIPTION "Stochastic scheduler-jitter chaos RNG stream device"
@@ -250,7 +250,7 @@ static int __init uchaos_init(void)
 #define kernel_credit_entropy_bits(x)
 #endif
     // 256 bit are enough to fullfil the kernel pool
-    archul_t ebuf[4];
+    archul_t ebuf[EBUF_ITEMS];
 
     // Parameters ranges sanitisation min values
     if( !loop_mult ) loop_mult = 1;
@@ -265,15 +265,15 @@ static int __init uchaos_init(void)
     // It is a mode index, every value is fine
     // badb_init = badb_init
 
+    /* -------------------------------------------------------------------- */ {
+    size_t len = sizeof(ebuf);
+
 #ifdef _USE_TSMEM_SEED
     kbuf = ts_mempages_zalloc();
 #endif
     prtkinfo("Init (bb:%d,ts:%d) auxiliary entropy source, quality: %d\n",
         badb_init, !!(kbuf), entr_qlty);
-    __init4_djb2tum(ebuf);
-
-    /* -------------------------------------------------------------------- */ {
-    size_t len = sizeof(ebuf);
+    __init4_djb2tum(ebuf, EBUF_ITEMS);
 
 #ifdef hwrng_register                  // UNTESTED branch
     int err;

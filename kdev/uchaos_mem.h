@@ -14,7 +14,6 @@
 #define TS_N_REPLICAS ((1 << TS_N_ORDER) - 1)
 #define GPF_KBUF_FLAGS (GFP_KERNEL | __GFP_ZERO | __GFP_COMP | __GFP_NOWARN)
 #define IM7(a) ({ size_t _a = (a); ((_a << TS_N_ORDER) - _a); }) // 2^n - 1
-#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
 
 static struct {
   void *kbufptr;
@@ -27,7 +26,7 @@ static struct {
  */
 static void kbufptr_zfree(void *kbufptr) {
   if(kbufptr) {
-    memset(kbufptr, 0, KBUFSIZE);
+    memset(kbufptr, 0, MAX_INPUT_SIZE);
     kfree(kbufptr);
   } else
   if(ts.kbufptr && ts.kbuf_pages_order) {
@@ -47,18 +46,17 @@ static void kbufptr_zfree(void *kbufptr) {
  * On the other hand, increasing the address to read by an incremental unit,
  * disrupts the 64bit alignment which also affects the access time spread.
  */
-#define AVOID_CACHE_LINE_TRASHING 1
-
-#if AVOID_CACHE_LINE_TRASHING
-#define _IM7(a) IM7((a+1))
+#ifdef _TRASH_CACHE_LINE
+#define AVOID_CACHE_LINE_TRASHING 0
 #else
-#define _IM7(a) IM7(a)
+#define AVOID_CACHE_LINE_TRASHING 1
 #endif
+#define _IM7(a) IM7((a)+AVOID_CACHE_LINE_TRASHING)
 
 static void *ts_mempages_zalloc(void) {
   if( ts.kbufptr ) return NULL;
 
-  ts.kbuf_pages_order = get_order(KBUFSIZE);
+  ts.kbuf_pages_order = get_order(MAX_INPUT_SIZE);
   if( ts.kbuf_pages_order < get_order(_IM7(TS_N_OFFSET)) )
     return NULL;
 
@@ -100,31 +98,32 @@ static void *ts_mempages_zalloc(void) {
 
 #define IDIV(a,b) ({ u64 _a=(a), _b=(b); (_a + (_b >> 1)) / _b; })
 
-static u64 kbufptr_mseed(u64 t) {
+static u64 kbufptr_mseed(u64 t, archul_t *ebuf, size_t len) {
   register int i;
   register archul_t v = 0;
   archul_t *p = ts.kbufptr;
-  u64 t2;
+  u64 t2, dt;
 #ifdef _PROVIDE_STATS
-  u64 dt, t1 = t, mint = -1, maxt = 0, avgt = 0;
+  u64 t1 = t, mint = -1, maxt = 0, avgt = 0;
 #endif
-  //printk("__kbuf: 0x%llx, p: 0x%llx\n", (u64)kbuf, (u64)p);
-  if( !p ) return TS_N_ADDVAL;
+
+  if( p && ebuf && len ) {} else return TS_N_ADDVAL;
 
   for (i = 0; i < TS_N_REPLICAS; ++i) {
-      v ^= *( p + (TS_N_OFFSET * i)
+    memcpy(ebuf, p, len << ABL);
+    p += TS_N_OFFSET;
 #if AVOID_CACHE_LINE_TRASHING
-        + i
+    p++;
 #endif
-            ) + TS_N_ADDVAL;
     t2 = ktime_get_ns();
+    dt = t2 - t1;
+    v ^= rotlbit(*ebuf + TS_N_ADDVAL, dt);
 #ifdef _PROVIDE_STATS
-    dt = t2 - t1; avgt += dt; t1 = t2;
     if(mint > dt) mint = dt;
     if(maxt < dt) maxt = dt;
-#else
-    v ^= t2 - t;
+    avgt += dt;
 #endif
+    t1 = t2;
   }
 
 #ifdef _PROVIDE_STATS

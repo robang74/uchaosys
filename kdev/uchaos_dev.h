@@ -35,6 +35,7 @@
 #define rot2    17
 #define rot3    13
 
+#define EBUF_ITEMS 4
 #define HASHSIZE (ABN >> 3)
 #define MAX_INPUT_SIZE (1024 << 3)
 #define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
@@ -45,10 +46,6 @@ typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 #define ABL_ALIGN(x) align_t(archul_t, x)
 
 static archul_t *kbuf = NULL; // Stack allocation, one char device only
-
-#ifdef  _USE_TSMEM_SEED
-#include "uchaos_mem.h"
-#endif
 
 /*
  * ABOUT CODE INVARIABILITY: among different optimisation levels than the current:
@@ -83,6 +80,10 @@ static inline archul_t murmux3(archul_t ks, archul_t p) {
     z =  z ^ ( z >> (ABx+2));
     return z;
 }
+
+#ifdef  _USE_TSMEM_SEED
+#include "uchaos_mem.h"
+#endif
 
 /*
  * ATOMICITY ON A 1CPU vs SMP SYSTEM: the 'loop_failure' flag is read in many
@@ -231,9 +232,9 @@ reschedule:
         // and this detour apports unpredicatbility not just flat-white noise.
         #define MAVG(x) (( tns > min_delta ) ? (x) : ~(x))
 
-        tns  = abs_t(u32, dlt - mavg);
-        ent ^= MAVG(dlt)  <<      ABz;       // 1st derivative of time
-        ent ^= MAVG(ons)  <<     rot3;      // current monotonic time
+        tns  = abs_t(u32, dlt - mavg)  ;
+        ent ^= MAVG(dlt)  <<      ABz  ;     // 1st derivative of time
+        ent ^= MAVG(ons)  <<     rot3  ;    // current monotonic time
         ent  = knuthmx(ent ^ MAVG(dff));   // 2nd derivative of time
 
         b0 = ent & 0x01; b1 = ent & 0x02;
@@ -293,20 +294,25 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
     return sent;
 }
 
-static inline void __init4_djb2tum(archul_t *ebuf) {
-    archul_t seed = ktime_get_ns();
+static inline void __init4_djb2tum(archul_t *ebuf, size_t len) {
+    archul_t seed = HASHSEED;
+    if(!ebuf || len < 4) {
+      djb2tum(seed, loop_mult * init_runs);
+      return;
+    }
+    seed =           ktime_get_ns();
 #ifdef _USE_TSMEM_SEED
-    seed = (!kbuf) ? knuthmx(seed) : kbufptr_mseed(seed);
+    seed = (!kbuf) ? knuthmx(seed) : kbufptr_mseed(seed, ebuf, len);
 #else
     seed =           knuthmx(seed) ;
 #endif
     ebuf[0] = djb2tum(seed, loop_mult * init_runs);
     // by default settings, the previous call with init_runs brings in variance
     seed = murmux3(ktime_get_ns(), seed);
-    ebuf[1] = djb2tum(seed, loop_mult);
+    ebuf[1] = djb2tum(seed,   loop_mult);
     // by default settings, further calls with loop_mult have a smaller variance
-    ebuf[2] = djb2tum(0,    loop_mult);
-    ebuf[3] = djb2tum(0,    loop_mult);
+    ebuf[2] = djb2tum(0,      loop_mult);
+    ebuf[3] = djb2tum(0,      loop_mult);
 }
 
 #endif /* UCHAOS_DEV_H */

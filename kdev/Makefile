@@ -40,7 +40,12 @@ PRINTK := 0x$(shell grep -w "_printk" $(KMAP) 2>/dev/null |\
              tail -n1 | cut -d' ' -f1 | cut -d: -f2)
 ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 
-default: uchaos_dev.h $(KDIR)/System.map
+OPTS := CFLAGS="$(CFLAGS)"
+OPTS += LDFLAGS="$(LDFLAGS)"
+OPTS += EXTRA_CFLAGS="$(EXTRA_CFLAGS)"
+MAKE += $(OPTS)
+
+default: uchaos_dev.h uckaos.c $(KDIR)/System.map uckaos
 	yes "" | $(MAKE) -C $(KDIR) syncconfig
 	@echo "_CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
 	$(MAKE) -C $(KDIR) M=$(PWD) modules_prepare modules
@@ -50,8 +55,10 @@ dist: default
 	strip --strip-debug $(KO_FILE)
 	@echo "Compressing with gzip -9 ... "
 	gzip -9 -c $(KO_FILE) > $(KO_FILE).gz
-	@echo -n "Final size: "
+	@printf "Final size: "
 	@du -b $(KO_FILE).gz | tr '\t' ' '
+	@printf "Final size: "
+	@du -b uckaos | tr '\t' ' '
 
 sign: default
 	@echo "Signing the kernel module requires root priviledges"
@@ -63,6 +70,9 @@ sign: default
 %.ko: %.o
 
 %.o: %.c %.h
+
+uckaos: uckaos.c uchaos_dev.h
+	$(OPTS) $(CC) -O1 $@.c -I../usrl -o $@ -s
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

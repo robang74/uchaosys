@@ -102,7 +102,7 @@ static u64 kbufptr_mseed(u64 t, archul_t *ebuf, size_t len) {
   register int i;
   register archul_t v = 0;
   archul_t *p = ts.kbufptr;
-  u64 t2, dt;
+  u64 t2, dt, odt = 0;
 #ifdef _PROVIDE_STATS
   u64 t1 = t, mint = -1, maxt = 0, avgt = 0;
 #endif
@@ -117,12 +117,13 @@ static u64 kbufptr_mseed(u64 t, archul_t *ebuf, size_t len) {
 #endif
     t2 = ktime_get_ns();
     dt = t2 - t1;
-    v ^= rotlbit(*ebuf + TS_N_ADDVAL, dt);
+    v ^= rotlbit(*ebuf + TS_N_ADDVAL + dt - odt, dt);
 #ifdef _PROVIDE_STATS
     if(mint > dt) mint = dt;
     if(maxt < dt) maxt = dt;
     avgt += dt;
 #endif
+    odt = dt;
     t1 = t2;
   }
 

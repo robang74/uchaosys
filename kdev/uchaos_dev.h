@@ -4,6 +4,9 @@
  *
  */
 
+#ifndef UCHAOS_DEV_H
+#define UCHAOS_DEV_H
+
 #define MAX_INPUT_SIZE (1024 << 3)
 
 #define AB  (6)
@@ -43,15 +46,6 @@ typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 
 static archul_t *kbuf = NULL; // Stack allocation, one char device only
 
-/*
- * ATOMICITY ON A 1CPU vs SMP SYSTEM: the 'loop_failure' flag is read in many
- * places, but wrote in one only: 'volatile' was fine, 'atomic_t' is the way.
- * However also failure_jiff requires multi-thread protection, by 'uchaos_lock'.
- * Because 'uchaos_lock' protects writes, reading a 'volatile bool' is safe.
- * The 'volatile' isn't a SMP memory barrier as we expect but each CPU core
- * cache therefore for the most general implementation 'atomic_t' is the way.
- */
-
 static inline archul_t rotlbit(archul_t n, u8 c) {
     c &= ABX; return (n << c) | (n >> ((-c) & ABX));
 }
@@ -64,14 +58,22 @@ static inline archul_t knuthmx(archul_t iw) {
     return w;
 }
 
-static inline archul_t murmux3(archul_t ks, archul_t p)
-{
+static inline archul_t murmux3(archul_t ks, archul_t p) {
     register archul_t z = ks;
     z =  p ^ ((z >> (ABx-2)) * murmul1);
     z = (z ^ ( z <<  ABx  )) * murmul2;
     z =  z ^ ( z >> (ABx+2));
     return z;
 }
+
+/*
+ * ATOMICITY ON A 1CPU vs SMP SYSTEM: the 'loop_failure' flag is read in many
+ * places, but wrote in one only: 'volatile' was fine, 'atomic_t' is the way.
+ * However also failure_jiff requires multi-thread protection, by 'uchaos_lock'.
+ * Because 'uchaos_lock' protects writes, reading a 'volatile bool' is safe.
+ * The 'volatile' isn't a SMP memory barrier as we expect but each CPU core
+ * cache therefore for the most general implementation 'atomic_t' is the way.
+ */
 
 static atomic_t loop_failure = ATOMIC_INIT(0);
 
@@ -104,7 +106,7 @@ static archul_t djb2tum(archul_t seed, size_t num)
 #endif
 
     if( seed ) hsh ^= seed;
-    else { ons = ent = 0; }
+    else { ons = ent = 0; } // useless and gcc ignores, unless ons/ent defined static
 
     if( !ons ) {
         ons = ktime_get_ns();
@@ -212,7 +214,7 @@ reschedule:
         ent ^= MAVG(ons)  <<     rot3;      // current monotonic time
         ent  = knuthmx(ent ^ MAVG(dff));   // 2nd derivative of time
 
-        b0 = ent & 0x01, b1 = ent & 0x02;
+        b0 = ent & 0x01; b1 = ent & 0x02;
         hsh = ( hsh << (4 + (b0 ? b1 : 1)) ) + (b1 ? -hsh : hsh);
         hsh ^= rotlbit( hsh ^ MAVG(tns), getprmx16(ent >> 2) );
 
@@ -272,3 +274,4 @@ static inline void __init4_djb2tum(archul_t *ebuf) {
     ebuf[3] = djb2tum(0,    loop_mult);
 }
 
+#endif /* UCHAOS_DEV_H */

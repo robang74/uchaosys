@@ -95,6 +95,7 @@ static void *ts_mempages_zalloc(void) {
  *
  * In the most deterministic scenario, the SW emulated VM has a single-core CPU only.
  * Hence, the first write of this example is a sequential read of memory addresses.
+ * As expected with QZERO=1 the TS mem access seeding is repeatable among reboots.
  */
 
 static u64 kbufptr_mseed(u64 t) {

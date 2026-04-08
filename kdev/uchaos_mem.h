@@ -8,6 +8,7 @@
 #define UCHAOS_MEM_H
 
 #define TS_N_ORDER 3
+#define TS_N_MULVAL murmul1
 #define TS_N_ADDVAL murmul2
 #define TS_N_OFFSET (HASHSIZE << 1)
 #define TS_N_REPLICAS ((1 << TS_N_ORDER) - 1)
@@ -96,10 +97,10 @@ static void *ts_mempages_zalloc(void) {
  * Hence, the first write of this example is a sequential read of memory addresses.
  */
 
-static u64 kbufptr_mseed(void) {
-  int i;
-  u64 t = ktime_get_ns();
-  archul_t v = 0, *p = ts.kbufptr;
+static u64 kbufptr_mseed(u64 t) {
+  register int i;
+  register archul_t v = 0;
+  archul_t *p = ts.kbufptr;
 
   if( p ) return TS_N_ADDVAL;
 
@@ -111,7 +112,7 @@ static u64 kbufptr_mseed(void) {
             ) + TS_N_ADDVAL;
     v ^= ktime_get_ns() - t;
   }
-  return v;
+  return v * TS_N_MULVAL;
 }
 
 #endif /* UCHAOS_MEM_H */

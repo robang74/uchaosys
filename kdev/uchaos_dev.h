@@ -258,10 +258,19 @@ enforcedquit:
     hsh = murmux3(hsh, ohs);               // whitening the hash before deliver
     ohs = ent;                             // keep the hashing internal state
 
+/*
+ * RATIONALE: preserving ohs and some other static variable is necessary while
+ * in general the variables values is better to reset them for avoid leaks.
+ * A more robust solution is using the -ftrivial-auto-var-init=zero by gcc.
+ */
+    ons = ent = tns = b0 = b1 = 0;         // zeroing for safety before return
+    dlt = dff = excp = i = j = 0;          // i,j as volatile do memory barrier
+                                           // unfortunately compiler can skip.
+
 #ifdef _PROVIDE_STATS
     nhsh++;
 #endif
-    return hsh;
+    return hsh; // to clean this value after return, a pointer should be used
 }
 
 static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {

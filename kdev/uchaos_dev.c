@@ -146,13 +146,14 @@ static ssize_t dev_read(struct file *fp, char *ubuf, size_t len, loff_t *of)
     else
     if ( copy_to_user(ubuf, (u8 *)kbuf, sent) )
         sent = -EFAULT;
+    memset(kbuf, 0, sent); // the user remains the only owner of trasfered data.
 
     mutex_unlock(&uchaos_lock); // ------------------------------------------- //
 
     return sent;
 }
 
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len,
+static ssize_t dev_write(struct file *filep, const char *ubuf, size_t len,
     loff_t *offset)
 {
     int ret = 0;
@@ -180,12 +181,15 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len,
      * regular write() like a seeder or a watchdog would do frequently (1ms)
      * can bypass the protection that prevents flooding the system of printks.
      */
-    if(copy_from_user((u8 *)kbuf, buffer, len)) {
+    if(copy_from_user((u8 *)kbuf, ubuf, len)) {
         ret = -EFAULT;
     } else {
         ret = len;
+        // data is kept in kernel space only
+        n = clear_user((void __user *)ubuf, len);
         for(n = 0, nh = len >> ABL; n < nh; hash ^= (archul_t)kbuf[n++]);
-        (void)djb2tum(hash, init_runs);
+        // immediately after elaboration data is zeroed, and hash also
+        memset(kbuf, 0, len); (void)djb2tum(hash, init_runs); hash = 0;
     }
 
     mutex_unlock(&uchaos_lock);

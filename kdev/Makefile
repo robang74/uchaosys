@@ -4,10 +4,11 @@ MODULE_NAME := uchaos_dev
 obj-m += $(MODULE_NAME).o
 
 # Add GDB flags to force symbol generation during compilation
-EXTRA_CFLAGS += -g0 -O2 -Wall
+EXTRA_CFLAGS += -g0 -O2 -Wall -fstack-protector
+# not yet supported -ftrivial-auto-var-init=zero
 
 # Automatically create dependencies by c code files
-EXTRA_CFLAGS += -MD
+EXTRA_CFLAGS += -MD 
 -include $(sources:.c=.d)
 
 KERNVER ?= $(shell uname -r)

@@ -124,7 +124,7 @@ else
   qaccel="${QMACH:+-M $QMACH} $qaccel"
 fi
 
-cmdlnx="-append '$cmdlnx ${KARGS:-}'"
+cmdlnx="-append '$cmdlnx ${KARGS:-} init_on_free=1'"
 
 # disable this line if it creates trouble because ulimit -l isn't friendly
 grep -qi uchaos /etc/os-release || qaccel="$qaccel -overcommit mem-lock=on"

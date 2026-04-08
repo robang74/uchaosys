@@ -84,7 +84,7 @@ if which uchaos >&3; then
   entrq=$(cat /proc/sys/kernel/random/entropy_avail)
   printf "\nActive console: %s, entropy: %d -> %d / %d bits\n" \
       $acnsl $entrp $entrq $pools
-  dmesg | grep "random: crng init done"
+  dmesg | grep -E "random: crng init|uchaos: Init"
   grep -qe "UCTEST=" /proc/cmdline && sh /etc/uctests
 else
   printf "Active console: %s, entropy: %d bits\n" $acnsl $entrp

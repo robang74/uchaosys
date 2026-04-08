@@ -38,6 +38,8 @@ export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 ARTIFACTS   := bbox/busybox.elf musl-output.tar.gz gzcmd.gz.sh $(LNXPATH)
 ARTIFACTS   += musl/sources/ musl/output/ miniz/amalgamation/
 
+ENV_VARS    ?=
+
 .PHONY: all sources buildall rngtest buildemu
 
 all: sources buildall rngtest buildemu
@@ -171,6 +173,7 @@ usrl/uchaosbox:
 uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 	@echo
 	@file kdev/$(KMOD).gz | sed -e "s/\",/\"\\n/" -e "s/n,/n\\n/"
+	@zcat kdev/uchaos_dev.ko.gz | strings | grep -e "^version=" | tr '\n' ' '
 	@du -b kdev/$(KMOD).gz | sed -e "s/^/size: /" -e "s/\t/ bytes /"
 	@echo
 
@@ -190,7 +193,8 @@ rngtest: prnd/RNG_test
 .PHONY: install
 
 $(TMPD)/.done:
-	cp -arf cpio/ $(TMPD)/
+	@echo
+	cp -arf cpio/. $(TMPD)/
 	mkdir -p $(TMPD)/tmp/ $(TMPD)/var/log/ $(TMPD)/lib/modules/ $(TMPD)/usr/bin/
 	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)
 	cp -Lf bbox/busybox.elf $(TMPD)/usr/bin/busybox
@@ -202,7 +206,7 @@ $(TMPD)/.done:
 	ln -sf usr/sbin $(TMPD)/sbin
 	ln -sf usr/bin $(TMPD)/bin
 	ln -sf busybox $(TMPD)/bin/sh
-	touch $@
+#	touch $@
 
 install: $(TMPD)/.done
 	@echo
@@ -262,7 +266,7 @@ buildall: toolchain buildsys
 qemu/qemu-system-$(ARCH):
 	cd qemu && time -p sh make.sh sources
 
-buildemu: qemu/qemu-system-$(ARCH)
+buildemu: $(KIMG) kdev/$(KMOD).gz qemu/qemu-system-$(ARCH)
 
 # target: uemutest //////////////////////////////////////////////////////////////
 uemutest: buildemu
@@ -270,7 +274,7 @@ uemutest: buildemu
 	cp -arf cpio/* cpio.tmp/
 	sh cpio.sh -c
 	cp -arf virt/ cpio.tmp/
-	cd virt && KARGS="UCTEST=9" sh start.sh -uqm64
+	cd virt && $(ENV_VARS) KARGS="UCTEST=9" sh start.sh -uqm64 -M q35
 
 # target: uemurset //////////////////////////////////////////////////////////////
 uemurset:
@@ -280,5 +284,5 @@ uemurset:
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu: buildemu
 	@echo Prepare and start the KVM 32MB machine
-	cd virt && sh start.sh -qm32
+	cd virt && $(ENV_VARS) sh start.sh -qm32 -M q35
 

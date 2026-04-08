@@ -3,11 +3,15 @@
 for f in uchaos RNG_test; do
   test ! -x /bin/$f -a -x /bin/$f.gz.sh && ln -sf $f.gz.sh /bin/$f
 done
+dmesg -r | head -c 8192 > d.txt
 
-if ! grep -qe "UCTEST=0" /proc/cmdline; then ###################################
+if grep -qe "UCTEST=0" /proc/cmdline; then #####################################
+
+echo "uChaos random seed md5sum: "$(uchaos -SK512 < d.txt | md5sum)
+
+else ###########################################################################
 
 if which uchaos >&3 && grep -q "UCTEST=1" /proc/cmdline; then
-  dmesg -r | head -c 8192 > d.txt
   echo
   echo "DEVEL TEST START"
   echo

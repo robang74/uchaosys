@@ -28,11 +28,14 @@ static void kbufptr_zfree(void *kbufptr) {
   if(kbufptr) {
     memset(kbufptr, 0, MAX_INPUT_SIZE);
     kfree(kbufptr);
-  } else
+  }
+#ifdef __KERNEL__
+  else
   if(ts.kbufptr && ts.kbuf_pages_order) {
     memset(ts.kbufptr, 0, (size_t)PAGE_SIZE << ts.kbuf_pages_order);
     free_pages((unsigned long)ts.kbufptr, ts.kbuf_pages_order);
   }
+#endif
 }
 
 /*
@@ -58,15 +61,14 @@ static void kbufptr_zfree(void *kbufptr) {
 #endif
 
 static void *ts_mempages_zalloc(void) {
-  if( ts.kbufptr ) return NULL;
-
-  ts.kbuf_pages_order = get_order(MAX_INPUT_SIZE);
-  if( ts.kbuf_pages_order < get_order(_IM7(TS_N_OFFSET)) )
-    return NULL;
-
-  ts.kbufptr = (void *)__get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
-  if(!ts.kbufptr) return NULL;
-
+  if( !ts.kbufptr ) {
+#ifdef __KERNEL__
+    ts.kbuf_pages_order = get_order(MAX_INPUT_SIZE);
+    if( ts.kbuf_pages_order < get_order(_IM7(TS_N_OFFSET)) )
+      return NULL;
+    ts.kbufptr = (void *)__get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
+#endif
+  }
   return ts.kbufptr;
 }
 
@@ -112,7 +114,7 @@ static u64 kbufptr_mseed(u64 t) {
 
   // creating a mask for half of the buffer size and 64-bit aligned addresses
   msk = ((sze - 1) >> 3) << 3; 
-  if( (t1 = t) && ptr && msk )
+  if( (t1 = t) && ptr && msk && buf && sze )
     for (i = 0; i < TS_N_REPLICAS; ++i) {
       memcpy((void *)ptr, (void *)_printk + (u16)t1, sze);
       t2 = ktime_get_ns();
@@ -120,19 +122,19 @@ static u64 kbufptr_mseed(u64 t) {
       v ^= *ptr + TS_N_ADDVAL;
       v ^= rotlbit(v + dt - odt, dt);
       ptr = (volatile archul_t *)( (u64)buf + ((v + t1) & msk) );
-  #ifdef _PROVIDE_STATS
+#ifdef _PROVIDE_STATS
       if(mint > dt) mint = dt;
       if(maxt < dt) maxt = dt;
       avgt += dt;
-  #endif
+#endif
       odt = dt;
       t1 = t2;
     }
 
 #ifdef _PROVIDE_STATS
-  dt = IDIV(avgt * 10, TS_N_REPLICAS);
-  prtkinfo("Init: ts %llu B access time within %llu < %llu.%llu > %llu nS\n",
-    sze, mint, dt / 10, dt % 10, maxt);
+  dt = i ? IDIV(avgt * 10, i) : 0;
+  prtkinfo("Init: ts %lluB access x%d times: %llu < %llu.%llu > %llu nS\n",
+    sze, i, mint, dt / 10, dt % 10, maxt);
 #endif
   return v * TS_N_MULVAL;
 }

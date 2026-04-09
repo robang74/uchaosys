@@ -81,7 +81,13 @@ static inline archul_t murmux3(archul_t ks, archul_t p) {
     return z;
 }
 
-#ifdef  _USE_TSMEM_SEED
+#ifdef _SKIP_TSMEM_SEED
+#define USE_TSMEM_SEED 0
+#else
+#define USE_TSMEM_SEED 1
+#endif
+
+#if USE_TSMEM_SEED
 #include "uchaos_mem.h"
 #endif
 
@@ -294,25 +300,24 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
     return sent;
 }
 
-static inline void __init4_djb2tum(archul_t *ebuf, size_t len) {
-    archul_t seed = HASHSEED;
-    if(!ebuf || len < 4) {
-      djb2tum(seed, loop_mult * init_runs);
-      return;
-    }
-    seed =           ktime_get_ns();
-#ifdef _USE_TSMEM_SEED
-    seed = (!kbuf) ? knuthmx(seed) : kbufptr_mseed(seed);
+static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
+    archul_t seed   = ktime_get_ns();
+#if USE_TSMEM_SEED
+    seed = (!kbuf)  ? knuthmx(seed) : kbufptr_mseed(seed);
 #else
-    seed =           knuthmx(seed) ;
+    seed = HASHSEED ^ knuthmx(seed) ;
 #endif
-    ebuf[0] = djb2tum(seed, loop_mult * init_runs);
+    seed = djb2tum(seed,  loop_mult * init_runs);
+    if(!ebuf || nents < 4) return 0 ;
+
+    ebuf[0] = seed;
     // by default settings, the previous call with init_runs brings in variance
-    seed = murmux3(ktime_get_ns(), seed);
-    ebuf[1] = djb2tum(seed,   loop_mult);
+    seed    = murmux3(ktime_get_ns(), seed);
+    ebuf[1] = djb2tum(seed,      loop_mult);
     // by default settings, further calls with loop_mult have a smaller variance
-    ebuf[2] = djb2tum(0,      loop_mult);
-    ebuf[3] = djb2tum(0,      loop_mult);
+    ebuf[2] = djb2tum(0,         loop_mult);
+    ebuf[3] = djb2tum(0,         loop_mult);
+    return 4;
 }
 
 #endif /* UCHAOS_DEV_H */

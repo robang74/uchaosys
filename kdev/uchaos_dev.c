@@ -209,8 +209,7 @@ static struct file_operations fops = {
 /*
  * RATIONALE: reset the buffer to avoid the risk of leaking precious information
  */
-#define _p kbufptr
-#ifdef  _USE_TSMEM_SEED
+#if USE_TSMEM_SEED
 #define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kbufptr_zfree(p); }
 #else
 #define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kfree(p); }
@@ -233,6 +232,7 @@ static struct hwrng uchaos_rng = {
 #else
 #define retnfree(x) {                                zfree(_p); return (x); }
 #endif
+#define _p kbufptr
 
 static archul_t *kbufptr = NULL;
 typedef void (* credit_entropy_bits_t)(size_t nbits);
@@ -265,15 +265,17 @@ static int __init uchaos_init(void)
     // It is a mode index, every value is fine
     // badb_init = badb_init
 
-    /* -------------------------------------------------------------------- */ {
-    size_t len = sizeof(ebuf);
-
-#ifdef _USE_TSMEM_SEED
+#if USE_TSMEM_SEED
     kbuf = ts_mempages_zalloc();
+#else
+    kbuf = NULL;
 #endif
     prtkinfo("Init (bb:%d,ts:%d) auxiliary entropy source, quality: %d\n",
         badb_init, !!(kbuf), entr_qlty);
     __init4_djb2tum(ebuf, EBUF_ITEMS);
+
+    /* -------------------------------------------------------------------- */ {
+    size_t len = sizeof(ebuf);
 
 #ifdef hwrng_register                  // UNTESTED branch
     int err;
@@ -313,13 +315,13 @@ static int __init uchaos_init(void)
         prtkinfo("crng begins w/: 0x%016llx 0x%016llx\n", ebuf[0], ebuf[1]);
     }
     /* -------------------------------------------------------------------- */ }
-#ifdef _USE_TSMEM_SEED
-#else
-    // static *ptr allocation at init means: go or not-go, there is not try
-    kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
-    if (!kbufptr) retnfree( -ENOMEM );
-    kbuf = (archul_t *)ABL_ALIGN( kbufptr );
-#endif
+
+    if(!kbuf) {
+      // static *ptr allocation at init means: go or not-go, there is not try
+      kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
+      if (!kbufptr) retnfree( -ENOMEM );
+      kbuf = (archul_t *)ABL_ALIGN( kbufptr );
+    }
 
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) retnfree( major );

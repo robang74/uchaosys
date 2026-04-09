@@ -19,8 +19,10 @@
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define u8  uint8_t
+#define u16 uint16_t
 #define u32 uint32_t
 #define u64 uint64_t
 #define atomic_t bool
@@ -29,10 +31,22 @@
 #define cpu_relax sched_yield
 #define signal_pending(a) (a)
 #define current false
+#define kfree free
 
 static int min_delta = 3;
 static int init_runs = 7;
 static int loop_mult = 1;
+
+extern char __executable_start;
+#define _printk (&__executable_start)
+#define PAGE_SIZE sysconf(_SC_PAGESIZE)
+
+static inline unsigned get_order(uint32_t len) {
+  unsigned i = 0;
+  uint64_t n = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+  if (n > 1) for(n--; n > 0; n >>= 1) i++;
+  return i;
+}
 
 #include "getnanos.h"
 #include "uchaos_dev.h"
@@ -52,12 +66,13 @@ int main(int argc, char *argv[]) {
         perror("malloc");
         return -1;
     }
-    kbuf = align_t(archul_t, kbufptr);
+    ts.kbufptr = kbuf = align_t(archul_t, kbufptr);
+    ts.kbuf_pages_order = get_order(MAX_INPUT_SIZE);
 
     __init4_djb2tum(kbuf, EBUF_ITEMS);
     n = write(fileno(stdout), (u8 *)kbuf, len);
 
-    len = _unprotected_interuptible_kbuf_fill(len);
+    len = _unprotected_interuptible_kbuf_fill(MAX_INPUT_SIZE);
     n = write(fileno(stdout), (u8 *)kbuf, len);
 
     free(kbufptr);

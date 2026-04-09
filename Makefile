@@ -36,7 +36,7 @@ KIMG        := $(OUTPUT)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
 ARTIFACTS   := bbox/busybox.elf musl-output.tar.gz gzcmd.gz.sh $(LNXPATH)
-ARTIFACTS   += musl/sources/ musl/output/ miniz/amalgamation/
+ARTIFACTS   += musl/sources/ musl/output/ miniz/amalgamation/ kdev/uckaos
 
 ENV_VARS    ?=
 

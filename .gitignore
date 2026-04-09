@@ -5,6 +5,7 @@ kdev/Module.symvers
 kdev/uchaos_dev.ko.gz
 kdev/uchaos_dev.ko
 usrl/uchaosbox
+kdev/uckaos
 kdev/*.cmd
 kdev/*.mod*
 kdev/*.o

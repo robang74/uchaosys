@@ -104,15 +104,17 @@ static u64 kbufptr_mseed(u64 t) {
   register archul_t v = TS_N_ADDVAL;
   volatile archul_t *ptr = ts.kbufptr;
   volatile u64 *buf = (u64 *)ts.kbufptr;
-  u64 msk = (((u64)PAGE_SIZE << ts.kbuf_pages_order) >> 1) - 1;
+  u64 msk, sze = ((u64)PAGE_SIZE << ts.kbuf_pages_order) >> 1;
   u64 t1, t2, dt, odt = 0;
 #ifdef _PROVIDE_STATS
   u64 mint = -1, maxt = 0, avgt = 0;
 #endif
 
+  // creating a mask for half of the buffer size and 64-bit aligned addresses
+  msk = ((sze - 1) >> 3) << 3; 
   if( (t1 = t) && ptr && msk )
     for (i = 0; i < TS_N_REPLICAS; ++i) {
-      memcpy((void *)ptr, (void *)_printk + (u16)t1, MAX_INPUT_SIZE >> 1);
+      memcpy((void *)ptr, (void *)_printk + (u16)t1, sze);
       t2 = ktime_get_ns();
       dt = t2 - t1;
       v ^= *ptr + TS_N_ADDVAL;
@@ -130,7 +132,7 @@ static u64 kbufptr_mseed(u64 t) {
 #ifdef _PROVIDE_STATS
   dt = IDIV(avgt * 10, TS_N_REPLICAS);
   prtkinfo("Init: ts %llu B access time within %llu < %llu.%llu > %llu nS\n",
-    msk+1, mint, dt / 10, dt % 10, maxt);
+    sze, mint, dt / 10, dt % 10, maxt);
 #endif
   return v * TS_N_MULVAL;
 }

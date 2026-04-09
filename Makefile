@@ -19,6 +19,7 @@ VDIR        := virt
 KDIR        := musl/linux-$(KERNVER)
 KIMGPATH    := $(KDIR)/arch/$(ARCH)/boot/bzImage
 QBIN        := qemu-system-$(ARCH)
+MUSLTGZ     := musl-output.tar.gz
 LNXPATH     := kdev/linux-kernel
 CCPREFIX    := $(ARCH)-linux-musl-
 CPIOTMP     := cpio.tmp
@@ -36,11 +37,10 @@ OUTPUT      ?= musl/output
 KIMG        := $(OUTPUT)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
-ARTIFACTS   := bbox/busybox.elf musl-output.tar.gz gzcmd.gz.sh $(LNXPATH)
-ARTIFACTS   += musl/sources/ musl/output/ miniz/amalgamation/ kdev/uckaos
-ARTIFACTS   += musl/sources/.done musl/output/.done minz/amalgamation/.done
-ARTIFACTS   += $(CPIOTMP) virt/$(QBIN) virt/*.{bin,rom,done} qemu/output
-ARTIFACTS   += cpio.cpio
+ARTIFACTS   := bbox/busybox.elf gzcmd.gz.sh $(LNXPATH)
+ARTIFACTS   += miniz/amalgamation/ kdev/uckaos cpio.cpio
+ARTIFACTS   += musl/sources/.done $(OUTPUT)/.done minz/amalgamation/.done
+ARTIFACTS   += $(CPIOTMP)/ virt/$(QBIN) virt/*.{bin,rom,done} qemu/output
 
 #QROMS       := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
 #QROMS_PATH  := qemu/src/pc-bios
@@ -93,23 +93,23 @@ sources: .sync gzcmd.gz.sh muslcfg
 .PHONY: toolchain
 
 musl/sources/.done:
-	make -j$(NCPU) sources
+	$(MAKE) -j$(NCPU) sources
 	touch $@
 
-musl/output/.done:
-	make -j$(NCPU) -C musl install
-	rm -f musl-output.tar.gz
+$(OUTPUT)/.done:
+	$(MAKE) -j$(NCPU) -C musl install
+	rm -f $(MUSLTGZ)
 	touch $@
 
-musl-output.tar.gz:
+$(MUSLTGZ):
 	@echo
-	tar czf musl-output.tar.gz musl/output/
-	@du -ms musl-output.tar.gz musl/output/  | sed -e "s/^/size: /" -e "s/\t/ MB /"
+	tar czf $(MUSLTGZ) $(OUTPUT)/
+	@du -ms $(MUSLTGZ) $(OUTPUT)/  | sed -e "s/^/size: /" -e "s/\t/ MB /"
 	@echo
 
 # @echo "Sync and drop caches, ^C to skip root password"
 # sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
-toolchain: muslcfg musl/sources/.done musl/output/.done musl-output.tar.gz
+toolchain: muslcfg musl/sources/.done $(OUTPUT)/.done $(MUSLTGZ)
 
 # target: bzImage //////////////////////////////////////////////////////////////
 .PHONY: bzImage
@@ -146,8 +146,7 @@ bbox/.config:
 
 bbox/busybox.elf: bbox/.config
 	@rm -f $@
-	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig
-	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
+	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig busybox
 	@ln -f bbox/busybox $@
 	@echo
 	@file $@; du -k $@ | sed -e "s/^/size: /" -e "s/\t/ KB /"
@@ -234,7 +233,7 @@ install: buildemu $(CPIOTMP)/.done
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
 	@echo "Removing artifacts and cleaning virt/ folder"
-	echo $(ARTIFACTS) | xargs -P0 -I {} rm -rf "{}"
+	rm -rf $(sort $(wildcard $(ARTIFACTS)))
 	rm -f $(shell ls -1 virt/* | grep -v start.sh ||:)
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
@@ -267,6 +266,7 @@ distclean: veryclean
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean
 	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
+	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) musl/sources/
 
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys: bzImage busybox uchaos rngtest
@@ -295,8 +295,8 @@ uemutest: buildemu
 
 # target: uemurset //////////////////////////////////////////////////////////////
 uemurset:
-	rm -rf $(CPIOTMP)/virt
-	sh cpio.sh -c
+	rm -rf $(CPIOTMP)/virt $(CPIOTMP)/.done
+	$(MAKE) -j$(NCPU) install
 
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu: buildemu

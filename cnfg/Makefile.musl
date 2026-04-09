@@ -60,7 +60,8 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	echo build/ $(SRC_DIRS) | xargs -P0 -I {} rm -rf "{}"
+	rm -rf build/
+	rm -rf $(SRC_DIRS)/
 
 veryclean: clean
 	rm -rf output/

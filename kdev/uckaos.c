@@ -40,7 +40,7 @@ static int loop_mult = 1;
 static void *kbufptr = NULL;
 
 int main(int argc, char *argv[]) {
-    size_t len = sizeof(archul_t) * EBUF_ITEMS;
+    size_t n, len = sizeof(archul_t) * EBUF_ITEMS;
 
     if(len > MAX_INPUT_SIZE) {
         fprintf(stderr, "\n\n>>> BUG: len = %zu > max = %zu\n\n",
@@ -55,10 +55,10 @@ int main(int argc, char *argv[]) {
     kbuf = align_t(archul_t, kbufptr);
 
     __init4_djb2tum(kbuf, EBUF_ITEMS);
-    write(fileno(stdout), (u8 *)kbuf, len);
+    n = write(fileno(stdout), (u8 *)kbuf, len);
 
     len = _unprotected_interuptible_kbuf_fill(len);
-    write(fileno(stdout), (u8 *)kbuf, len);
+    n = write(fileno(stdout), (u8 *)kbuf, len);
 
     free(kbufptr);
     return 0;

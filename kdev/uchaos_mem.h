@@ -30,7 +30,7 @@ static void kbufptr_zfree(void *kbufptr) {
     kfree(kbufptr);
   } else
   if(ts.kbufptr && ts.kbuf_pages_order) {
-    memset(ts.kbufptr, 0, (size_t)1 << ts.kbuf_pages_order);
+    memset(ts.kbufptr, 0, (size_t)PAGE_SIZE << ts.kbuf_pages_order);
     free_pages((unsigned long)ts.kbufptr, ts.kbuf_pages_order);
   }
 }
@@ -46,12 +46,16 @@ static void kbufptr_zfree(void *kbufptr) {
  * On the other hand, increasing the address to read by an incremental unit,
  * disrupts the 64bit alignment which also affects the access time spread.
  */
+#if 0 // Current version is using _printk code as data for scrambling the pointer
 #ifdef _TRASH_CACHE_LINE
 #define AVOID_CACHE_LINE_TRASHING 0
 #else
-#define AVOID_CACHE_LINE_TRASHING 1
+#define AVOID_CACHE_LINE_TRASHING 127
 #endif
 #define _IM7(a) IM7((a)+AVOID_CACHE_LINE_TRASHING)
+#else
+#define _IM7(a) IM7(a)
+#endif
 
 static void *ts_mempages_zalloc(void) {
   if( ts.kbufptr ) return NULL;
@@ -62,10 +66,7 @@ static void *ts_mempages_zalloc(void) {
 
   ts.kbufptr = (void *)__get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
   if(!ts.kbufptr) return NULL;
-/*
-  for (i = 0; i < TS_N_REPLICAS; ++i)
-    ts_replicas[i] = (archul_t *)(base + (TS_N_OFFSET * i));
-*/
+
   return ts.kbufptr;
 }
 
@@ -98,39 +99,38 @@ static void *ts_mempages_zalloc(void) {
 
 #define IDIV(a,b) ({ u64 _a=(a), _b=(b); (_a + (_b >> 1)) / _b; })
 
-static u64 kbufptr_mseed(u64 t, archul_t *ebuf, size_t len) {
+static u64 kbufptr_mseed(u64 t) {
   register int i;
-  register archul_t v = 0;
-  archul_t *p = ts.kbufptr;
-  u64 t2, dt, odt = 0;
+  register archul_t v = TS_N_ADDVAL;
+  volatile archul_t *ptr = ts.kbufptr;
+  volatile u64 *buf = (u64 *)ts.kbufptr;
+  u64 msk = (((u64)PAGE_SIZE << ts.kbuf_pages_order) >> 1) - 1;
+  u64 t1, t2, dt, odt = 0;
 #ifdef _PROVIDE_STATS
-  u64 t1 = t, mint = -1, maxt = 0, avgt = 0;
+  u64 mint = -1, maxt = 0, avgt = 0;
 #endif
 
-  if( p && ebuf && len ) {} else return TS_N_ADDVAL;
-
-  for (i = 0; i < TS_N_REPLICAS; ++i) {
-    memcpy(ebuf, p, len << ABL);
-    p += TS_N_OFFSET;
-#if AVOID_CACHE_LINE_TRASHING
-    p++;
-#endif
-    t2 = ktime_get_ns();
-    dt = t2 - t1;
-    v ^= rotlbit(*ebuf + TS_N_ADDVAL + dt - odt, dt);
-#ifdef _PROVIDE_STATS
-    if(mint > dt) mint = dt;
-    if(maxt < dt) maxt = dt;
-    avgt += dt;
-#endif
-    odt = dt;
-    t1 = t2;
-  }
+  if( (t1 = t) && ptr && msk )
+    for (i = 0; i < TS_N_REPLICAS; ++i) {
+      memcpy((void *)ptr, (void *)_printk + (u16)t1, MAX_INPUT_SIZE >> 1);
+      t2 = ktime_get_ns();
+      dt = t2 - t1;
+      v ^= *ptr + TS_N_ADDVAL;
+      v ^= rotlbit(v + dt - odt, dt);
+      ptr = (volatile archul_t *)( (u64)buf + ((v + t1) & msk) );
+  #ifdef _PROVIDE_STATS
+      if(mint > dt) mint = dt;
+      if(maxt < dt) maxt = dt;
+      avgt += dt;
+  #endif
+      odt = dt;
+      t1 = t2;
+    }
 
 #ifdef _PROVIDE_STATS
   dt = IDIV(avgt * 10, TS_N_REPLICAS);
-  prtkinfo("Init: ts RAM access time within %llu < %llu.%llu > %llu nS\n",
-    mint, dt / 10, dt % 10, maxt);
+  prtkinfo("Init: ts %llu B access time within %llu < %llu.%llu > %llu nS\n",
+    msk+1, mint, dt / 10, dt % 10, maxt);
 #endif
   return v * TS_N_MULVAL;
 }

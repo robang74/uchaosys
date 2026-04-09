@@ -302,7 +302,7 @@ static inline void __init4_djb2tum(archul_t *ebuf, size_t len) {
     }
     seed =           ktime_get_ns();
 #ifdef _USE_TSMEM_SEED
-    seed = (!kbuf) ? knuthmx(seed) : kbufptr_mseed(seed, ebuf, len);
+    seed = (!kbuf) ? knuthmx(seed) : kbufptr_mseed(seed);
 #else
     seed =           knuthmx(seed) ;
 #endif

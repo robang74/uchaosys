@@ -46,6 +46,7 @@ typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 #define ABL_ALIGN(x) align_t(archul_t, x)
 
 static archul_t *kbuf = NULL; // Stack allocation, one char device only
+static archul_t *kbufptr = NULL;
 
 /*
  * ABOUT CODE INVARIABILITY: among different optimisation levels than the current:
@@ -83,11 +84,10 @@ static inline archul_t murmux3(archul_t ks, archul_t p) {
 
 #ifdef _SKIP_TSMEM_SEED
 #define USE_TSMEM_SEED 0
+#define ts_kbufptr    kbufptr
 #else
 #define USE_TSMEM_SEED 1
-#endif
-
-#if USE_TSMEM_SEED
+#define ts_kbufptr ts.kbufptr
 #include "uchaos_mem.h"
 #endif
 
@@ -301,13 +301,20 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
 }
 
 static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
-    archul_t seed   = ktime_get_ns();
+    archul_t seed = HASHSEED ^ ktime_get_ns();
 #if USE_TSMEM_SEED
-    seed = (!kbuf)  ? knuthmx(seed) : kbufptr_mseed(seed);
+    kbuf = ts_mempages_zalloc();
+    seed = (!kbuf)  ? knuthmx(seed) : kbufptr_mseed(ktime_get_ns());
 #else
-    seed = HASHSEED ^ knuthmx(seed) ;
+    kbuf = NULL;
+    seed =            knuthmx(seed) ;
 #endif
     seed = djb2tum(seed,  loop_mult * init_runs);
+    if(!kbuf) {
+      // static *ptr allocation at init means: go or not-go, there is not try
+      kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
+      kbuf = (archul_t *)ABL_ALIGN( kbufptr );
+    }
     if(!ebuf || nents < 4) return 0 ;
 
     ebuf[0] = seed;

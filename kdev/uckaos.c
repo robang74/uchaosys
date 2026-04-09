@@ -15,6 +15,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <sched.h>
 #include <stdio.h>
@@ -27,10 +28,13 @@
 #define u64 uint64_t
 #define atomic_t bool
 #define ATOMIC_INIT(a) (a)
+#define printk(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 #define ktime_get_ns get_nanos
 #define cpu_relax sched_yield
 #define signal_pending(a) (a)
+#define prtkinfo printk
 #define current false
+#define GFP_KERNEL 0
 #define kfree free
 
 static int min_delta = 3;
@@ -48,33 +52,34 @@ static inline unsigned get_order(uint32_t len) {
   return i;
 }
 
+static inline void *zmalloc(size_t len) {
+  void *p = malloc(len);
+  if(p) memset(p, 0, len);
+  return p;
+}
+#define kzalloc(a,b) zmalloc(a)
+
+#define __get_free_pages(a,b) mmap(NULL, (size_t)PAGE_SIZE << b, \
+            PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
+
 #include "getnanos.h"
 #include "uchaos_dev.h"
 
-static void *kbufptr = NULL;
-
 int main(int argc, char *argv[]) {
-    size_t n, len = sizeof(archul_t) * EBUF_ITEMS;
+  archul_t ebuf[EBUF_ITEMS];
+  size_t n, rept = 1, len = sizeof(ebuf);
 
-    if(len > MAX_INPUT_SIZE) {
-        fprintf(stderr, "\n\n>>> BUG: len = %zu > max = %zu\n\n",
-            (size_t)len, (size_t)MAX_INPUT_SIZE);
-    }
+  if(argc > 1) rept = atol(argv[1]);
 
-    kbufptr = malloc(MAX_INPUT_SIZE + HASHSIZE);
-    if(!kbufptr) {
-        perror("malloc");
-        return -1;
-    }
-    ts.kbufptr = kbuf = align_t(archul_t, kbufptr);
-    ts.kbuf_pages_order = get_order(MAX_INPUT_SIZE);
+  __init4_djb2tum(ebuf, EBUF_ITEMS);
+  if(!kbuf || !rept) {
+    n = write(fileno(stdout), (u8 *)ebuf, len);
+    return rept ? -1 : 0;
+  }
 
-    __init4_djb2tum(kbuf, EBUF_ITEMS);
-    n = write(fileno(stdout), (u8 *)kbuf, len);
-
+  while(rept--) {
     len = _unprotected_interuptible_kbuf_fill(MAX_INPUT_SIZE);
     n = write(fileno(stdout), (u8 *)kbuf, len);
-
-    free(kbufptr);
-    return 0;
+  }
+  return 0; // exit() does free() et al.
 }

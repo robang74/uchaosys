@@ -49,7 +49,7 @@
 #define MODULE_NAME "uchaos"
 #define DEVICE_NAME MODULE_NAME
 #define  CLASS_NAME MODULE_NAME"_cls"
-#define DRIVER_VERSION "0.6.3"
+#define DRIVER_VERSION "0.6.4"
 #define DRIVER_LICENSE "GPL v2"
 #define DRIVER_AUTHOR  "Roberto A. Foglietta <roberto.foglietta@gmail.com>"
 #define DRIVER_DESCRIPTION "Stochastic scheduler-jitter chaos RNG stream device"
@@ -234,11 +234,12 @@ static struct hwrng uchaos_rng = {
 #endif
 #define _p kbufptr
 
-static archul_t *kbufptr = NULL;
 typedef void (* credit_entropy_bits_t)(size_t nbits);
 
 static int __init uchaos_init(void)
 {
+  size_t len;
+
 #if defined(_CREDIT_INIT_ADDR) && defined(_STATIC_PRINTK)
   /*
    * hwrng_register() OOPS because a kernel bug despite the backport fix
@@ -265,17 +266,13 @@ static int __init uchaos_init(void)
     // It is a mode index, every value is fine
     // badb_init = badb_init
 
-#if USE_TSMEM_SEED
-    kbuf = ts_mempages_zalloc();
-#else
-    kbuf = NULL;
-#endif
-    prtkinfo("Init (bb:%d,ts:%d) auxiliary entropy source, quality: %d\n",
-        badb_init, !!(kbuf), entr_qlty);
-    __init4_djb2tum(ebuf, EBUF_ITEMS);
+    len = __init4_djb2tum(ebuf, EBUF_ITEMS);
+    prtkinfo("Init (bb:%d,ts:%d,eb:%lu) entropy source, quality: %d\n",
+        badb_init, !!(ts_kbufptr), len, entr_qlty);
+    if (!kbuf) retnfree( -ENOMEM );
 
-    /* -------------------------------------------------------------------- */ {
-    size_t len = sizeof(ebuf);
+    /* ---------------------------------------------------------------------- */
+    len = sizeof(ebuf);
 
 #ifdef hwrng_register                  // UNTESTED branch
     int err;
@@ -314,14 +311,7 @@ static int __init uchaos_init(void)
         get_random_bytes(ebuf, sizeof(ebuf));
         prtkinfo("crng begins w/: 0x%016llx 0x%016llx\n", ebuf[0], ebuf[1]);
     }
-    /* -------------------------------------------------------------------- */ }
-
-    if(!kbuf) {
-      // static *ptr allocation at init means: go or not-go, there is not try
-      kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
-      if (!kbufptr) retnfree( -ENOMEM );
-      kbuf = (archul_t *)ABL_ALIGN( kbufptr );
-    }
+    /* ---------------------------------------------------------------------- */
 
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) retnfree( major );

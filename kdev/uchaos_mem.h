@@ -62,12 +62,10 @@ static void kbufptr_zfree(void *kbufptr) {
 
 static void *ts_mempages_zalloc(void) {
   if( !ts.kbufptr ) {
-#ifdef __KERNEL__
     ts.kbuf_pages_order = get_order(MAX_INPUT_SIZE);
     if( ts.kbuf_pages_order < get_order(_IM7(TS_N_OFFSET)) )
       return NULL;
     ts.kbufptr = (void *)__get_free_pages(GPF_KBUF_FLAGS, ts.kbuf_pages_order);
-#endif
   }
   return ts.kbufptr;
 }
@@ -102,24 +100,24 @@ static void *ts_mempages_zalloc(void) {
 #define IDIV(a,b) ({ u64 _a=(a), _b=(b); (_a + (_b >> 1)) / _b; })
 
 static u64 kbufptr_mseed(u64 t) {
-  register int i;
+  register unsigned i;
   register archul_t v = TS_N_ADDVAL;
   volatile archul_t *ptr = ts.kbufptr;
   volatile u64 *buf = (u64 *)ts.kbufptr;
   u64 msk, sze = ((u64)PAGE_SIZE << ts.kbuf_pages_order) >> 1;
   u64 t1, t2, dt, odt = 0;
 #ifdef _PROVIDE_STATS
-  u64 mint = -1, maxt = 0, avgt = 0;
+  u64 mint = -1ULL, maxt = 0, avgt = 0;
 #endif
 
-  // creating a mask for half of the buffer size and 64-bit aligned addresses
-  msk = ((sze - 1) >> 3) << 3; 
-  if( (t1 = t) && ptr && msk && buf && sze )
+  if( (t1 = t) && ptr && buf && sze ) {
+    // creating a mask for half of the buffer size and 64-bit aligned addresses
+    msk = ((sze - 1) >> 3) << 3;
     for (i = 0; i < TS_N_REPLICAS; ++i) {
-      memcpy((void *)ptr, (void *)_printk + (u16)t1, sze);
-      t2 = ktime_get_ns();
-      dt = t2 - t1;
+      memcpy((void *)ptr, (void *)_printk + ((u16)t1 & msk), sze);
       v ^= *ptr + TS_N_ADDVAL;
+      t2 = ktime_get_ns();
+      dt = (t2 > t1) ? t2 - t1 : 0;
       v ^= rotlbit(v + dt - odt, dt);
       ptr = (volatile archul_t *)( (u64)buf + ((v + t1) & msk) );
 #ifdef _PROVIDE_STATS
@@ -130,11 +128,11 @@ static u64 kbufptr_mseed(u64 t) {
       odt = dt;
       t1 = t2;
     }
-
+  }
 #ifdef _PROVIDE_STATS
-  dt = i ? IDIV(avgt * 10, i) : 0;
-  prtkinfo("Init: ts %lluB access x%d times: %llu < %llu.%llu > %llu nS\n",
-    sze, i, mint, dt / 10, dt % 10, maxt);
+  avgt = i ? IDIV(avgt * 10, i) : 0;
+  prtkinfo("Init mts %uB access x%u times: %u < %u.%u > %u nS\n",
+    (u32)sze, i, (u32)mint, (u32)(avgt / 10), (u32)(avgt % 10), (u32)maxt);
 #endif
   return v * TS_N_MULVAL;
 }

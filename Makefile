@@ -18,9 +18,10 @@ KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 VDIR        := virt
 KDIR        := musl/linux-$(KERNVER)
 KIMGPATH    := $(KDIR)/arch/$(ARCH)/boot/bzImage
+QBIN        := qemu-system-$(ARCH)
 LNXPATH     := kdev/linux-kernel
 CCPREFIX    := $(ARCH)-linux-musl-
-TMPD        := cpio.tmp
+CPIOTMP     := cpio.tmp
 KMOD        := uchaos_dev.ko
 
 # Tools and Options
@@ -37,12 +38,18 @@ export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
 ARTIFACTS   := bbox/busybox.elf musl-output.tar.gz gzcmd.gz.sh $(LNXPATH)
 ARTIFACTS   += musl/sources/ musl/output/ miniz/amalgamation/ kdev/uckaos
+ARTIFACTS   += musl/sources/.done musl/output/.done minz/amalgamation/.done
+ARTIFACTS   += $(CPIOTMP) virt/$(QBIN) virt/*.{bin,rom,done} qemu/output
+ARTIFACTS   += cpio.cpio
+
+#QROMS       := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
+#QROMS_PATH  := qemu/src/pc-bios
 
 ENV_VARS    ?=
 
-.PHONY: all sources buildall rngtest buildemu
+.PHONY: all sources buildall install
 
-all: sources buildall rngtest buildemu
+all: sources buildall install
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update muslcfg muslcfg-force
@@ -68,13 +75,17 @@ gzcmd.gz.sh: gzcmd.sh
 
 update:
 	@echo
-	@echo Wait updating project dependencies ...
-	git submodule update --init --recursive --depth 32 --single-branch --jobs $(NCPU)
+	@echo "Wait updating project dependencies ..."
+	git submodule update --init --recursive --depth 32 \
+	  --single-branch --jobs $(NCPU) && touch .sync
 	@echo
 
-sources: update gzcmd.gz.sh muslcfg
+.sync:
+	$(MAKE) -j$(NCPU) update
+
+sources: .sync gzcmd.gz.sh muslcfg
 	@echo
-	@echo Wait downloading sources ...
+	@echo "Wait downloading sources ..."
 	$(MAKE) -j$(NCPU) -C musl extract_all
 	@echo
 
@@ -178,6 +189,7 @@ uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
+.PHONY: rngtest
 
 prnd/RNG_test:
 	$(MAKE) -j$(NCPU) $(OPTS) -C prnd/ RNG_test \
@@ -192,27 +204,27 @@ rngtest: prnd/RNG_test
 # target: install //////////////////////////////////////////////////////////////
 .PHONY: install
 
-$(TMPD)/.done:
+$(CPIOTMP)/.done:
 	@echo
-	cp -arf cpio/. $(TMPD)/
-	mkdir -p $(TMPD)/tmp/ $(TMPD)/var/log/ $(TMPD)/lib/modules/ $(TMPD)/usr/bin/
-	cp -Lf kdev/$(KMOD).gz $(TMPD)/lib/modules/$(KMOD)
-	cp -Lf bbox/busybox.elf $(TMPD)/usr/bin/busybox
-	cp -Lf usrl/uchaosbox $(TMPD)/usr/bin/
-	chmod +x $(TMPD)/init
+	cp -arf cpio/. $(CPIOTMP)/
+	cd $(CPIOTMP) && mkdir -p tmp/ var/log/ lib/modules/ usr/bin/
+	cp -Lf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
+	cp -Lf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
+	cp -Lf usrl/uchaosbox $(CPIOTMP)/usr/bin/
+	chmod +x $(CPIOTMP)/init
 	# Symbolic links
-	ln -sf bin $(TMPD)/usr/sbin
-	ln -sf bin/busybox $(TMPD)/linuxrc
-	ln -sf usr/sbin $(TMPD)/sbin
-	ln -sf usr/bin $(TMPD)/bin
-	ln -sf busybox $(TMPD)/bin/sh
+	ln -sf bin $(CPIOTMP)/usr/sbin
+	ln -sf bin/busybox $(CPIOTMP)/linuxrc
+	ln -sf usr/sbin $(CPIOTMP)/sbin
+	ln -sf usr/bin $(CPIOTMP)/bin
+	ln -sf busybox $(CPIOTMP)/bin/sh
 #	touch $@
 
-install: $(TMPD)/.done
+install: buildemu $(CPIOTMP)/.done
 	@echo
 	cp -Lf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
-	@cd $(VDIR) && du -k qemu-system-$(ARCH) | sed -e "s/\t/ /"
+	@cd $(VDIR) && du -k $(QBIN) | sed -e "s/\t/ /"
 	@echo
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -221,15 +233,9 @@ install: $(TMPD)/.done
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
-	@echo "Cleaning ..."
-	echo gzcmd.sh cpio.cpio $(TMPD)/ minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
-	for dir in musl bbox kdev usrl prnd $(LNXPATH); do  \
-		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; \
-	done
-
-# target: veryclean ////////////////////////////////////////////////////////////
-# This removes files that the script normally protects with 'test' or 'if' logic
-veryclean: clean
+	@echo "Removing artifacts and cleaning virt/ folder"
+	echo $(ARTIFACTS) | xargs -P0 -I {} rm -rf "{}"
+	rm -f $(shell ls -1 virt/* | grep -v start.sh ||:)
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
@@ -242,6 +248,14 @@ veryclean: clean
 	rm -f bbox/.config
 # Remove all the hashes added, as well
 	rm -f musl/$(shell cd cnfg && command ls -1 hashes/* ||:)
+
+# target: veryclean ////////////////////////////////////////////////////////////
+# This removes files that the script normally protects with 'test' or 'if' logic
+veryclean: clean
+	@echo "Cleaning ..."
+	echo gzcmd.sh minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
+	for dir in musl bbox kdev usrl prnd $(LNXPATH); do  \
+		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh clean
 # Call prnd/make veryclean
@@ -250,35 +264,38 @@ veryclean: clean
 # target: distclean ////////////////////////////////////////////////////////////
 distclean: veryclean
 	@echo "Removing everything apart from the updated repo"
-	echo $(ARTIFACTS) | xargs -P0 -I {} rm -rf "{}"
-	rm -f $(shell ls -1 virt/* | grep -v start.sh ||:)
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean
 	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
 
 # target: buildsys /////////////////////////////////////////////////////////////
-buildsys: bzImage busybox uchaos install
+buildsys: bzImage busybox uchaos rngtest
 
 # target: buildall /////////////////////////////////////////////////////////////
-buildall: toolchain buildsys
+buildall: toolchain buildsys buildemu
 
 # target: buildemu /////////////////////////////////////////////////////////////
-qemu/qemu-system-$(ARCH):
+.PHONY: buildemu
+
+virt/.done:
+	cp -Lf qemu/output/* virt/
+
+qemu/output:
 	cd qemu && time -p sh make.sh sources
 
-buildemu: $(KIMG) kdev/$(KMOD).gz qemu/qemu-system-$(ARCH)
+buildemu: $(KIMG) kdev/$(KMOD).gz qemu/output virt/.done
 
 # target: uemutest //////////////////////////////////////////////////////////////
 uemutest: buildemu
-	rm -rf cpio.tmp/virt/
-	cp -arf cpio/* cpio.tmp/
+	rm -rf $(CPIOTMP)/virt/
+	cp -arf cpio/* $(CPIOTMP)/
 	sh cpio.sh -c
-	cp -arf virt/ cpio.tmp/
+	cp -arf virt/ $(CPIOTMP)/
 	cd virt && $(ENV_VARS) KARGS="UCTEST=9" sh start.sh -uqm64 -M q35
 
 # target: uemurset //////////////////////////////////////////////////////////////
 uemurset:
-	rm -rf cpio.tmp/virt
+	rm -rf $(CPIOTMP)/virt
 	sh cpio.sh -c
 
 # target: runqemu //////////////////////////////////////////////////////////////

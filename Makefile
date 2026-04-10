@@ -45,6 +45,10 @@ ARTIFACTS   += $(CPIOTMP)/ virt/$(QBIN) virt/*.{bin,rom,done} qemu/output
 #QROMS       := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
 #QROMS_PATH  := qemu/src/pc-bios
 
+define print_size
+	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
+endef
+
 ENV_VARS    ?=
 
 .PHONY: all sources buildall install
@@ -68,10 +72,10 @@ musl/config.mak:
 muslcfg: musl/config.mak
 
 gzcmd.sh:
-	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/gzcmd.sh -o gzcmd.sh
+	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
 
 gzcmd.gz.sh: gzcmd.sh
-	sh gzcmd.sh gzcmd.sh gzcmd
+	sh $@ $@ gzcmd
 
 update:
 	@echo
@@ -101,10 +105,11 @@ $(OUTPUT)/.done:
 	rm -f $(MUSLTGZ)
 	touch $@
 
-$(MUSLTGZ):
+$(MUSLTGZ): $(OUTPUT)/.done
 	@echo
-	tar czf $(MUSLTGZ) $(OUTPUT)/
-	@du -ms $(MUSLTGZ) $(OUTPUT)/  | sed -e "s/^/size: /" -e "s/\t/ MB /"
+	$(call print_size, $(OUTPUT)/,m,MB)
+	tar czf $@ $(OUTPUT)/
+	$(call print_size,$@,m,MB)
 	@echo
 
 # @echo "Sync and drop caches, ^C to skip root password"
@@ -115,25 +120,26 @@ toolchain: muslcfg musl/sources/.done $(OUTPUT)/.done $(MUSLTGZ)
 .PHONY: bzImage
 
 $(KDIR):
-	@test -r $(KIMG) || { echo "Error do 'make sources' before, exit 1."; exit 1; }
-	@test -r $(KIMG) && { du -k $(KIMG) | sed -e "s/^/size: /" -e "s/\t/ KB /"; exit 1; }
+	@test -r $@ || echo "Error do 'make sources' before, exit 1."
+	@test -r $@ && $(call print_size,$@,k,KB)
+	exit 1
 
 $(LNXPATH): $(KDIR)
-	ln -sf ../$(KDIR) $(LNXPATH)
+	ln -sf ../$< $@
 
 $(LNXPATH)/.config: | $(LNXPATH)
-	cp -Lf cnfg/linux-$(KVER_SHORT).config $(LNXPATH)/.config
+	cp -Lf cnfg/linux-$(KVER_SHORT).config $@
 
 $(KIMG): | $(LNXPATH)/.config
-	rm -f $(KIMG) $(LNXPATH)/System.map
+	rm -f $@ $(LNXPATH)/System.map
 	yes "" | $(MAKE)  -C $(LNXPATH) syncconfig
 	$(MAKE) -j$(NCPU) -C $(LNXPATH) modules_prepare
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) bzImage
 	cp -Lf $(KDIR)/System.map $(OUTPUT)
-	cp -Lf $(KIMGPATH) $(KIMG)
+	cp -Lf $(KIMGPATH) $@
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
-	@du -k $(KIMG) | sed -e "s/^/size: /" -e "s/\t/ KB /"
+	$(call print_size,$@,k,KB)
 	@echo
 
 bzImage: $(KIMG)
@@ -142,14 +148,15 @@ bzImage: $(KIMG)
 .PHONY: busybox
 
 bbox/.config:
-	cp $(BBOX_CFG) bbox/.config
+	cp $(BBOX_CFG) $@
 
 bbox/busybox.elf: bbox/.config
 	@rm -f $@
-	$(MAKE) -j$(NCPU) $(OPTS) -C bbox oldconfig busybox
+	yes "" |  $(MAKE) $(OPTS) -C bbox oldconfig
+	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
 	@ln -f bbox/busybox $@
 	@echo
-	@file $@; du -k $@ | sed -e "s/^/size: /" -e "s/\t/ KB /"
+	@file $@; $(call print_size,$@,k,KB)
 	@echo
 
 busybox: bbox/busybox.elf
@@ -184,7 +191,7 @@ uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 	@echo
 	@file kdev/$(KMOD).gz | sed -e "s/\",/\"\\n/" -e "s/n,/n\\n/"
 	@zcat kdev/uchaos_dev.ko.gz | strings | grep -e "^version=" | tr '\n' ' '
-	@du -b kdev/$(KMOD).gz | sed -e "s/^/size: /" -e "s/\t/ bytes /"
+	$(call print_size,kdev/$(KMOD).gz,b,bytes)
 	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
@@ -196,8 +203,8 @@ prnd/RNG_test:
 
 rngtest: prnd/RNG_test
 	@echo
-	@file prnd/RNG_test #| sed -e "s/V),/V)\\n/" -e "s/n,/n\\n/"
-	@du -k prnd/RNG_test | sed -e "s/^/size: /" -e "s/\t/ KB /"
+	@file $< #| sed -e "s/V),/V)\\n/" -e "s/n,/n\\n/"
+	$(call print_size,$<,k,KB)
 	@echo
 
 # target: install //////////////////////////////////////////////////////////////
@@ -223,12 +230,12 @@ install: buildemu $(CPIOTMP)/.done
 	@echo
 	cp -Lf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
-	@cd $(VDIR) && du -k $(QBIN) | sed -e "s/\t/ /"
+	@cd $(VDIR) && du -k $(QBIN) | tr '\t' ' '
 	@echo
 
 # //////////////////////////////////////////////////////////////////////////////
 
-.PHONY: clean veryclean distclean buildsys uemutest uemurset runqemu
+.PHONY: clean veryclean distclean buildsys qemutest qemurset runqemu
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
@@ -285,16 +292,16 @@ qemu/output:
 
 buildemu: $(KIMG) kdev/$(KMOD).gz qemu/output virt/.done
 
-# target: uemutest //////////////////////////////////////////////////////////////
-uemutest: buildemu
+# target: qemutest //////////////////////////////////////////////////////////////
+qemutest: buildemu
 	rm -rf $(CPIOTMP)/virt/
 	cp -arf cpio/* $(CPIOTMP)/
 	sh cpio.sh -c
 	cp -arf virt/ $(CPIOTMP)/
 	cd virt && $(ENV_VARS) KARGS="UCTEST=9" sh start.sh -uqm64 -M q35
 
-# target: uemurset //////////////////////////////////////////////////////////////
-uemurset:
+# target: qemurset //////////////////////////////////////////////////////////////
+qemurset:
 	rm -rf $(CPIOTMP)/virt $(CPIOTMP)/.done
 	$(MAKE) -j$(NCPU) install
 

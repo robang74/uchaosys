@@ -11,12 +11,10 @@ export bbx=/bin/busybox bttm=$($bbx date +%s%N)
 
 export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
 
-$bbx mount -o remount,rw /
 $bbx mkdir -p /dev /proc /sys /tmp /etc/init.d /var/log /root /home
 $bbx --install -s
 touch /etc/inittab
 touch /etc/fstab
-sync
 
 # system uprising
 

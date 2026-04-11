@@ -120,46 +120,32 @@ musl-git-%:
 	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
 	cd $@.tmp && git fsck
-	mv $@.tmp $@
+	mv $@.tmp $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.gz
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar zxf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
+	tar -C $@.tmp --strip-components=1 -zxf $<
+	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.bz2
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar jxf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
+	tar -C $@.tmp --strip-components=1 -jxf $<
+	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.xz
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar Jxf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
+	tar -C $@.tmp --strip-components=1 -Jxf $<
+	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
 
 %: %.orig
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
 	( cd $@.tmp && $(COWPATCH) -I ../$< )
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
-	rm -rf $@
-	mv $@.tmp $@
+	rm -rf $@ ; mv $@.tmp $@ ; touch $@
 
 
 # Add deps for all patched source dirs on their patchsets

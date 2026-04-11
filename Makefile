@@ -38,7 +38,7 @@ KIMG        := $(OUTPUT)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
 ARTIFACTS   := bbox/busybox.elf gzcmd.gz.sh $(LNXPATH)
-ARTIFACTS   += miniz/amalgamation/ kdev/uckaos cpio.cpio
+ARTIFACTS   += miniz/amalgamation/ kdev/uckaos cpio.cpio prnd/RNG_test
 ARTIFACTS   += musl/sources/.done $(OUTPUT)/.done minz/amalgamation/.done
 ARTIFACTS   += $(CPIOTMP)/ virt/$(QBIN) virt/*.{bin,rom,done} qemu/output
 
@@ -75,7 +75,7 @@ gzcmd.sh:
 	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
 
 gzcmd.gz.sh: gzcmd.sh
-	sh $@ $@ gzcmd
+	sh $< $< gzcmd
 
 update:
 	@echo
@@ -107,9 +107,9 @@ $(OUTPUT)/.done:
 
 $(MUSLTGZ): $(OUTPUT)/.done
 	@echo
-	$(call print_size, $(OUTPUT)/,m,MB)
+	@$(call print_size, $(OUTPUT)/,m,MB)
 	tar czf $@ $(OUTPUT)/
-	$(call print_size,$@,m,MB)
+	@$(call print_size,$@,m,MB)
 	@echo
 
 # @echo "Sync and drop caches, ^C to skip root password"
@@ -139,7 +139,7 @@ $(KIMG): | $(LNXPATH)/.config
 	cp -Lf $(KIMGPATH) $@
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
-	$(call print_size,$@,k,KB)
+	@$(call print_size,$@,k,KB)
 	@echo
 
 bzImage: $(KIMG)
@@ -149,14 +149,14 @@ bzImage: $(KIMG)
 
 bbox/.config:
 	cp $(BBOX_CFG) $@
+	yes "" |  $(MAKE) $(OPTS) -C bbox oldconfig
 
 bbox/busybox.elf: bbox/.config
 	@rm -f $@
-	yes "" |  $(MAKE) $(OPTS) -C bbox oldconfig
 	$(MAKE) -j$(NCPU) $(OPTS) -C bbox busybox
 	@ln -f bbox/busybox $@
 	@echo
-	@file $@; $(call print_size,$@,k,KB)
+	@file $@ | cut -d, -f1,2,4; $(call print_size,$@,k,KB)
 	@echo
 
 busybox: bbox/busybox.elf
@@ -165,7 +165,7 @@ busybox: bbox/busybox.elf
 .PHONY: miniz
 
 minz/amalgamation/.done:
-	cd minz && sh amalgamate.sh
+	cd minz && CFLAGS="-Wno-unused-function" sh amalgamate.sh
 	touch $@
 
 miniz: minz/amalgamation/.done
@@ -189,9 +189,10 @@ usrl/uchaosbox:
 
 uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 	@echo
-	@file kdev/$(KMOD).gz | sed -e "s/\",/\"\\n/" -e "s/n,/n\\n/"
-	@zcat kdev/uchaos_dev.ko.gz | strings | grep -e "^version=" | tr '\n' ' '
-	$(call print_size,kdev/$(KMOD).gz,b,bytes)
+	@file kdev/$(KMOD).gz | cut -d, -f1,6-
+	@file kdev/$(KMOD).gz | cut -d, -f2-4
+	@strings kdev/uchaos_dev.ko.gz | grep -e "^version=" | tr '\n' ' '
+	@$(call print_size,kdev/$(KMOD).gz,b,bytes)
 	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
@@ -203,8 +204,7 @@ prnd/RNG_test:
 
 rngtest: prnd/RNG_test
 	@echo
-	@file $< #| sed -e "s/V),/V)\\n/" -e "s/n,/n\\n/"
-	$(call print_size,$<,k,KB)
+	@file $< | cut -d, -f1,2,4; $(call print_size,$<,k,KB)
 	@echo
 
 # target: install //////////////////////////////////////////////////////////////

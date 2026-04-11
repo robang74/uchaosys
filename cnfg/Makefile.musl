@@ -21,8 +21,8 @@ LINUX_VER = headers-5.15.202
 USR_SITE = https://github.com/robang74
 GNU_SITE = https://ftpmirror.gnu.org/gnu
 
-GCC_SITE = $(GNU_SITE)/gcc
 BINUTILS_SITE = $(GNU_SITE)/binutils
+GCC_SITE = $(GNU_SITE)/gcc
 GMP_SITE = $(GNU_SITE)/gmp
 MPC_SITE = $(GNU_SITE)/mpc
 MPFR_SITE = $(GNU_SITE)/mpfr
@@ -42,8 +42,8 @@ SHA1_CMD = sha1sum -c
 COWPATCH = $(CURDIR)/cowpatch.sh
 
 HOST = $(if $(NATIVE),$(TARGET))
-BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
 OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
+BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
 
 REL_TOP = ../../..
 
@@ -62,13 +62,13 @@ all:
 
 clean:
 	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
-	rm -rf mpfr-* isl-* pcre2-* zlib-* linux-*
+	rm -rf mpfr-* isl-* zlib-* pcre2-* linux-*
 
 veryclean: clean
 	rm -rf build-* build/
 
 distclean: veryclean
-	rm -rf sources/ output/
+	rm -rf $(SOURCES)/ $(OUTPUT)/
 
 
 # Rules for downloading and verifying sources. Treat an external SOURCES path as

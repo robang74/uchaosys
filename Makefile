@@ -60,8 +60,8 @@ all: sources buildall install
 
 muslcfg-force:
 	cp -arf cnfg/hashes musl/
-	for a in musl/Makefile musl/litecross/Makefile; \
-	  do test -r $$a.bak || cp -f $$a $$a.bak; done
+	for a in musl/Makefile musl/litecross/Makefile; do \
+		test -r $$a.bak || cp -f $$a $$a.bak; done ||:
 	cp -f cnfg/Makefile.musl musl/Makefile
 	cp -f cnfg/Makefile.lite musl/litecross/Makefile
 	cp -f $(MUSLCFGMAK) musl/config.mak
@@ -245,7 +245,8 @@ clean:
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
-	for a in musl/Makefile musl/litecross/Makefile; do cp -f $$a.bak $$a; done
+	for a in musl/Makefile musl/litecross/Makefile; do \
+		test -r $$a.bak && cp -f $$a.bak $$a; done ||:
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
 # Protected by: test -r $lnxpath/.config
@@ -260,12 +261,12 @@ clean:
 veryclean: clean
 	@echo "Cleaning ..."
 	echo gzcmd.sh minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
-	for dir in musl bbox kdev usrl prnd $(LNXPATH); do  \
+	for dir in kdev usrl prnd $(LNXPATH); do \
 		$(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh clean
 # Call prnd/make veryclean
-	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir $@ ||:; done
+	for dir in musl bbox; do $(MAKE) -j$(NCPU) ARCH=$(ARCH) -C $$dir clean ||:; done
 
 # target: distclean ////////////////////////////////////////////////////////////
 distclean: veryclean

@@ -20,6 +20,7 @@ LINUX_VER = headers-5.15.202
 
 USR_SITE = https://github.com/robang74
 GNU_SITE = https://ftpmirror.gnu.org/gnu
+
 GCC_SITE = $(GNU_SITE)/gcc
 BINUTILS_SITE = $(GNU_SITE)/binutils
 GMP_SITE = $(GNU_SITE)/gmp
@@ -60,10 +61,14 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	rm -rf gcc-* binutils-* musl-* gmp-* mpc-* mpfr-* isl-* pcre2-* zlib-* build build-* linux-*
+	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
+	rm -rf mpfr-* isl-* pcre2-* zlib-* linux-*
 
-distclean: clean
-	rm -rf sources
+veryclean: clean
+	rm -rf build-* build/
+
+distclean: veryclean
+	rm -rf sources/ output/
 
 
 # Rules for downloading and verifying sources. Treat an external SOURCES path as
@@ -121,7 +126,7 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp
 	mkdir $@.tmp
-	( cd $@.tmp && tar zxvf - ) < $<
+	( cd $@.tmp && tar zxf - ) < $<
 	rm -rf $@
 	touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
@@ -131,7 +136,7 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp
 	mkdir $@.tmp
-	( cd $@.tmp && tar jxvf - ) < $<
+	( cd $@.tmp && tar jxf - ) < $<
 	rm -rf $@
 	touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
@@ -141,7 +146,7 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp
 	mkdir $@.tmp
-	( cd $@.tmp && tar Jxvf - ) < $<
+	( cd $@.tmp && tar Jxf - ) < $<
 	rm -rf $@
 	touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@

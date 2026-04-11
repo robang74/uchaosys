@@ -28,6 +28,7 @@ GCC_SITE = $(GNU_SITE)/gcc
 GMP_SITE = $(GNU_SITE)/gmp
 MPC_SITE = $(GNU_SITE)/mpc
 MPFR_SITE = $(GNU_SITE)/mpfr
+# ISL_SITE = https://libisl.sourceforge.io
 ISL_SITE = $(USR_SITE)/isl/archive/refs/tags
 ZLIB_SITE = $(USR_SITE)/zlib/archive/refs/tags
 PCRE2_SITE = $(USR_SITE)/pcre2/archive/refs/tags
@@ -182,8 +183,8 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	$(if $(MPC_VER),"MPC_SRCDIR = $(REL_TOP)/mpc-$(MPC_VER)") \
 	$(if $(MPFR_VER),"MPFR_SRCDIR = $(REL_TOP)/mpfr-$(MPFR_VER)") \
 	$(if $(ISL_VER),"ISL_SRCDIR = $(REL_TOP)/isl-$(ISL_VER)") \
-	$(if $(PCRE2_VER),"PCRE2_SRCDIR = $(REL_TOP)/pcre2-$(PCRE2_VER)") \
 	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(REL_TOP)/zlib-$(ZLIB_VER)") \
+	$(if $(PCRE2_VER),"PCRE2_SRCDIR = $(REL_TOP)/pcre2-$(PCRE2_VER)") \
 	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
 	"-include $(REL_TOP)/config.mak"
 

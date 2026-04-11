@@ -129,19 +129,19 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir -p $@.tmp/$*
 	tar -C $@.tmp/$* --strip-components=1 -zxf $<
-	rm -rf $@ ; mv $@.tmp/$* $@ ; touch $@
+	rm -rf $@ ; mv $@.tmp/$* $@ ; touch $@; rm -rf $@.tmp/
 
 %.orig: $(SOURCES)/%.tar.bz2
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir -p $@.tmp/$*
-	tar -C $@.tmp --strip-components=1 -jxf $<
-	rm -rf $@ ; mv $@.tmp/$* $@ ; touch $@
+	tar -C $@.tmp/$* --strip-components=1 -jxf $<
+	rm -rf $@ ; mv $@.tmp/$* $@ ; touch $@; rm -rf $@.tmp/
 
 %.orig: $(SOURCES)/%.tar.xz
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir -p $@.tmp/$*
-	tar -C $@.tmp --strip-components=1 -Jxf $<
-	rm -rf $@ ; mv $@.tmp/$* $@ ; touch $@
+	tar -C $@.tmp/$* --strip-components=1 -Jxf $<
+	rm -rf $@ ; mv $@.tmp/$* $@ ; touch $@; rm -rf $@.tmp/
 
 %: %.orig
 	case "$@" in */*) exit 1 ;; esac

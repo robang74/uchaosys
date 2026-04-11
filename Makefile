@@ -39,8 +39,8 @@ export PATH := $(CURDIR)/$(path)/bin:$(CURDIR)/$(path)/$(ARCH)/bin:$(PATH)
 
 all: sources toolchain bzImage busybox uchaos rngtest buildemu install
 
-# target: muslcfg-force ////////////////////////////////////////////////////////
-muslcfg-force:
+# target: defconfig ////////////////////////////////////////////////////////////
+defconfig:
 	cp -arf cnfg/hashes musl/
 	cp -f $(MUSLCFGMAK) musl/config.mak
 	cp -f musl/Makefile musl/Makefile.bak
@@ -49,7 +49,7 @@ muslcfg-force:
 
 # target: muslcfg //////////////////////////////////////////////////////////////
 muslcfg:
-	if [ ! -r musl/config.mak ]; then make -j$(NCPU) muslcfg-force; fi
+	if [ ! -r musl/config.mak ]; then make -j$(NCPU) defconfig; fi
 
 # target: sources //////////////////////////////////////////////////////////////
 sources: update muslcfg

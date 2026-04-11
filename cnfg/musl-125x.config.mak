@@ -45,7 +45,7 @@ TARGET = $(ARCH)-linux-musl
 # ISL_VER = 0.27
 # PCRE2_VER = 10.47
 # ZLIB_VER = 1.3.2
-# LINUX_VER = 5.15.202
+LINUX_VER = 5.15.202
 # LINUX_VER = headers-5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.
@@ -88,7 +88,8 @@ COMMON_CONFIG +=  LDFLAGS="-s --static"
 COMMON_CONFIG += --disable-nls
 
 GCC_CONFIG += --disable-libquadmath --disable-decimal-float
-GCC_CONFIG += --disable-libitm
+# Disabling isl in-tree gcc (4.4+) means also disabling graphite optimiser
+GCC_CONFIG += --disable-libitm --without-isl
 GCC_CONFIG += --disable-fixed-point
 # GCC_CONFIG += --disable-lto
 

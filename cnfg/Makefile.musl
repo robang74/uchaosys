@@ -20,8 +20,9 @@ LINUX_VER = headers-5.15.202
 
 USR_SITE = https://github.com/robang74
 GNU_SITE = https://ftpmirror.gnu.org/gnu
-GCC_SITE = $(GNU_SITE)/gcc
+
 BINUTILS_SITE = $(GNU_SITE)/binutils
+GCC_SITE = $(GNU_SITE)/gcc
 GMP_SITE = $(GNU_SITE)/gmp
 MPC_SITE = $(GNU_SITE)/mpc
 MPFR_SITE = $(GNU_SITE)/mpfr
@@ -41,8 +42,8 @@ SHA1_CMD = sha1sum -c
 COWPATCH = $(CURDIR)/cowpatch.sh
 
 HOST = $(if $(NATIVE),$(TARGET))
-BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
 OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
+BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
 
 REL_TOP = ../../..
 
@@ -60,14 +61,12 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	rm -rf build/
-	rm -rf $(SRC_DIRS)/
+	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
+	rm -rf mpfr-* isl-* zlib-* pcre2-* linux-*
+	rm -rf build-* build/
 
-veryclean: clean
-	rm -rf output/
-
-distclean: veryclean
-	rm -rf sources/
+distclean: clean
+	rm -rf $(SOURCES)/ $(OUTPUT)/
 
 
 # Rules for downloading and verifying sources. Treat an external SOURCES path as
@@ -102,7 +101,7 @@ $(SOURCES)/config.sub: | $(SOURCES)
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
-$(SOURCES)/%: | hashes/%.sha1 $(SOURCES)
+$(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
 	mkdir -p $@.tmp
 	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)
 	cd $@.tmp && touch $(notdir $@)
@@ -112,43 +111,52 @@ $(SOURCES)/%: | hashes/%.sha1 $(SOURCES)
 
 endif
 
+
 # Rules for extracting and patching sources, or checking them out from git.
 
-.PRECIOUS: $(SOURCES)/%.tar.gz $(SOURCES)/%.tar.bz2 $(SOURCES)/%.tar.xz
-
-define extract_tar
-	@case "$1" in */*) exit 1 ;; esac
-	@rm -rf $1.tmp $1; mkdir $1.tmp
-	@echo "Tarball '$<' extraction ..." >&2
-	( cd $1.tmp && tar $2 - ) < $3
-	@touch $1.tmp/$(patsubst %.orig,%,$1)
-	@mv $1.tmp/$(patsubst %.orig,%,$1) $1
-	@rm -rf $1.tmp &
-endef
-
 musl-git-%:
-	@echo "musl-git branch" >&2
-	@rm -rf $@.tmp $@
+	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
-	@cd $@.tmp && git fsck
+	cd $@.tmp && git fsck
 	mv $@.tmp $@
 
 %.orig: $(SOURCES)/%.tar.gz
-	$(call extract_tar,$@,xzvf,$<)
+	case "$@" in */*) exit 1 ;; esac
+	rm -rf $@.tmp
+	mkdir $@.tmp
+	( cd $@.tmp && tar zxvf - ) < $<
+	rm -rf $@
+	touch $@.tmp/$(patsubst %.orig,%,$@)
+	mv $@.tmp/$(patsubst %.orig,%,$@) $@
+	rm -rf $@.tmp
 
 %.orig: $(SOURCES)/%.tar.bz2
-	$(call extract_tar,$@,xjvf,$<)
+	case "$@" in */*) exit 1 ;; esac
+	rm -rf $@.tmp
+	mkdir $@.tmp
+	( cd $@.tmp && tar jxvf - ) < $<
+	rm -rf $@
+	touch $@.tmp/$(patsubst %.orig,%,$@)
+	mv $@.tmp/$(patsubst %.orig,%,$@) $@
+	rm -rf $@.tmp
 
 %.orig: $(SOURCES)/%.tar.xz
-	$(call extract_tar,$@,xJvf,$<)
+	case "$@" in */*) exit 1 ;; esac
+	rm -rf $@.tmp
+	mkdir $@.tmp
+	( cd $@.tmp && tar Jxvf - ) < $<
+	rm -rf $@
+	touch $@.tmp/$(patsubst %.orig,%,$@)
+	mv $@.tmp/$(patsubst %.orig,%,$@) $@
+	rm -rf $@.tmp
 
 %: %.orig
-	@echo "orig branch: $@" >&2
-	@case "$@" in */*) exit 1 ;; esac
-	@rm -rf $@.tmp $@
-	@mkdir $@.tmp
-	cd $@.tmp && $(COWPATCH) -I ../$<
-	@test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
+	case "$@" in */*) exit 1 ;; esac
+	rm -rf $@.tmp
+	mkdir $@.tmp
+	( cd $@.tmp && $(COWPATCH) -I ../$< )
+	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
+	rm -rf $@
 	mv $@.tmp $@
 
 
@@ -194,8 +202,6 @@ all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@
-	rm -rf $(OUTPUT)/include/linux-$(LINUX_VER)
-	cp -arf linux-$(LINUX_VER)/include $(OUTPUT)/include/linux
 
 endif
 

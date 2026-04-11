@@ -91,6 +91,7 @@ sources: .sync gzcmd.gz.sh muslcfg
 	@echo
 	@echo "Wait downloading sources ..."
 	$(MAKE) -j$(NCPU) -C musl extract_all
+	@echo "Sources download completed successfully"
 	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////

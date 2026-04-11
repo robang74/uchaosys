@@ -16,7 +16,7 @@ MPFR_VER = 4.2.2
 ISL_VER = 0.27
 ZLIB_VER = 1.3.2
 PCRE2_VER = 10.47
-LINUX_VER = headers-5.15.202
+LINUX_VER = 5.15.202
 
 USR_SITE = https://github.com/robang74
 GNU_SITE = https://ftpmirror.gnu.org/gnu
@@ -38,7 +38,7 @@ MUSL_REPO = https://git.musl-libc.org/git/musl
 LINUX_SITE = https://cdn.kernel.org/pub/linux/kernel
 LINUX_HEADERS_SITE = https://ftp.barfooze.de/pub/sabotage/tarballs
 
-DL_CMD = wget -U "Mozilla/5.0" -c -O
+DL_CMD = wget -c -O
 SHA1_CMD = sha1sum -c
 
 COWPATCH = $(CURDIR)/cowpatch.sh

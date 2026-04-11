@@ -11,7 +11,8 @@ MUSLCFGMAK  := cnfg/musl-125x.config.mak
 BBOX_CFG    := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 
 # Extract kernel version from config
-KERNVER     := $(shell grep "LINUX_VER" $(MUSLCFGMAK) | cut -d\# -f1 | tr -dc 0-9. | tail -n1)
+KERNVER     := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
+                 tail -n1 | tr -dc 0-9.)
 KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 
 # Paths
@@ -149,7 +150,7 @@ clean:
 veryclean: clean
 	@echo "Removing custom configuration files and links"
 # Remove musl output
-	rm -fr musl/output
+	rm -fr musl/output musl/build musl/sources/.done
 # Protected by: test -r musl/config.mak
 	rm -f musl/config.mak
 	cp -f musl/Makefile.bak musl/Makefile

@@ -63,9 +63,11 @@ all:
 clean:
 	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
 	rm -rf mpfr-* isl-* zlib-* pcre2-* linux-*
+
+veryclean: clean
 	rm -rf build-* build/
 
-distclean: clean
+distclean: veryclean
 	rm -rf $(SOURCES)/ $(OUTPUT)/
 
 
@@ -124,7 +126,7 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp
 	mkdir $@.tmp
-	( cd $@.tmp && tar zxvf - ) < $<
+	( cd $@.tmp && tar zxf - ) < $<
 	rm -rf $@
 	touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
@@ -134,7 +136,7 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp
 	mkdir $@.tmp
-	( cd $@.tmp && tar jxvf - ) < $<
+	( cd $@.tmp && tar jxf - ) < $<
 	rm -rf $@
 	touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@
@@ -144,7 +146,7 @@ musl-git-%:
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp
 	mkdir $@.tmp
-	( cd $@.tmp && tar Jxvf - ) < $<
+	( cd $@.tmp && tar Jxf - ) < $<
 	rm -rf $@
 	touch $@.tmp/$(patsubst %.orig,%,$@)
 	mv $@.tmp/$(patsubst %.orig,%,$@) $@

@@ -11,7 +11,8 @@ MUSLCFGMAK  := cnfg/musl-125x.config.mak
 BBOX_CFG    := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 
 # Extract kernel version from config
-KERNVER     := $(shell grep "LINUX_VER" $(MUSLCFGMAK) | cut -d\# -f1 | tr -dc 0-9. | tail -n1)
+KERNVER     := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
+                 tail -n1 | tr -dc 0-9.)
 KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
 
 # Paths
@@ -56,9 +57,9 @@ ENV_VARS    ?=
 all: sources buildall install
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update muslcfg muslcfg-force
+.PHONY: update muslcfg defconfig
 
-muslcfg-force:
+defconfig:
 	cp -arf cnfg/hashes musl/
 	for a in musl/Makefile musl/litecross/Makefile; do \
 		test -r $$a.bak || cp -f $$a $$a.bak; done ||:
@@ -67,7 +68,7 @@ muslcfg-force:
 	cp -f $(MUSLCFGMAK) musl/config.mak
 
 musl/config.mak:
-	$(MAKE) -j$(NCPU) muslcfg-force
+	$(MAKE) -j$(NCPU) defconfig
 
 muslcfg: musl/config.mak
 

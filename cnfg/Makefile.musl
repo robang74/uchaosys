@@ -18,7 +18,16 @@ ZLIB_VER = 1.3.2
 PCRE2_VER = 10.47
 LINUX_VER = headers-5.15.202
 
-USR_SITE = https://github.com/robang74
+# Skip url redirection and query the archives server
+# USR_SITE = https://github.com/robang74
+# ISL_SITE = $(USR_SITE)/isl/archive/refs/tags
+# ZLIB_SITE = $(USR_SITE)/zlib/archive/refs/tags
+# PCRE2_SITE = $(USR_SITE)/pcre2/archive/refs/tags
+
+# Skip url redirection and quey a specific server
+# GNU_SITE = https://ftp.fau.de/gnu
+
+USR_SITE = https://codeload.github.com/robang74
 GNU_SITE = https://ftpmirror.gnu.org/gnu
 
 BINUTILS_SITE = $(GNU_SITE)/binutils
@@ -26,9 +35,9 @@ GCC_SITE = $(GNU_SITE)/gcc
 GMP_SITE = $(GNU_SITE)/gmp
 MPC_SITE = $(GNU_SITE)/mpc
 MPFR_SITE = $(GNU_SITE)/mpfr
-ISL_SITE = $(USR_SITE)/isl/archive/refs/tags
-ZLIB_SITE = $(USR_SITE)/zlib/archive/refs/tags
-PCRE2_SITE = $(USR_SITE)/pcre2/archive/refs/tags
+ISL_SITE = $(USR_SITE)/isl/tar.gz/refs/tags
+ZLIB_SITE = $(USR_SITE)/zlib/tar.gz/refs/tags
+PCRE2_SITE = $(USR_SITE)/pcre2/tar.gz/refs/tags
 
 MUSL_SITE = https://musl.libc.org/releases
 MUSL_REPO = https://git.musl-libc.org/git/musl
@@ -120,46 +129,32 @@ musl-git-%:
 	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
 	cd $@.tmp && git fsck
-	mv $@.tmp $@
+	mv $@.tmp $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.gz
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar zxf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
+	tar -C $@.tmp --strip-components=1 -zxf $<
+	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.bz2
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar jxf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
+	tar -C $@.tmp --strip-components=1 -jxf $<
+	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.xz
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
-	( cd $@.tmp && tar Jxf - ) < $<
-	rm -rf $@
-	touch $@.tmp/$(patsubst %.orig,%,$@)
-	mv $@.tmp/$(patsubst %.orig,%,$@) $@
-	rm -rf $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
+	tar -C $@.tmp --strip-components=1 -Jxf $<
+	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
 
 %: %.orig
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp
-	mkdir $@.tmp
+	rm -rf $@.tmp ; mkdir $@.tmp
 	( cd $@.tmp && $(COWPATCH) -I ../$< )
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
-	rm -rf $@
-	mv $@.tmp $@
+	rm -rf $@ ; mv $@.tmp $@ ; touch $@
 
 
 # Add deps for all patched source dirs on their patchsets

@@ -49,7 +49,7 @@ LINUX_VER = 5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.
 
-DL_CMD = wget -c -O
+DL_CMD = wget -U "Mozilla/5.0" -c -O
 # DL_CMD = curl -C - -L -o
 
 # Check sha-1 hashes of downloaded source archives. On gnu systems this is

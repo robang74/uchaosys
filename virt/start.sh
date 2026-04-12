@@ -112,7 +112,7 @@ else
   echo
   boxnme="-name zroklnx"
   qaccel="-accel tcg -cpu qemu64 -smp 1 -icount shift=0,sleep=off,align=off"
-  qaccel="$qaccel -rtc base=2026-03-01,clock=vm,driftfix=none"
+  qaccel="$qaccel -rtc base=2026-03-01,clock=vm,driftfix=none init_on_free=1"
   cmdlnx="$cmdlnx deferred_probe_timeout=0 page_alloc.shuffle=0 memtest=0"
   cmdlnx="lpj=2000000 noapic nolapic clocksource=pit video=off nomodeset $cmdlnx"
   cmdlnx="$cmdlnx random.trust_cpu=off mitigations=off"
@@ -124,7 +124,7 @@ else
   qaccel="${QMACH:+-M $QMACH} $qaccel"
 fi
 
-cmdlnx="-append '$cmdlnx ${KARGS:-} init_on_free=1'"
+cmdlnx="-append '$cmdlnx ${KARGS:-}'"
 
 # disable this line if it creates trouble because ulimit -l isn't friendly
 grep -qi uchaos /etc/os-release || qaccel="$qaccel -overcommit mem-lock=on"

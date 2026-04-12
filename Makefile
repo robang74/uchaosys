@@ -14,6 +14,7 @@ BBOXCFG     := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 KERNVER     := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
                  tail -n1 | tr -dc 0-9.)
 KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
+KERNCFG     := cnfg/linux-$(KVER_SHORT).config
 
 # Paths
 VDIR        := virt
@@ -29,7 +30,7 @@ KMOD        := uchaos_dev.ko
 # Tools and Options
 HOSTCC      := gcc
 CC          := $(CCPREFIX)gcc
-OPTS        := HOSTCC=$(HOSTCC) ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
+OPTS        := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
 OPTS        += CFLAGS_EXTRA="-falign-functions=32" KERNVER=$(KERNVER)
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
@@ -38,13 +39,17 @@ OUTPUT      ?= musl/output
 KIMG        := $(KDIR)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
-ARTIFACTS   := bbox/{busybox.elf,.config} cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
-ARTIFACTS   += $(KDIR)/{.config,bzImage,System.map} {bbox,musl,$(KDIR)}/.conf
-ARTIFACTS   += miniz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD){,.gz}
-ARTIFACTS   += $(SDIR)/.done $(OUTPUT)/.done prnd/RNG_test gzcmd.gz.sh
-ARTIFACTS   += virt/$(QBIN) virt/*.{bin,rom,done} qemu/output/
+KDIR_FILES  := $(addprefix $(KDIR)/, .config bzImage System.map)
+VIRT_FILES  := $(addprefix virt/, *.bin *.rom .done $(QBIN))
+CONF_FILES  := $(addsuffix /.conf, bbox musl $(KDIR))
+
+ARTIFACTS   := bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
+ARTIFACTS   += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
+ARTIFACTS   += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
+ARTIFACTS   += prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/
 
 MAKELNX     := $(MAKE) $(OPTS) -j$(NCPU)
+MAKELOG     := make.log
 
 #QROMS      := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
 #QROMS_PATH := qemu/src/pc-bios
@@ -55,7 +60,9 @@ endef
 
 .PHONY: all sources buildall install
 
-all: buildall install
+all:
+	rm -f $(MAKELOG)
+	for tg in sources buildall install; do $(MAKELNX) $$tg; done
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig
@@ -63,31 +70,33 @@ all: buildall install
 SHA1_FILES := $(wildcard cnfg/hashes/*.sha1)
 MAKE_FILES := $(wildcard cnfg/Makefile.*)
 
-musl/.conf: $(SHA1_FILES) $(MAKE_FILES) $(MUSLCFGMAK)
-	@echo "START >>> "$@": "$^
+musl/.conf: $(SHA1_FILES) $(MAKE_FILES) $(KERNCFG) $(BBOXCFG) $(MUSLCFGMAK)
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
-	for a in musl/Makefile musl/litecross/Makefile; do \
-		test -r $$a.bak || cp -af $$a $$a.bak; done ||:
-	cp -af cnfg/Makefile.musl musl/Makefile
-	cp -af cnfg/Makefile.lite musl/litecross/Makefile
-	cp -af $(MUSLCFGMAK) musl/config.mak
+#	for a in musl/Makefile musl/litecross/Makefile; do \
+#		test -r $$a.bak || cp -af $$a $$a.bak; done ||:
+	cp -alLf cnfg/Makefile.musl musl/Makefile
+	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
+	cp -alLf $(MUSLCFGMAK) musl/config.mak
+	cp -alLf $(KERNCFG) $(KDIR)/.config
+	cp -alLf $(BBOXCFG) bbox/.config
 	touch $@
 
 defconfig:
-	@$(MAKE) musl/config.mak -W musl/config.mak
+	rm -f musl/.conf && $(MAKELNX) musl/.conf
 
 gzcmd.sh:
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 #	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
 	wget $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -qO $@
 	sha1sum -c gzcmd.sh.sha1 || { rm -f $@; exit 1; }
 
 gzcmd.gz.sh: gzcmd.sh
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	sh $< $< gzcmd
 
 .sync: .gitmodules
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
 	@echo "Wait updating project dependencies ..."
 	git submodule update --init --recursive --depth 32 \
@@ -97,11 +106,11 @@ gzcmd.gz.sh: gzcmd.sh
 
 update: .sync
 
-$(SDIR)/.done: .sync gzcmd.gz.sh musl/.conf
-	@echo "START >>> "$@": "$^
+$(SDIR)/.done: .sync musl/.conf | gzcmd.gz.sh
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
 	@echo "Wait downloading sources ..."
-	$(MAKELNX) -C musl extract_all
+	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl extract_all
 	@echo "Sources download completed successfully"
 	@echo
 	touch $@
@@ -112,15 +121,15 @@ sources: $(SDIR)/.done
 .PHONY: toolchain
 
 $(OUTPUT)/.done:
-	@echo "START >>> "$@": "$^
-	$(MAKELNX) -C musl install
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
+	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl install
 	touch $@
 
 $(MUSLTGZ): $(OUTPUT)/.done
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
+	rm -f $(MUSLTGZ) ; tar czf $@ $(OUTPUT)/
 	@echo
 	@$(call print_size, $(OUTPUT)/,m,MB)
-	rm -f $(MUSLTGZ) ; tar czf $@ $(OUTPUT)/
 	@$(call print_size,$@,m,MB)
 	@echo
 
@@ -133,19 +142,17 @@ toolchain: $(SDIR)/.done $(OUTPUT)/.done $(MUSLTGZ)
 .PHONY: bzImage
 
 $(KDIR): $(SDIR)/.done
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@test -r $@ || echo "Error do 'make sources' before, exit 1."
 	@test -r $@ && $(call print_size,$@,k,KB)
 
-$(KDIR)/.conf: cnfg/linux-$(KVER_SHORT).config | $(KDIR)
-	@echo "START >>> "$@": "$^
-	cp -alLf $< $(KDIR)/.configure
+$(KDIR)/.conf: | $(KDIR)/.config $(KDIR)
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	$(MAKELNX) -C $(KDIR) olddefconfig
-	$(MAKELNX) -C $(KDIR) modules_prepare
 	touch $@
 
 $(KIMG): $(KDIR)/.conf
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	$(MAKELNX) -C $(KDIR) bzImage
 	cp -alLf $(KDIR)/arch/$(ARCH)/boot/bzImage $@
 	@echo
@@ -159,14 +166,13 @@ bzImage: $(KIMG)
 # target: busybox //////////////////////////////////////////////////////////////
 .PHONY: busybox
 
-bbox/.conf: $(BBOXCFG)
-	@echo "START >>> "$@": "$^
-	cp -alLf $(BBOXCFG) bbox/.configure
+bbox/.conf: | bbox/.config
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	yes "" |  $(MAKE) $(OPTS) -j1 -C bbox oldconfig
 	touch $@
 
 bbox/busybox.elf: | bbox/.conf
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	rm -f $@
 	$(MAKELNX) -C bbox busybox
 	cp -alLf bbox/busybox $@
@@ -180,7 +186,7 @@ busybox: bbox/busybox.elf
 .PHONY: miniz
 
 minz/amalgamation/.done: cnfg/amalgamate.sh
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -alLf cnfg/amalgamate.sh minz/
 	cd minz && $(OPTS) sh -x amalgamate.sh
 	touch $@
@@ -191,26 +197,27 @@ miniz: minz/amalgamation/.done
 .PHONY: uchaos
 
 $(LNXPATH):
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	ln -sf ../$(KDIR) $@
 
 $(KDIR)/System.map: $(KDIR)/bzImage
 
 kdev/$(KMOD).gz: | $(KDIR)/System.map $(LNXPATH)
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
+	$(MAKELNX) -C $(LNXPATH) modules_prepare
 	$(MAKELNX) -C kdev dist
 	@echo
 	touch $@
 
 usrl/uchaosbox:
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
 	$(MAKELNX) -C usrl uchaosbox
 	@echo
 
 uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
 	@file kdev/$(KMOD).gz | cut -d, -f1,6-
 	@file kdev/$(KMOD).gz | cut -d, -f2-4
@@ -222,11 +229,11 @@ uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 .PHONY: rngtest
 
 prnd/RNG_test:
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	$(MAKELNX) CCSYSROOT="-static -mavx2" -C prnd RNG_test
 
 rngtest: prnd/RNG_test
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
 	@file $< | cut -d, -f1,2,4; $(call print_size,$<,k,KB)
 	@echo
@@ -235,7 +242,7 @@ rngtest: prnd/RNG_test
 .PHONY: install
 
 $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	mkdir -p $(CPIOTMP)/
 	cp -arf cpio/* $(CPIOTMP)/
 	cd $(CPIOTMP) && mkdir -p tmp/ var/log/ lib/modules/ usr/bin/
@@ -252,7 +259,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	touch $@
 
 install: $(CPIOTMP)/.done $(KIMG) virt/$(QBIN)
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -alLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
 	@cd $(VDIR) && du -k $(QBIN) | tr '\t' ' '
@@ -264,15 +271,15 @@ install: $(CPIOTMP)/.done $(KIMG) virt/$(QBIN)
 
 # target: clean ////////////////////////////////////////////////////////////////
 clean:
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo "Removing artifacts and cleaning virt/ folder"
-	rm -rf $(sort $(wildcard $(ARTIFACTS)))
-	rm -f $(shell ls -1 virt/* | grep -v start.sh ||:)
+	rm -rf $(ARTIFACTS)
+	rm -f $(shell ls -1d virt/* | grep -v start.sh ||:)
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
 	rm -f musl/{config.mak,.conf}
-	for a in musl/Makefile musl/litecross/Makefile; do \
-		test -r $$a.bak && cp -f $$a.bak $$a; done ||:
+#	for a in musl/Makefile musl/litecross/Makefile; do \
+#		test -r $$a.bak && cp -f $$a.bak $$a; done ||:
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
 # Protected by: test -r $lnxpath/.config
@@ -285,7 +292,7 @@ clean:
 # target: veryclean ////////////////////////////////////////////////////////////
 # This removes files that the script normally protects with 'test' or 'if' logic
 veryclean: clean
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo "Cleaning ..."
 	echo gzcmd.sh minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
 	for dir in kdev usrl prnd $(LNXPATH); do $(MAKELNX) -C $$dir $@ ||:; done
@@ -296,7 +303,7 @@ veryclean: clean
 
 # target: distclean ////////////////////////////////////////////////////////////
 distclean: veryclean
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo "Removing everything apart from the updated repo"
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean
@@ -304,21 +311,23 @@ distclean: veryclean
 	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) $(SDIR)/
 
 # target: buildsys /////////////////////////////////////////////////////////////
-buildsys: bzImage busybox uchaos rngtest
+buildsys:
+	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg; done
 
 # target: buildall /////////////////////////////////////////////////////////////
-buildall: toolchain buildsys buildemu
+buildall:
+	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg; done
 
 # target: buildemu /////////////////////////////////////////////////////////////
 .PHONY: buildemu
 
 qemu/output/.done:
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cd qemu && $(OPTS) time -p sh make.sh sources
 	touch $@
 
 virt/.done: qemu/output/.done
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -alLf qemu/output/* virt/
 	touch $@
 
@@ -326,13 +335,13 @@ buildemu: $(KIMG) kdev/$(KMOD).gz  virt/.done
 
 # target: qemurset //////////////////////////////////////////////////////////////
 qemurset:
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	rm -rf $(CPIOTMP)/virt $(CPIOTMP)/.done
 	$(MAKELNX) install
 
 # target: qemutest //////////////////////////////////////////////////////////////
 qemutest: virt/.done $(CPIOTMP)/.done
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	rm -rf $(CPIOTMP)/virt/
 # cp -arf cpio/* $(CPIOTMP)/
 	sh cpio.sh -c
@@ -341,7 +350,7 @@ qemutest: virt/.done $(CPIOTMP)/.done
 
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu: virt/.done $(CPIOTMP)/.done
-	@echo "START >>> "$@": "$^
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo "Prepare and start the KVM 32MB machine"
 	cd virt && $(ENV_VARS) sh start.sh -qm32 -M q35
 

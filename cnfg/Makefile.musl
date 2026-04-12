@@ -71,9 +71,10 @@ clean:
 veryclean: clean
 	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
 	rm -rf mpfr-* isl-* zlib-* pcre2-* linux-*
+	rm -rf $(OUTPUT)/
 
 distclean: veryclean
-	rm -rf $(SOURCES)/ $(OUTPUT)/
+	rm -rf $(SOURCES)/
 
 
 # Rules for downloading and verifying sources. Treat an external SOURCES path as

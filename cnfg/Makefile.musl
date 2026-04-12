@@ -66,11 +66,11 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 all:
 
 clean:
-	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
-	rm -rf mpfr-* isl-* zlib-* pcre2-* linux-*
+	rm -rf build-* build/
 
 veryclean: clean
-	rm -rf build-* build/
+	rm -rf gcc-* binutils-* musl-* gmp-* mpc-*
+	rm -rf mpfr-* isl-* zlib-* pcre2-* linux-*
 
 distclean: veryclean
 	rm -rf $(SOURCES)/ $(OUTPUT)/

@@ -27,6 +27,7 @@ virt/efi-virtio.rom
 virt/bios-256k.bin
 virt/kvmvapic.bin
 virt/qboot.rom
+virt/.done
 musl-output.tar.gz
 qemu/qemu-system-x86_64
 qemu/qemu-system-x86_64.ldc

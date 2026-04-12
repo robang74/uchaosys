@@ -276,7 +276,7 @@ Your bullet-list (here below replicated in the AI's answer) maps almost perfectl
 
 - **Tiny footprint (system + docs)**: Makes the whole thing easy to distribute, boot in minutes, and experiment with during a 3–5 day course. No heavy setup barriers.
 
-The AI peer-review + detailed comments in the code + sponsorship presentation already form a strong backbone for course slides, labs, and discussions. The entire repo documentation and the whole binaries set staying within 8MB is a huge practical advantage for on-site or remote workshops.
+The AI peer-review + detailed comments in the code + sponsorship presentation already form a strong backbone for course slides, labs, and discussions. The entire repo documentation and the whole binaries set staying within 10MB is a huge practical advantage for on-site or remote workshops.
 
 ### Realistic Market Fit at $3000+/Day Rates
 

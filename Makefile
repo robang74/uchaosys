@@ -38,10 +38,10 @@ OUTPUT      ?= musl/output
 KIMG        := $(OUTPUT)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
-ARTIFACTS   := bbox/busybox.elf gzcmd.gz.sh $(LNXPATH)
-ARTIFACTS   += miniz/amalgamation/ kdev/uckaos cpio.cpio prnd/RNG_test
-ARTIFACTS   += musl/sources/.done $(OUTPUT)/.done minz/amalgamation/.done
-ARTIFACTS   += $(CPIOTMP)/ virt/$(QBIN) virt/*.{bin,rom,done} qemu/output
+ARTIFACTS   := bbox/busybox.elf gzcmd.gz.sh cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
+ARTIFACTS   += miniz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD){,.gz}
+ARTIFACTS   += musl/sources/.done $(OUTPUT)/.done prnd/RNG_test
+ARTIFACTS   += virt/$(QBIN) virt/*.{bin,rom,done} qemu/output/
 
 #QROMS       := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
 #QROMS_PATH  := qemu/src/pc-bios
@@ -59,13 +59,13 @@ all: sources buildall install
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update muslcfg defconfig
 
-defconfig:
+defconfig: amalgamate.sh
 	cp -arf cnfg/hashes musl/
 	for a in musl/Makefile musl/litecross/Makefile; do \
-		test -r $$a.bak || cp -f $$a $$a.bak; done ||:
-	cp -f cnfg/Makefile.musl musl/Makefile
-	cp -f cnfg/Makefile.lite musl/litecross/Makefile
-	cp -f $(MUSLCFGMAK) musl/config.mak
+		test -r $$a.bak || cp -af $$a $$a.bak; done ||:
+	cp -af cnfg/Makefile.musl musl/Makefile
+	cp -af cnfg/Makefile.lite musl/litecross/Makefile
+	cp -af $(MUSLCFGMAK) musl/config.mak
 
 musl/config.mak:
 	$(MAKE) -j$(NCPU) defconfig
@@ -73,7 +73,9 @@ musl/config.mak:
 muslcfg: musl/config.mak
 
 gzcmd.sh:
-	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
+#	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
+	wget $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -qO $@
+	sha1sum -c gzcmd.sh.sha1 || { rm -f $@; exit 1; }
 
 gzcmd.gz.sh: gzcmd.sh
 	sh $< $< gzcmd
@@ -82,11 +84,12 @@ update:
 	@echo
 	@echo "Wait updating project dependencies ..."
 	git submodule update --init --recursive --depth 32 \
-	  --single-branch --jobs $(NCPU) && touch .sync
+	  --single-branch --jobs $(NCPU)
 	@echo
 
 .sync:
 	$(MAKE) -j$(NCPU) update
+	touch $@
 
 sources: .sync gzcmd.gz.sh muslcfg
 	@echo
@@ -104,19 +107,19 @@ musl/sources/.done:
 
 $(OUTPUT)/.done:
 	$(MAKE) -j$(NCPU) -C musl install
-	rm -f $(MUSLTGZ)
 	touch $@
 
 $(MUSLTGZ): $(OUTPUT)/.done
 	@echo
 	@$(call print_size, $(OUTPUT)/,m,MB)
-	tar czf $@ $(OUTPUT)/
+	rm -f $(MUSLTGZ) ; tar czf $@ $(OUTPUT)/
 	@$(call print_size,$@,m,MB)
 	@echo
 
 # @echo "Sync and drop caches, ^C to skip root password"
 # sync; echo 3 | sudo tee /proc/sys/vm/drop_caches | grep -q .
-toolchain: muslcfg musl/sources/.done $(OUTPUT)/.done $(MUSLTGZ)
+# muslcfg musl/sources/.done $(OUTPUT)/.done $(MUSLTGZ)
+toolchain: muslcfg $(MUSLTGZ)
 
 # target: bzImage //////////////////////////////////////////////////////////////
 .PHONY: bzImage
@@ -130,15 +133,15 @@ $(LNXPATH): $(KDIR)
 	ln -sf ../$< $@
 
 $(LNXPATH)/.config: | $(LNXPATH)
-	cp -Lf cnfg/linux-$(KVER_SHORT).config $@
-
-$(KIMG): | $(LNXPATH)/.config
-	rm -f $@ $(LNXPATH)/System.map
+	cp -aLf cnfg/linux-$(KVER_SHORT).config $@
 	yes "" | $(MAKE)  -C $(LNXPATH) syncconfig
+
+$(KIMG): $(LNXPATH)/.config
+	rm -f $@ $(LNXPATH)/{System.map,bzImage}
 	$(MAKE) -j$(NCPU) -C $(LNXPATH) modules_prepare
 	$(MAKE) -j$(NCPU) $(OPTS) -C $(LNXPATH) bzImage
-	cp -Lf $(KDIR)/System.map $(OUTPUT)
-	cp -Lf $(KIMGPATH) $@
+	cp -aLf $(KDIR)/System.map $(OUTPUT)/
+	cp -aLf $(KIMGPATH) $@
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
 	@$(call print_size,$@,k,KB)
@@ -164,10 +167,13 @@ bbox/busybox.elf: bbox/.config
 busybox: bbox/busybox.elf
 
 # target: miniz ////////////////////////////////////////////////////////////////
-.PHONY: miniz
+.PHONY: miniz amalgamate.sh
 
-minz/amalgamation/.done:
-	cd minz && CFLAGS="-Wno-unused-function" sh amalgamate.sh
+amalgamate.sh:
+	cp -af cnfg/amalgamate.sh minz/
+
+minz/amalgamation/.done: amalgamate.sh
+	cd minz && $OPTS CFLAGS="-Wno-unused-function" sh amalgamate.sh
 	touch $@
 
 miniz: minz/amalgamation/.done
@@ -176,7 +182,7 @@ miniz: minz/amalgamation/.done
 .PHONY: uchaos
 
 $(KDIR)/System.map:
-	cp -Lf $(OUTPUT)/System.map $(KDIR)/System.map || { \
+	cp -aLf $(OUTPUT)/System.map $(KDIR)/System.map || { \
 	  echo "ERROR: try 'make bzImage' before this"; exit 1; }
 
 kdev/$(KMOD).gz: | $(KDIR)/System.map
@@ -216,9 +222,9 @@ $(CPIOTMP)/.done:
 	@echo
 	cp -arf cpio/. $(CPIOTMP)/
 	cd $(CPIOTMP) && mkdir -p tmp/ var/log/ lib/modules/ usr/bin/
-	cp -Lf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
-	cp -Lf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
-	cp -Lf usrl/uchaosbox $(CPIOTMP)/usr/bin/
+	cp -aLf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
+	cp -aLf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
+	cp -aLf usrl/uchaosbox $(CPIOTMP)/usr/bin/
 	chmod +x $(CPIOTMP)/init
 	# Symbolic links
 	ln -sf bin $(CPIOTMP)/usr/sbin
@@ -226,11 +232,11 @@ $(CPIOTMP)/.done:
 	ln -sf usr/sbin $(CPIOTMP)/sbin
 	ln -sf usr/bin $(CPIOTMP)/bin
 	ln -sf busybox $(CPIOTMP)/bin/sh
-#	touch $@
+	touch $@
 
 install: buildemu $(CPIOTMP)/.done
 	@echo
-	cp -Lf $(KIMG) $(VDIR)/
+	cp -aLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
 	@cd $(VDIR) && du -k $(QBIN) | tr '\t' ' '
 	@echo
@@ -288,7 +294,7 @@ buildall: toolchain buildsys buildemu
 .PHONY: buildemu
 
 virt/.done:
-	cp -Lf qemu/output/* virt/
+	cp -aLf qemu/output/* virt/
 
 qemu/output:
 	cd qemu && time -p sh make.sh sources
@@ -310,6 +316,6 @@ qemurset:
 
 # target: runqemu //////////////////////////////////////////////////////////////
 runqemu: buildemu
-	@echo Prepare and start the KVM 32MB machine
+	@echo "Prepare and start the KVM 32MB machine"
 	cd virt && $(ENV_VARS) sh start.sh -qm32 -M q35
 

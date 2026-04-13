@@ -67,10 +67,11 @@ all:
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig
 
-SHA1_FILES := $(wildcard cnfg/hashes/*.sha1)
-MAKE_FILES := $(wildcard cnfg/Makefile.*)
+MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
+MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
+MUSL_DPNDS += $(MUSLCFGMAK) bbox/.config $(KDIR)/.config
 
-musl/.conf: .sync $(SHA1_FILES) $(MAKE_FILES) $(KERNCFG) $(BBOXCFG) $(MUSLCFGMAK)
+musl/.conf: $(MUSL_DPNDS)
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
 #	for a in musl/Makefile musl/litecross/Makefile; do \
@@ -78,8 +79,6 @@ musl/.conf: .sync $(SHA1_FILES) $(MAKE_FILES) $(KERNCFG) $(BBOXCFG) $(MUSLCFGMAK
 	cp -alLf cnfg/Makefile.musl musl/Makefile
 	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
-	cp -alLf $(KERNCFG) $(KDIR)/.config
-	cp -alLf $(BBOXCFG) bbox/.config
 	touch $@
 
 defconfig: .sync
@@ -108,7 +107,7 @@ gzcmd.gz.sh: gzcmd.sh
 
 update: .sync
 
-$(SDIR)/.done: .sync musl/.conf | gzcmd.gz.sh
+$(SDIR)/.done: musl/.conf | gzcmd.gz.sh
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	@echo
 	@echo "Wait downloading sources ..."
@@ -148,14 +147,17 @@ $(KDIR): $(SDIR)/.done
 	@test -r $@ || echo "Error do 'make sources' before, exit 1."
 	@test -r $@ && $(call print_size,$@,k,KB)
 
-$(KDIR)/.conf: | $(KDIR)/.config $(KDIR)
+$(KDIR)/.config: $(KERNCFG)
+	cp -alLf $(KERNCFG) $(KDIR)/.config ||:
+
+$(KDIR)/.conf: | $(KDIR)/.config
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	$(MAKELNX) -C $(KDIR) olddefconfig
 	touch $@
 
 $(KIMG): $(KDIR)/.conf
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-	$(MAKELNX) -C $(KDIR) bzImage
+	$(MAKELNX) -C $(KDIR) all
 	cp -alLf $(KDIR)/arch/$(ARCH)/boot/bzImage $@
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
@@ -167,6 +169,9 @@ bzImage: $(KIMG)
 
 # target: busybox //////////////////////////////////////////////////////////////
 .PHONY: busybox
+
+bbox/.config: $(BBOXCFG)
+	cp -alLf $(BBOXCFG) bbox/.config ||:
 
 bbox/.conf: | bbox/.config
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
@@ -206,7 +211,7 @@ $(KDIR)/System.map: $(KIMG)
 
 kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-# $(MAKELNX) -C $(LNXPATH) modules_prepare
+#	$(MAKELNX) -C $(LNXPATH) all #modules_prepare
 	$(MAKELNX) -C kdev dist
 	@echo
 	touch $@
@@ -256,7 +261,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	ln -sf busybox $(CPIOTMP)/bin/sh
 	touch $@
 
-install: $(CPIOTMP)/.done $(KIMG) virt/$(QBIN)
+install: $(KIMG) $(CPIOTMP)/.done qemu/output/.done
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -alLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U

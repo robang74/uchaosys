@@ -39,12 +39,12 @@ OUTPUT      ?= musl/output
 KIMG        := $(KDIR)/bzImage
 export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
-KDIR_FILES  := $(addprefix $(KDIR)/, .config bzImage System.map)
+KDIR_FILES  := $(addprefix $(KDIR)/, .config vmlinux bzImage System.map)
 VIRT_FILES  := $(addprefix virt/, *.bin *.rom .done $(QBIN))
 CONF_FILES  := $(addsuffix /.conf, bbox musl $(KDIR))
 
 ARTIFACTS   := bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
-ARTIFACTS   += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
+ARTIFACTS   += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done $(KIMG)
 ARTIFACTS   += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
 ARTIFACTS   += prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/
 
@@ -90,10 +90,12 @@ gzcmd.sh:
 #	curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
 	wget $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -qO $@
 	sha1sum -c gzcmd.sh.sha1 || { rm -f $@; exit 1; }
+	touch $@
 
 gzcmd.gz.sh: gzcmd.sh
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	sh $< $< gzcmd
+	touch $@
 
 .sync: .gitmodules
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
@@ -200,25 +202,22 @@ $(LNXPATH):
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	ln -sf ../$(KDIR) $@
 
-$(KDIR)/System.map: $(KDIR)/bzImage
+$(KDIR)/System.map: $(KIMG)
 
-kdev/$(KMOD).gz: | $(KDIR)/System.map $(LNXPATH)
+kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-	@echo
-	$(MAKELNX) -C $(LNXPATH) modules_prepare
+# $(MAKELNX) -C $(LNXPATH) modules_prepare
 	$(MAKELNX) -C kdev dist
 	@echo
 	touch $@
 
 usrl/uchaosbox:
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-	@echo
 	$(MAKELNX) -C usrl uchaosbox
 	@echo
 
 uchaos: miniz usrl/uchaosbox kdev/$(KMOD).gz
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-	@echo
 	@file kdev/$(KMOD).gz | cut -d, -f1,6-
 	@file kdev/$(KMOD).gz | cut -d, -f2-4
 	@strings kdev/$(KMOD) | grep -e "^version=" | tr '\n' ' '
@@ -234,7 +233,6 @@ prnd/RNG_test:
 
 rngtest: prnd/RNG_test
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-	@echo
 	@file $< | cut -d, -f1,2,4; $(call print_size,$<,k,KB)
 	@echo
 
@@ -331,7 +329,7 @@ virt/.done: qemu/output/.done
 	cp -alLf qemu/output/* virt/
 	touch $@
 
-buildemu: $(KIMG) kdev/$(KMOD).gz  virt/.done
+buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
 
 # target: qemurset //////////////////////////////////////////////////////////////
 qemurset:

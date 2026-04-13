@@ -15,8 +15,8 @@ KERNVER ?= $(shell uname -r)
 
 # Point to your compiled kernel source or headers
 KO_FILE := $(MODULE_NAME).ko
-KDIR := linux-kernel/
-PWD  := $(shell pwd)
+KDIR    := linux-kernel
+PWD     := $(shell pwd)
 
 $(KDIR)/System.map:
 	@echo "ERROR: file '$(KDIR)/System.map' is required, exit 1."; exit 1
@@ -43,12 +43,14 @@ ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 OPTS := CFLAGS="$(CFLAGS)"
 OPTS += LDFLAGS="$(LDFLAGS)"
 OPTS += EXTRA_CFLAGS="$(EXTRA_CFLAGS)"
-MAKE += $(OPTS)
 
-default: uchaos_dev.h uckaos.c $(KDIR)/System.map uckaos
-	yes "" | $(MAKE) -C $(KDIR) syncconfig
-	@echo "_CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
-	$(MAKE) -C $(KDIR) M=$(PWD) modules_prepare modules
+$(KDIR)/.conf:
+	$(MAKE) -C $(KDIR) olddefconfig
+	touch $@
+
+default: uchaos_dev.h uckaos.c uckaos $(KDIR)/.conf
+	@echo ">>> _CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
+	$(MAKE) $(OPTS) -C $(KDIR) M=$(PWD) modules_prepare modules
 
 dist: default
 	@echo "Stripping debug symbols from uchaos_dev.ko..."

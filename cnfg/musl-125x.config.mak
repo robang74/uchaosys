@@ -35,21 +35,22 @@ TARGET = $(ARCH)-linux-musl
 # Setting a blank version for linux will suppress installation of kernel
 # headers, which are not needed unless compiling programs that use them.
 
-CONFIG_SUB_REV = a2287c3041a3
-BINUTILS_VER = 2.44
-GCC_VER = 14.3.0
-MUSL_VER = 1.2.5
-GMP_VER = 6.3.0
-MPC_VER = 1.3.1
-MPFR_VER = 4.2.2
-ISL_VER = 0.27
-PCRE2_VER = 10.47
-ZLIB_VER = 1.3.2
+# CONFIG_SUB_REV = a2287c3041a3
+# BINUTILS_VER = 2.44
+# GCC_VER = 14.3.0
+# MUSL_VER = 1.2.5
+# GMP_VER = 6.3.0
+# MPC_VER = 1.3.1
+# MPFR_VER = 4.2.2
+# ISL_VER = 0.27
+# PCRE2_VER = 10.47
+# ZLIB_VER = 1.3.2
 LINUX_VER = 5.15.202
+# LINUX_VER = headers-5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.
 
-DL_CMD = wget -U "Mozilla/5.0" -c -O
+# DL_CMD = wget -c -O
 # DL_CMD = curl -C - -L -o
 
 # Check sha-1 hashes of downloaded source archives. On gnu systems this is
@@ -87,7 +88,8 @@ COMMON_CONFIG +=  LDFLAGS="-s --static"
 COMMON_CONFIG += --disable-nls
 
 GCC_CONFIG += --disable-libquadmath --disable-decimal-float
-GCC_CONFIG += --disable-libitm
+# Disabling isl in-tree gcc (4.4+) means also disabling graphite optimiser
+GCC_CONFIG += --disable-libitm --without-isl
 GCC_CONFIG += --disable-fixed-point
 # GCC_CONFIG += --disable-lto
 

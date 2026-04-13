@@ -49,7 +49,7 @@
 #define MODULE_NAME "uchaos"
 #define DEVICE_NAME MODULE_NAME
 #define  CLASS_NAME MODULE_NAME"_cls"
-#define DRIVER_VERSION "0.5.9.1"
+#define DRIVER_VERSION "0.6.4"
 #define DRIVER_LICENSE "GPL v2"
 #define DRIVER_AUTHOR  "Roberto A. Foglietta <roberto.foglietta@gmail.com>"
 #define DRIVER_DESCRIPTION "Stochastic scheduler-jitter chaos RNG stream device"
@@ -146,13 +146,14 @@ static ssize_t dev_read(struct file *fp, char *ubuf, size_t len, loff_t *of)
     else
     if ( copy_to_user(ubuf, (u8 *)kbuf, sent) )
         sent = -EFAULT;
+    memset(kbuf, 0, sent); // the user remains the only owner of trasfered data.
 
     mutex_unlock(&uchaos_lock); // ------------------------------------------- //
 
     return sent;
 }
 
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len,
+static ssize_t dev_write(struct file *filep, const char *ubuf, size_t len,
     loff_t *offset)
 {
     int ret = 0;
@@ -180,12 +181,15 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len,
      * regular write() like a seeder or a watchdog would do frequently (1ms)
      * can bypass the protection that prevents flooding the system of printks.
      */
-    if(copy_from_user((u8 *)kbuf, buffer, len)) {
+    if(copy_from_user((u8 *)kbuf, ubuf, len)) {
         ret = -EFAULT;
     } else {
         ret = len;
+        // data is kept in kernel space only
+        n = clear_user((void __user *)ubuf, len);
         for(n = 0, nh = len >> ABL; n < nh; hash ^= (archul_t)kbuf[n++]);
-        (void)djb2tum(hash, init_runs);
+        // immediately after elaboration data is zeroed, and hash also
+        memset(kbuf, 0, len); (void)djb2tum(hash, init_runs); hash = 0;
     }
 
     mutex_unlock(&uchaos_lock);
@@ -202,6 +206,15 @@ static struct file_operations fops = {
 #include <linux/bitops.h>
 #include <linux/hw_random.h>
 
+/*
+ * RATIONALE: reset the buffer to avoid the risk of leaking precious information
+ */
+#if USE_TSMEM_SEED
+#define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kbufptr_zfree(p); }
+#else
+#define zfree(p) if(p) { memset(p, 0, KBUFSIZE); kfree(p); }
+#endif
+
 #ifdef hwrng_register
 static int uchaos_read(struct hwrng *rng, void *buf, size_t max, bool wait) {
     mutex_lock(&uchaos_lock);
@@ -215,16 +228,18 @@ static struct hwrng uchaos_rng = {
     .read = uchaos_read,
     .quality = 100,
 };
-#define retnfree(x) { hwrng_unregister(&uchaos_rng); if(kbufptr) kfree(kbufptr); return (x); }
+#define retnfree(x) { hwrng_unregister(&uchaos_rng); zfree(_p); return (x); }
 #else
-#define retnfree(x) { if(kbufptr) kfree(kbufptr); return (x); }
+#define retnfree(x) {                                zfree(_p); return (x); }
 #endif
+#define _p kbufptr
 
-static archul_t *kbufptr = NULL;
 typedef void (* credit_entropy_bits_t)(size_t nbits);
 
 static int __init uchaos_init(void)
 {
+  size_t len;
+
 #if defined(_CREDIT_INIT_ADDR) && defined(_STATIC_PRINTK)
   /*
    * hwrng_register() OOPS because a kernel bug despite the backport fix
@@ -236,7 +251,7 @@ static int __init uchaos_init(void)
 #define kernel_credit_entropy_bits(x)
 #endif
     // 256 bit are enough to fullfil the kernel pool
-    archul_t ebuf[4];
+    archul_t ebuf[EBUF_ITEMS];
 
     // Parameters ranges sanitisation min values
     if( !loop_mult ) loop_mult = 1;
@@ -251,12 +266,13 @@ static int __init uchaos_init(void)
     // It is a mode index, every value is fine
     // badb_init = badb_init
 
-    prtkinfo("Init (bb:%d) auxiliary entropy source, quality: %d\n",
-        badb_init, entr_qlty);
-    __init4_djb2tum(ebuf);
+    len = __init4_djb2tum(ebuf, EBUF_ITEMS);
+    prtkinfo("Init (bb:%d,ts:%d,eb:%lu) entropy source, quality: %d\n",
+        badb_init, !!(ts_kbufptr), len, entr_qlty);
+    if (!kbuf) retnfree( -ENOMEM );
 
-    /* -------------------------------------------------------------------- */ {
-    size_t len = sizeof(ebuf);
+    /* ---------------------------------------------------------------------- */
+    len = sizeof(ebuf);
 
 #ifdef hwrng_register                  // UNTESTED branch
     int err;
@@ -295,12 +311,7 @@ static int __init uchaos_init(void)
         get_random_bytes(ebuf, sizeof(ebuf));
         prtkinfo("crng begins w/: 0x%016llx 0x%016llx\n", ebuf[0], ebuf[1]);
     }
-    /* -------------------------------------------------------------------- */ }
-
-    // static *ptr allocation at init means: go or not-go, there is not try
-    kbufptr = kzalloc(MAX_INPUT_SIZE + HASHSIZE, GFP_KERNEL);
-    if (!kbufptr) retnfree( -ENOMEM );
-    kbuf = (archul_t *)ABL_ALIGN( kbufptr );
+    /* ---------------------------------------------------------------------- */
 
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) retnfree( major );
@@ -355,7 +366,7 @@ static void __exit uchaos_exit(void)
     device_destroy(uchaos_class, MKDEV(major, 0));
     class_destroy(uchaos_class);
     unregister_chrdev(major, DEVICE_NAME);
-    if(verbosity)  printk(KERN_INFO MODULE_NAME ": unloaded\n");
+    if(verbosity) printk(KERN_INFO MODULE_NAME ": unloaded\n");
     retnfree((void)0);
 }
 

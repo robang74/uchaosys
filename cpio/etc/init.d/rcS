@@ -74,24 +74,30 @@ if grep "WRINIT" -q /proc/cmdline; then
   fi
 fi
 
-dmesg -r | head -c 8192 > d.txt
+dmesg_mangle() {
+  dmesg | tee dmesg.txt |\
+    grep -E "random: crng init|uchaos: Init"
+}
+
 echo; uname -a | sed -e "s,\(x86_64\) x86_64 x86_64,\\1,"
 if which uchaos >&3; then
-  test "$entrp" != "256" &&
-  uchaos -qZK1 -k /dev/random < d.txt | md5sum 2>&1 | grep . |\
-    sed -e "s,  -$, --> /dev/random by uChaos,"
-  pools=$(cat /proc/sys/kernel/random/poolsize)
-  entrq=$(cat /proc/sys/kernel/random/entropy_avail)
-  printf "\nActive console: %s, entropy: %d -> %d / %d bits\n" \
-      $acnsl $entrp $entrq $pools
-  dmesg | grep "random: crng init done"
-  grep -qe "UCTEST=" /proc/cmdline && sh /etc/uctests
+  if [ "$entrp" != "256" ] || grep -qe "UCTEST=0" /proc/cmdline; then
+    dmesg -r | uchaos -qZK1 -k /dev/random | md5sum 2>&1 | grep . |\
+      sed -e "s,  -$, --> /dev/random by uChaos,"
+    pools=$(cat /proc/sys/kernel/random/poolsize)
+    entrq=$(cat /proc/sys/kernel/random/entropy_avail)
+    printf "\nActive console: %s, entropy: %d -> %d / %d bits\n" \
+        $acnsl $entrp $entrq $pools
+  fi
+  dmesg_mangle
+  grep -qe "UCTEST=[1-9]" /proc/cmdline && sh /etc/uctests
 else
+  dmesg_mangle
   printf "Active console: %s, entropy: %d bits\n" $acnsl $entrp
 fi
 
 bnst=$(printf "0.%09d" $(( $(date +%s%N) - bttm )))
-bttm=$(dmesg | sed -ne "s,\[ *\([0-9.]*\)*\] Run /init .*,\\1,p" | head -c8)
+bttm=$(sed -ne "s,\[ *\([0-9.]*\)*\] Run /init .*,\\1,p" dmesg.txt | head -c8)
 printf "\e[?7h
       ===============================================
       Welcome to Minimal Linux System for QEMU x86_64

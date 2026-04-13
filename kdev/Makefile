@@ -4,14 +4,22 @@ MODULE_NAME := uchaos_dev
 obj-m += $(MODULE_NAME).o
 
 # Add GDB flags to force symbol generation during compilation
-EXTRA_CFLAGS += -g0 -O2 -Wall
+EXTRA_CFLAGS += -g0 -O2 -Wall -fstack-protector
+# not yet supported -ftrivial-auto-var-init=zero
+
+# Automatically create dependencies by c code files
+EXTRA_CFLAGS += -MD 
+-include $(sources:.c=.d)
 
 KERNVER ?= $(shell uname -r)
 
 # Point to your compiled kernel source or headers
 KO_FILE := $(MODULE_NAME).ko
-KDIR := linux-kernel/
-PWD  := $(shell pwd)
+KDIR    := linux-kernel
+PWD     := $(shell pwd)
+
+$(KDIR)/System.map:
+	@echo "ERROR: file '$(KDIR)/System.map' is required, exit 1."; exit 1
 
 KMAP := $(KDIR)/System.map System.map
 ADDR := 0x$(shell grep " _credit_init_bits" $(KMAP) 2>/dev/null |\
@@ -32,17 +40,27 @@ PRINTK := 0x$(shell grep -w "_printk" $(KMAP) 2>/dev/null |\
              tail -n1 | cut -d' ' -f1 | cut -d: -f2)
 ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 
-default:
-	@echo "_CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
-	$(MAKE) -C $(KDIR) M=$(PWD) modules_prepare modules
+OPTS := CFLAGS="$(CFLAGS)"
+OPTS += LDFLAGS="$(LDFLAGS)"
+OPTS += EXTRA_CFLAGS="$(EXTRA_CFLAGS)"
+
+$(KDIR)/.conf:
+	$(MAKE) -C $(KDIR) olddefconfig
+	touch $@
+
+default: uchaos_dev.h uckaos.c uckaos $(KDIR)/.conf
+	@echo ">>> _CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
+	$(MAKE) $(OPTS) -C $(KDIR) M=$(PWD) modules_prepare modules
 
 dist: default
 	@echo "Stripping debug symbols from uchaos_dev.ko..."
 	strip --strip-debug $(KO_FILE)
 	@echo "Compressing with gzip -9 ... "
 	gzip -9 -c $(KO_FILE) > $(KO_FILE).gz
-	@echo -n "Final size: "
+	@printf "Final size: "
 	@du -b $(KO_FILE).gz | tr '\t' ' '
+	@printf "Final size: "
+	@du -b uckaos | tr '\t' ' '
 
 sign: default
 	@echo "Signing the kernel module requires root priviledges"
@@ -50,6 +68,13 @@ sign: default
 	@echo ""
 	@echo "The signature is valid only if it is enrolled in UEFI"
 	@echo "Check the signature with 'sudo mokutil --list-enrolled'"
+
+%.ko: %.o
+
+%.o: %.c %.h
+
+uckaos: uckaos.c uchaos_dev.h
+	$(OPTS) $(CC) -O1 $@.c -I../usrl -o $@ -s
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

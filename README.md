@@ -159,5 +159,3 @@ This result has been achieved in 7-days from the initial commit of this project.
 
 The overall license for the uChaoSys binaries is dependent on the system components thus the GPLv2 is the reference as the most demanding license among those involved as long as "GPLv2 or later" means GPLv2 as an option.
 
-<br>
-

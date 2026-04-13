@@ -17,7 +17,7 @@ infl_cmd="tar -xzf"
 bin_dir="bin"
 src_dir="src"
 top_dir=$PWD
-dst_dir=$(realpath $PWD/../virt)
+dst_dir=$(realpath $PWD/output)
 
 export ARCH="x86_64"
 out_dir="$PWD/$bin_dir"
@@ -270,7 +270,10 @@ if [ ! -x $qbin ] ; then
   [ "$ldck" = "yes" ] && read -p "Press ENTER to continue: " pkey
   rm -f $qbin; cp -f $qbin.rsp $qbin.rsp.bak
   echo
+  echo "==============================="
+  echo
   echo "Fix the linking stage and repeat ..."
+  echo
   CFLAGS=""
   LDFLAGS=""
   for i in open stat; do
@@ -297,10 +300,16 @@ fi
 
 cp -f $qbin.rsp ../$qbin.rsp
 ${NM:-nm} -a $qbin >../$qbin.nma
+cd ..
+
+# target: install ##############################################################
+#function target_install() {
+mkdir -p $dst_dir
+cd $bld_dir
 #opts="--strip-all --remove-section=.comment --remove-section=.note"
-${STRIP:-strip} ${opt:--s} $qbin -o ../$qbin
+${STRIP:-strip} ${opt:--s} $qbin -o $dst_dir/$qbin
 for i in $roms; do cp -f ../$src_dir/pc-bios/$i $dst_dir; done
-cp -f ../$qbin $dst_dir
+chmod -x $dst_dir/*.{bin,rom}
 
 echo
 echo "==============================="
@@ -309,7 +318,7 @@ echo " Building path:\n\t$PWD"
 echo
 echo " Dynamic libraries involved:"
 
-cd ..
+cd $dst_dir
 ldd ./$qbin 2>&1
 echo
 if [ -n "$LIBA" ]; then
@@ -321,9 +330,8 @@ echo " Supported machines are:"
 ./$qbin -M help | grep -ve "^Supported" | shft
 echo
 
-cd $dst_dir
 echo " Hacked qemu footprint:"
 printf "\t$(du -k $qbin)\n"
 sze=$(( $(du -b $roms | cut -f1 | tr '\n' '+')0 ))
 printf "\t%4d\troms files\n\n" $(( ($sze + (1<<9)) >> 10 ))
-
+#}

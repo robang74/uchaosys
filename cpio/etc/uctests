@@ -4,20 +4,19 @@ for f in uchaos RNG_test; do
   test ! -x /bin/$f -a -x /bin/$f.gz.sh && ln -sf $f.gz.sh /bin/$f
 done
 
-if ! grep -qe "UCTEST=0" /proc/cmdline; then ###################################
+#if grep -qe "UCTEST=[1-9]" /proc/cmdline; then ################################
 
 if which uchaos >&3 && grep -q "UCTEST=1" /proc/cmdline; then
-  dmesg -r | head -c 8192 > d.txt
   echo
   echo "DEVEL TEST START"
   echo
   echo "Preliminary speed and stats check"
-  uchaos -SK512 < d.txt >/dev/null
+  uchaos -SK512 < dmesg.txt >/dev/null
   str=$(date +%N)
   printf "Generating randomness by $(uchaos -v 2>&1)\n\\_ Chunks: "
-  for n in $(seq 1 8); do uchaos -qqZ -M1 < d.txt >$n.dat;
+  for n in $(seq 1 8); do uchaos -qqZ -M1 < dmesg.txt >$n.dat;
     printf "$n "; done
-  n=x2; printf "$n ... "; uchaos -qqS -M8 < d.txt >$n.dat
+  n=x2; printf "$n ... "; uchaos -qqS -M8 < dmesg.txt >$n.dat
   printf "%d Mtk\n\n" $(( ($(date +%N) - $str)/1000000 ))
   cat *.dat | RNG_test stdin64 -tlshow 1024K
   printf "Files: "; ls -1 *.dat | tr '\t\n' '  '; echo
@@ -73,4 +72,4 @@ if grep -qe "UCTEST=9" /proc/cmdline; then
   fi
 fi
 
-fi #############################################################################
+#fi ############################################################################

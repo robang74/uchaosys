@@ -1,10 +1,12 @@
 kdev/linux-kernel
 kdev/linux-5.15.202.orig
+kdev/.uchaos_dev.o.d
 kdev/modules.order
 kdev/Module.symvers
 kdev/uchaos_dev.ko.gz
 kdev/uchaos_dev.ko
 usrl/uchaosbox
+kdev/uckaos
 kdev/*.cmd
 kdev/*.mod*
 kdev/*.o
@@ -26,6 +28,7 @@ virt/efi-virtio.rom
 virt/bios-256k.bin
 virt/kvmvapic.bin
 virt/qboot.rom
+virt/.done
 musl-output.tar.gz
 qemu/qemu-system-x86_64
 qemu/qemu-system-x86_64.ldc
@@ -33,5 +36,7 @@ qemu/qemu-system-x86_64.nma
 qemu/qemu-system-x86_64.rsp
 qemu/v10.2.2.tar.gz
 qemu/minz/miniz.o
+qemu/output
 qemu/build
 qemu/src
+.sync

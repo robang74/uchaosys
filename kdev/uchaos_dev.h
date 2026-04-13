@@ -4,7 +4,8 @@
  *
  */
 
-#define MAX_INPUT_SIZE (1024 << 3)
+#ifndef UCHAOS_DEV_H
+#define UCHAOS_DEV_H
 
 #define AB  (6)
 #define ABL (AB-3)        //  2 or  3
@@ -34,14 +35,61 @@
 #define rot2    17
 #define rot3    13
 
-#define HASHSEED 14695981039346656037ULL
+#define EBUF_ITEMS 4
 #define HASHSIZE (ABN >> 3)
+#define MAX_INPUT_SIZE (1024 << 3)
+#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+#define HASHSEED 14695981039346656037ULL
 
 typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 
 #define ABL_ALIGN(x) align_t(archul_t, x)
 
 static archul_t *kbuf = NULL; // Stack allocation, one char device only
+static archul_t *kbufptr = NULL;
+
+/*
+ * ABOUT CODE INVARIABILITY: among different optimisation levels than the current:
+ *
+ * objdump -d kdev/uchaos_dev.ko | grep -E "rotlbit|knuthmx|murmux3"
+ * 0000000000000000 <knuthmx>:
+ *
+ * with -O2 (current) only knuthmx remains a function, while others two are inlined.
+ * Forcing the always_inline attribute the code porting is more robust and uniform.
+ * After this change .ko size shrunk: 17752 --> 17648, .ko.gz: 5382 --> 5350 bytes.
+ */
+
+__attribute__((always_inline))
+static inline archul_t rotlbit(archul_t n, u8 c) {
+    c &= ABX; return (n << c) | (n >> ((-c) & ABX));
+}
+
+__attribute__((always_inline))
+static inline archul_t knuthmx(archul_t iw) {
+    register archul_t w = iw;
+    w  = rotlbit(w, getprmx16(w));
+    w *= (w & 1) ? 0x9E3779B9 : 0x045d9f3b;
+    w ^= rotlbit(w, (w & 2) ? rot1 : rot2);
+    return w;
+}
+
+__attribute__((always_inline))
+static inline archul_t murmux3(archul_t ks, archul_t p) {
+    register archul_t z = ks;
+    z =  p ^ ((z >> (ABx-2)) * murmul1);
+    z = (z ^ ( z <<  ABx  )) * murmul2;
+    z =  z ^ ( z >> (ABx+2));
+    return z;
+}
+
+#ifdef _SKIP_TSMEM_SEED
+#define USE_TSMEM_SEED 0
+#define ts_kbufptr    kbufptr
+#else
+#define USE_TSMEM_SEED 1
+#define ts_kbufptr ts.kbufptr
+#include "uchaos_mem.h"
+#endif
 
 /*
  * ATOMICITY ON A 1CPU vs SMP SYSTEM: the 'loop_failure' flag is read in many
@@ -51,30 +99,13 @@ static archul_t *kbuf = NULL; // Stack allocation, one char device only
  * The 'volatile' isn't a SMP memory barrier as we expect but each CPU core
  * cache therefore for the most general implementation 'atomic_t' is the way.
  */
-
-static inline archul_t rotlbit(archul_t n, u8 c) {
-    c &= ABX; return (n << c) | (n >> ((-c) & ABX));
-}
-
-static inline archul_t knuthmx(archul_t iw) {
-    register archul_t w = iw;
-    w  = rotlbit(w, getprmx16(w));
-    w *= (w & 1) ? 0x9E3779B9 : 0x045d9f3b;
-    w ^= rotlbit(w, (w & 2) ? rot1 : rot2);
-    return w;
-}
-
-static inline archul_t murmux3(archul_t ks, archul_t p)
-{
-    register archul_t z = ks;
-    z =  p ^ ((z >> (ABx-2)) * murmul1);
-    z = (z ^ ( z <<  ABx  )) * murmul2;
-    z =  z ^ ( z >> (ABx+2));
-    return z;
-}
-
 static atomic_t loop_failure = ATOMIC_INIT(0);
 
+/*
+ * Every static inline function called in djb2tum will be
+ * forced into inlining, regardless of its own attributes.
+ */
+__attribute__((flatten))
 static archul_t djb2tum(archul_t seed, size_t num)
 {
     static unsigned long failure_jiff = 0;
@@ -82,7 +113,7 @@ static archul_t djb2tum(archul_t seed, size_t num)
 
 #ifdef _PROVIDE_STATS
     static u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
-    static archul_t avg = 0, jmn = -1, jmx = 0;
+    static archul_t avg = 0, jmn = -1, jmx = 0, javg = 0;
 #endif
     volatile int i, j = 0; // volatile as current CPU memory barrier in the loop
     register archul_t ent = 0, hsh = ohs; // these two in particular need accel.
@@ -90,11 +121,11 @@ static archul_t djb2tum(archul_t seed, size_t num)
     u8 b0, b1, excp = 0;
 
 #ifdef _CHK_LOOP_FAIL
-    /*
-     * RATIONALE: also flooding the system of printks isn't a good idea, after all.
-     * There is not an easy way to fall in this "SYSBUG" but also not an easy way to
-     * deal with it because it is not within the coding/logic of this driver's scope.
-     */
+/*
+ * RATIONALE: also flooding the system of printks isn't a good idea, after all.
+ * There is not an easy way to fall in this "SYSBUG" but also not an easy way to
+ * deal with it because it is not within the coding/logic of this driver's scope.
+ */
     if( atomic_read( &loop_failure ) ) {
         if ( time_after(jiffies, failure_jiff + ONESEC) ) {
             failure_jiff = 0;
@@ -104,7 +135,7 @@ static archul_t djb2tum(archul_t seed, size_t num)
 #endif
 
     if( seed ) hsh ^= seed;
-    else { ons = ent = 0; }
+    else { ons = ent = 0; } // useless and gcc ignores, unless ons/ent defined static
 
     if( !ons ) {
         ons = ktime_get_ns();
@@ -119,19 +150,19 @@ static archul_t djb2tum(archul_t seed, size_t num)
  * -------------------------------------------------------------------------- */
 reschedule:
 #ifdef _CHK_LOOP_FAIL
-        /*
-         * RATIONALE: we cannot ignore that in some extreme conditions this code can
-         * create a livelock rescheduling for an unlimited number of times. Something
-         * exotic like ktime_get_ns() function pointer was corrupted in a way that it
-         * returns always the same value. The expectation is 3-12 range of reschedules
-         * for each function cold-call. When 1% might require 100x more, performance
-         * is halved and it is a degradation of the service but never a lock. Hopefully,
-         * we never see this kind of failure in a production system. In critical systems
-         * a lock/hack by ktime_get_ns() can cost a disaster, not just low-quality entropy
-         * or scarcity. Anyway, when ktime_get_ns() systematically fails much probably
-         * other parts of the kernel would create DoS or SysFail in such a way that
-         * uChaos will be the least of the issues. Not being a critical one, is enough.
-         */
+/*
+ * RATIONALE: we cannot ignore that in some extreme conditions this code can
+ * create a livelock rescheduling for an unlimited number of times. Something
+ * exotic like ktime_get_ns() function pointer was corrupted in a way that it
+ * returns always the same value. The expectation is 3-12 range of reschedules
+ * for each function cold-call. When 1% might require 100x more, performance
+ * is halved and it is a degradation of the service but never a lock. Hopefully,
+ * we never see this kind of failure in a production system. In critical systems
+ * a lock/hack by ktime_get_ns() can cost a disaster, not just low-quality entropy
+ * or scarcity. Anyway, when ktime_get_ns() systematically fails much probably
+ * other parts of the kernel would create DoS or SysFail in such a way that
+ * uChaos will be the least of the issues. Not being a critical one, is enough.
+ */
         // 2^10 is a large arbitrary value, don't overlook 'arbitrary' when coding
         if( (++j) >> 10 ) {
             failure_jiff = jiffies;
@@ -207,12 +238,12 @@ reschedule:
         // and this detour apports unpredicatbility not just flat-white noise.
         #define MAVG(x) (( tns > min_delta ) ? (x) : ~(x))
 
-        tns  = abs_t(u32, dlt - mavg);
-        ent ^= MAVG(dlt)  <<      ABz;       // 1st derivative of time
-        ent ^= MAVG(ons)  <<     rot3;      // current monotonic time
+        tns  = abs_t(u32, dlt - mavg)  ;
+        ent ^= MAVG(dlt)  <<      ABz  ;     // 1st derivative of time
+        ent ^= MAVG(ons)  <<     rot3  ;    // current monotonic time
         ent  = knuthmx(ent ^ MAVG(dff));   // 2nd derivative of time
 
-        b0 = ent & 0x01, b1 = ent & 0x02;
+        b0 = ent & 0x01; b1 = ent & 0x02;
         hsh = ( hsh << (4 + (b0 ? b1 : 1)) ) + (b1 ? -hsh : hsh);
         hsh ^= rotlbit( hsh ^ MAVG(tns), getprmx16(ent >> 2) );
 
@@ -224,20 +255,29 @@ reschedule:
     tcyl += num;
 #endif
 
-    /*
-     * RATIONALE: if 'goto enforcedquit' is enforced, the system is probably done
-     * and near an imminent collapse but this wouldn't allow to creates a DoS here
-     * rather than a soft-degradation of the service quality like doing LCG as RNG.
-     */
+/*
+ * RATIONALE: if 'goto enforcedquit' is enforced, the system is probably done
+ * and near an imminent collapse but this wouldn't allow to creates a DoS here
+ * rather than a soft-degradation of the service quality like doing LCG as RNG.
+ */
 enforcedquit:
     ent = hsh;                             // forget the entropy mixed in hash
     hsh = murmux3(hsh, ohs);               // whitening the hash before deliver
     ohs = ent;                             // keep the hashing internal state
 
+/*
+ * RATIONALE: preserving ohs and some other static variable is necessary while
+ * in general the variables values is better to reset them for avoid leaks.
+ * A more robust solution is using the -ftrivial-auto-var-init=zero by gcc.
+ */
+    ons = ent = tns = b0 = b1 = 0;         // zeroing for safety before return
+    dlt = dff = excp = i = j = 0;          // i,j as volatile do memory barrier
+                                           // unfortunately compiler can skip.
+
 #ifdef _PROVIDE_STATS
     nhsh++;
 #endif
-    return hsh;
+    return hsh; // to clean this value after return, a pointer should be used
 }
 
 static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
@@ -260,15 +300,31 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
     return sent;
 }
 
-static inline void __init4_djb2tum(archul_t *ebuf) {
-    archul_t seed;
-    seed = knuthmx(ktime_get_ns());
-    ebuf[0] = djb2tum(seed, loop_mult * init_runs);
+static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
+    archul_t seed = HASHSEED ^ ktime_get_ns();
+#if USE_TSMEM_SEED
+    kbuf = ts_mempages_zalloc();
+    seed = (!kbuf)  ? knuthmx(seed) : kbufptr_mseed(ktime_get_ns());
+#else
+    kbuf = NULL;
+    seed =            knuthmx(seed) ;
+#endif
+    seed = djb2tum(seed,  loop_mult * init_runs);
+    if(!kbuf) {
+      // static *ptr allocation at init means: go or not-go, there is not try
+      kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);
+      kbuf = (archul_t *)ABL_ALIGN( kbufptr );
+    }
+    if(!ebuf || nents < 4) return 0 ;
+
+    ebuf[0] = seed;
     // by default settings, the previous call with init_runs brings in variance
-    seed = murmux3(ktime_get_ns(), seed);
-    ebuf[1] = djb2tum(seed, loop_mult);
+    seed    = murmux3(ktime_get_ns(), seed);
+    ebuf[1] = djb2tum(seed,      loop_mult);
     // by default settings, further calls with loop_mult have a smaller variance
-    ebuf[2] = djb2tum(0,    loop_mult);
-    ebuf[3] = djb2tum(0,    loop_mult);
+    ebuf[2] = djb2tum(0,         loop_mult);
+    ebuf[3] = djb2tum(0,         loop_mult);
+    return 4;
 }
 
+#endif /* UCHAOS_DEV_H */

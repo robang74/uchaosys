@@ -100,8 +100,8 @@ index 000000000000..82bacfd0e26b
 +		 * truncation and loss of resolution
 +		 * Don't use fancier MULT/SHIFT math here.  Since this is
 +		 * static, the compiler can optimize the math operations.
-+		 */
-+		return (early_unsafe_cycles() * NS_PER_KHZ) / CONFIG_EARLY_CYCLES_KHZ;
++		 */ // Prevent division by zero, code review by david.laight.linux@gmail.com
++		return (early_unsafe_cycles() * NS_PER_KHZ) / (CONFIG_EARLY_CYCLES_KHZ ?: 1);
 +	return 0;
 +}
 +#else

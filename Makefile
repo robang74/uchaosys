@@ -58,11 +58,11 @@ define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
 endef
 
-.PHONY: all sources buildall install
+.PHONY: all update sources buildall install
 
 all:
 	rm -f $(MAKELOG)
-	for tg in sources buildall install; do $(MAKELNX) $$tg; done
+	for tg in update sources buildall install; do $(MAKELNX) $$tg; done
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig
@@ -70,7 +70,7 @@ all:
 SHA1_FILES := $(wildcard cnfg/hashes/*.sha1)
 MAKE_FILES := $(wildcard cnfg/Makefile.*)
 
-musl/.conf: $(SHA1_FILES) $(MAKE_FILES) $(KERNCFG) $(BBOXCFG) $(MUSLCFGMAK)
+musl/.conf: .sync $(SHA1_FILES) $(MAKE_FILES) $(KERNCFG) $(BBOXCFG) $(MUSLCFGMAK)
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
 #	for a in musl/Makefile musl/litecross/Makefile; do \
@@ -82,7 +82,7 @@ musl/.conf: $(SHA1_FILES) $(MAKE_FILES) $(KERNCFG) $(BBOXCFG) $(MUSLCFGMAK)
 	cp -alLf $(BBOXCFG) bbox/.config
 	touch $@
 
-defconfig:
+defconfig: .sync
 	rm -f musl/.conf && $(MAKELNX) musl/.conf
 
 gzcmd.sh:
@@ -306,7 +306,7 @@ distclean: veryclean
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh veryclean
 	for dir in musl bbox; do $(MAKELNX) -C $$dir $@ ||:; done
-	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) $(SDIR)/
+	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) $(SDIR)/ .sync
 
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys:

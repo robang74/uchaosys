@@ -79,7 +79,7 @@ distclean: veryclean
 # Rules for downloading and verifying sources. Treat an external SOURCES path as
 # immutable and do not try to download anything into it.
 
-ifeq ($(SOURCES),sources)
+ifeq ($(SOURCES),sources) ######################################################
 
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/binutils*)): SITE = $(BINUTILS_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/gcc*)): SITE = $(GCC_SITE)/$(basename $(basename $(notdir $@)))
@@ -116,10 +116,17 @@ $(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
-endif
+endif ##########################################################################
 
 
 # Rules for extracting and patching sources, or checking them out from git.
+
+define extract_tar
+	case "$1" in */*) exit 1 ;; esac
+	rm -rf $1.tmp ; mkdir $1.tmp
+	tar -C $1.tmp --strip-components=1 -$2 $3
+	rm -rf $1 ; mv $1.tmp/ $1 ; touch $1
+endef
 
 musl-git-%:
 	rm -rf $@.tmp
@@ -128,27 +135,17 @@ musl-git-%:
 	mv $@.tmp $@ ; touch $@
 
 %.orig: $(SOURCES)/%.tar.gz
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp ; mkdir $@.tmp
-	tar -C $@.tmp --strip-components=1 -zxf $<
-	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
+	$(call extract_tar,$@,xzf,$<)
 
 %.orig: $(SOURCES)/%.tar.bz2
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp ; mkdir $@.tmp
-	tar -C $@.tmp --strip-components=1 -jxf $<
-	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
+	$(call extract_tar,$@,xjf,$<)
 
 %.orig: $(SOURCES)/%.tar.xz
-	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp ; mkdir $@.tmp
-	tar -C $@.tmp --strip-components=1 -Jxf $<
-	rm -rf $@ ; mv $@.tmp/ $@ ; touch $@
+	$(call extract_tar,$@,xJf,$<)
 
 %: %.orig
 	case "$@" in */*) exit 1 ;; esac
-	rm -rf $@.tmp ; mkdir $@.tmp
-	( cd $@.tmp && $(COWPATCH) -I ../$< )
+	rm -rf $@.tmp ; mkdir $@.tmp; cd $@.tmp && $(COWPATCH) -I ../$<
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
 	rm -rf $@ ; mv $@.tmp $@ ; touch $@
 

@@ -63,6 +63,7 @@ endef
 all:
 	rm -f $(MAKELOG)
 	for tg in update sources buildall install; do $(MAKELNX) $$tg; done
+	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig
@@ -316,10 +317,12 @@ distclean: veryclean
 # target: buildsys /////////////////////////////////////////////////////////////
 buildsys:
 	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg; done
+	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: buildall /////////////////////////////////////////////////////////////
 buildall:
 	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg; done
+	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: buildemu /////////////////////////////////////////////////////////////
 .PHONY: buildemu

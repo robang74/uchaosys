@@ -146,6 +146,7 @@ if [ "${1:-}" = "sources" -o ! -d src/ ]; then
  MachineState *current_machine;
 EOF
 fi
+test "${1:-}" = "sources" && shift
 cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################
@@ -240,6 +241,7 @@ LDFLAGS="$LDFLAGS -Wl,-Bstatic $LIBA"
 
 if [ "${1:-}" != "noconfig" ]; then
   CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \
+    --gdb= \
     --audio-drv-list= \
     --without-default-devices \
     --without-default-features \
@@ -308,8 +310,8 @@ mkdir -p $dst_dir
 cd $bld_dir
 #opts="--strip-all --remove-section=.comment --remove-section=.note"
 ${STRIP:-strip} ${opt:--s} $qbin -o $dst_dir/$qbin
-for i in $roms; do cp -f ../$src_dir/pc-bios/$i $dst_dir; done
-chmod -x $dst_dir/*.{bin,rom}
+( cd ../$src_dir/pc-bios && cp -f $roms $dst_dir )
+chmod -x $dst_dir/*.rom
 
 echo
 echo "==============================="

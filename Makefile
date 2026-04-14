@@ -269,6 +269,10 @@ install: $(KIMG) $(CPIOTMP)/.done qemu/output/.done
 	@cd $(VDIR) && du -k $(QBIN) | tr '\t' ' '
 	@echo
 
+glib:
+	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
+	$(MAKELNX) -C musl $@
+
 # //////////////////////////////////////////////////////////////////////////////
 
 .PHONY: clean veryclean distclean buildsys qemutest qemurset runqemu

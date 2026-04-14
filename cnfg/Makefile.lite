@@ -4,7 +4,7 @@
 #     Makefile remains under the terms and authorship as previously it was.
 #
 
-OUTPUT = $(CURDIR)/output
+OUTPUT := $(CURDIR)/output
 
 BINUTILS_SRCDIR = BINUTILS_SRCDIR_not_set
 GCC_SRCDIR = GCC_SRCDIR_not_set
@@ -102,13 +102,16 @@ FULL_ZLIB_CONFIG = --static --disable-crcvx \
 FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
-FULL_MESON_CONFIG = --static --disable-shared \
-	--prefix= --host=$(TARGET)
+NINJIA := ninjia
+MESON  := $(OUTPUT)/bin/meson.pyz
 
-FULL_GLIB_CONFIG = --prefix= \
-    --cross-file $(OUTPUT)/../cross_musl.txt \
-		--buildtype=release --default-library=static \
-		-Dgio=disabled -Dtests=false -DHAVE_DECL_BASENAME=1
+FULL_GLIB_CONFIG = --static --disable-shared \
+	--prefix= --host=$(TARGET) \
+  --with-sysroot=$(SYSROOT) \
+  --buildtype=release --default-library=static \
+  -Dgio=disabled -Dtests=false -DHAVE_DECL_BASENAME=1
+
+# --cross-file=cross_musl.txt \
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -149,6 +152,11 @@ FULL_GCC_CONFIG += --build=$(BUILD) --host=$(HOST)
 MUSL_VARS =
 endif
 
+# Activate colors
+CFLAGS += -fdiagnostics-color=always
+CXXFLAGS += -fdiagnostics-color=always
+FULL_GLIB_CONFIG += --color=always
+
 ifeq ($(TARGET),)
 
 all:
@@ -167,11 +175,11 @@ musl: obj_musl/.lc_built
 
 toolchain: gcc binutils
 
-extra-libs: zlib pcre2 meson-install glibc
+extra-libs: zlib pcre2
 
 install-toolchain: install-gcc install-binutils
 
-install-libs: install-pcre2 install-zlib install-glib
+install-libs: install-pcre2 install-zlib
 
 binutils: obj_binutils/.lc_built
 
@@ -181,11 +189,18 @@ zlib: obj_zlib/.lc_built
 
 pcre2: obj_pcre2/.lc_built
 
-meson: obj_meson/.lc_built
+src_meson/meson.pyz: src_meson
+	cd $(MESON_SRCDIR) && python3 packaging/create_zipapp.py \
+	  --outfile meson.pyz --interpreter '/usr/bin/env python3' .
 
-glib: obj_glib/.lc_built
+install-meson: src_meson/meson.pyz
+	mkdir -p $(OUTPUT)/bin/
+	cp -aflL $(MESON_SRCDIR)/meson.pyz $(OUTPUT)/bin/
 
-.PHONY: all musl toolchain extra-libs install-musl install-toolchain-install install-libs clean
+glib: install-meson obj_glib/.lc_built install-glib
+
+.PHONY: all musl toolchain extra-libs glib clean
+.PHONY: install-musl install-toolchain install-meson install-libs
 
 src_binutils: | $(BINUTILS_SRCDIR)
 	ln -sf $(BINUTILS_SRCDIR) $@
@@ -317,21 +332,13 @@ obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
-obj_meson/.lc_built: | obj_meson/.lc_configured
-	cd obj_meson && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
-	touch $@
-
-obj_meson/.lc_configured: | obj_meson src_meson obj_sysroot/.lc_headers
-	cd obj_meson && ../src_meson/configure $(FULL_MESON_CONFIG)
-	touch $@
-
 obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
-	cd obj_glib && meson setup ../src_glib $(FULL_GLIB_CONFIG)
+	touch obj_glib/cross_musl.txt
+	cd obj_glib && $(MESON) setup --buildtype release --prefer-static --strip --optimization 1 --includedir $(OUTPUT)/include/ . ../src_glib
 	touch $@
 
 obj_glib/.lc_built: obj_glib/.lc_configured
-	touch obj_glib/cross_musl.txt
-	ninja -C obj_glib && touch $@
+	$(NINJIA) -C obj_glib && touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)"
@@ -353,17 +360,14 @@ install-zlib: | obj_zlib/.lc_built
 install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
 
-install-meson: | obj_meson/.lc_built
-	cd obj_meson && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
-
 install-zlib: | obj_zlib/.lc_built
 	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
 
 install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
 
-install-glib: | obj_glib/.lc_built
-	ninja -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install
+install-glib: install-meson | obj_glib/.lc_built
+	$(NINJIA) -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install
 	touch $@
 
 ifneq ($(LINUX_SRCDIR),)

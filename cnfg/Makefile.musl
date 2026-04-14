@@ -35,6 +35,7 @@ MPFR_SITE = $(GNU_SITE)/mpfr
 ISL_SITE = $(USR_SITE)/isl/archive/refs/tags
 ZLIB_SITE = $(USR_SITE)/zlib/archive/refs/tags
 PCRE2_SITE = $(USR_SITE)/pcre2/archive/refs/tags
+MESON_SITE = $(USR_SITE)/meson/archive/refs/tags
 
 MUSL_SITE = https://musl.libc.org/releases
 MUSL_REPO = https://git.musl-libc.org/git/musl
@@ -42,7 +43,6 @@ MUSL_REPO = https://git.musl-libc.org/git/musl
 LINUX_SITE = https://cdn.kernel.org/pub/linux/kernel
 LINUX_HEADERS_SITE = https://ftp.barfooze.de/pub/sabotage/tarballs
 
-MESON_SITE = https://github.com/mesonbuild/meson/releases/download/$(MESON_VER)
 GLIB_SITE = https://download.gnome.org/sources/glib/$(shell echo $(GLIB_VER) | cut -d. -f1,2)
 
 DL_CMD = wget -c -O
@@ -65,8 +65,8 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(ISL_VER),isl-$(ISL_VER)) \
 	$(if $(ZLIB_VER),zlib-$(ZLIB_VER)) \
 	$(if $(PCRE2_VER),pcre2-$(PCRE2_VER)) \
-	$(if $(GLIB_VER),glib-$(GLIB_VER)) \
 	$(if $(MESON_VER),meson-$(MESON_VER)) \
+	$(if $(GLIB_VER),glib-$(GLIB_VER)) \
 	$(if $(LINUX_VER),linux-$(LINUX_VER))
 
 all:
@@ -98,8 +98,8 @@ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/isl*)): SITE = $(ISL_SIT
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/musl*)): SITE = $(MUSL_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/zlib*)): SITE = $(ZLIB_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/pcre2*)): SITE = $(PCRE2_SITE)
-$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/meson*)): SITE = $(MESON_VER)
-$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/glib*)): SITE = $(GLIB_VER)
+$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/meson*)): SITE = $(MESON_SITE)
+$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/glib*)): SITE = $(GLIB_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-6*)): SITE = $(LINUX_SITE)/v6.x
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-5*)): SITE = $(LINUX_SITE)/v5.x
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-4*)): SITE = $(LINUX_SITE)/v4.x

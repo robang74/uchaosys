@@ -1,3 +1,5 @@
+This is a heavily "refactored by hands" patch (example) based on the one by
+
 From: Tim Bird <tim.bird@sony.com>
 Subject: [PATCH v4 1/1] printk: fix zero-valued printk timestamps in early boot
 Date: Fri, 10 Apr 2026 14:37:41 -0600
@@ -9,23 +11,29 @@ hinders boot-time optimization efforts.  This period ranges from
 17 to 1700 milliseconds on different embedded machines running Linux.
 
 Add support for early timestamps based on processor cycle-generators
-that need no kernel initialization. Use a statically-configured
-frequency value for converting cycles to nanoseconds. This means
-that this feature cannot be turned on in generic distro kernels.
-It is intended for temporary use during kernel development and
-boot-time research and optimization only.
+that need no kernel initialization.This feature isn't intended for a 
+generic distro kernels but for temporary use during kernel development
+and boot-time research and optimization by kernel hackers only.
 
 This yields non-zero timestamps for printks from the very start
 of kernel execution.  The timestamps are relative to the start of
 an architecture-specific counter (e.g. tsc on x86_64 and cntvct_el0
-on arm64).  Affected timestamps reflect time from cycle counter
-init (usually machine power-on or virtual machine start) instead of
-time from the kernel's timekeeping initialization. This results in a
-discontinuity in the printk timestamp values, one time, when
+on arm64). Affected timestamps reflect cycle counter related values
+since init (usually machine power-on or virtual machine start) instead
+of time from the kernel's timekeeping initialization. This results in
+a discontinuity in the printk timestamp values, one time, when
 kernel timekeeping starts.
 
 Signed-off-by: Tim Bird <tim.bird@sony.com>
+Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
 ---
+V5 -> V4
+  Rationale: single point of change hack for printk.
+  It provides a feature for kernel hackers willing to profiling the early boot
+  with a basic printk approach (rather than using HW monitors which might not
+  be available or immediately available). Thus, it is a first-look or a last
+  resort hack profiling feature. Something that isn't good to spread around
+  the kernel sources tree and it is fine to have into a single header file.
 V3 -> V4
   Replace config vars with single one: CONFIG_EARLY_CYCLES_KHZ
   Replace runtime calibration with static config variable
@@ -44,71 +52,36 @@ V1 -> V2
   Add early_ts_offset to avoid discontinuity
   Save cycles in ts_nsec, and convert on output
   Move conditional code to include file (early_times.h>
----
- include/linux/early_times.h | 55 +++++++++++++++++++++++++++++++++++++
- init/Kconfig                | 30 ++++++++++++++++++++
- kernel/printk/printk.c      |  3 ++
- 3 files changed, 88 insertions(+)
- create mode 100644 include/linux/early_times.h
 
-diff --git a/include/linux/early_times.h b/include/linux/early_times.h
+diff -pruN /dev/null kernel/printk/early_times.h
 new file mode 100644
 index 000000000000..82bacfd0e26b
 --- /dev/null
-+++ b/include/linux/early_times.h
-@@ -0,0 +1,55 @@
++++ kernel/printk/early_times.h
+@@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +
 +#ifndef _EARLY_TIMES_H
 +#define _EARLY_TIMES_H
 +
 +#include <linux/timekeeping.h>
-+#ifdef CONFIG_ARM64
-+#include <asm/sysreg.h>
-+#endif
 +
-+#ifdef CONFIG_EARLY_CYCLES_KHZ
-+static inline u64 early_unsafe_cycles(void)
-+{
-+#if defined(CONFIG_X86_64)
-+	/*
-+	 * This rdtsc may happen before secure TSC is initialized, and
-+	 * it is unordered. So please don't use this value for cryptography
-+	 * or after SMP is initialized.
-+	 */
-+	return rdtsc();
-+#elif defined(CONFIG_ARM64)
-+	return read_sysreg(cntvct_el0);
++/*
++ * Fencing isn't optional here, otherwise unreliable values displaying
++ */
++#if defined(CONFIG_ARM64)
++		#include <asm/sysreg.h>
++		#define __early_raw_cycles ({ u64 val; \
++		    asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
++#elif defined(CONFIG_X86_64)
++		#define __early_raw_cycles ({ u64 val; \
++		    asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
++		        : "=a"(val) : : "rdx"); val; })
 +#elif defined(CONFIG_RISCV_TIMER)
-+	u64 val;
-+	asm volatile("rdtime %0" : "=r"(val));
-+	return val;
++		#define __early_raw_cycles ({ u64 val; \
++		    asm volatile("fence; rdtime %0" : "=r"(val)); val; })
 +#else
-+	return 0;
-+#endif
-+}
-+
-+/* returns a nanosecond value based on early cycles */
-+static inline u64 early_times_ns(void)
-+{
-+		// 1. !fallback, always returns a value
-+		/* if (CONFIG_EARLY_CYCLES_KHZ)
-+		 * Note: the multiply must precede the division to avoid
-+		 * truncation and loss of resolution
-+		 * Don't use fancier MULT/SHIFT math here. Since this is
-+		 * static, the compiler can optimize the math operations.
-+		 */
-+		// 2. Elvis CYCLES_KHZ?:1 vs fallback, by david.laight.linux@gmail.com
-+		// 3. Need for mul_u64_u32_div() in early boot, by geert@linux-m68k.org
-+		return mul_u64_u32_div(early_unsafe_cycles(), NSEC_PER_MSEC,
-+				CONFIG_EARLY_CYCLES_KHZ ?: NSEC_PER_MSEC);
-+		// 4. patch fix with mul=div when 0?:, by roberto.foglietta@gmail.com
-+}
-+#else
-+static inline u64 early_times_ns(void)
-+{
-+	return 0;
-+}
++		#define __early_raw_cycles 0
 +#endif
 +
 +#endif /* _EARLY_TIMES_H */
@@ -116,39 +89,29 @@ diff --git a/init/Kconfig b/init/Kconfig
 index 7484cd703bc1..40c3123c2c27 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
-@@ -792,6 +792,36 @@ config IKHEADERS
+@@ -792,6 +792,26 @@ config IKHEADERS
  	  or similar programs.  If you build the headers as a module, a module called
  	  kheaders.ko is built which can be loaded on-demand to get access to headers.
  
-+config EARLY_CYCLES_KHZ
-+	int "Frequency of the early times cycle counter, in KHz"
++config EARLY_BOOT_TIMINGS
++	int "Early boot printk shows times in raw cycle counter style"
 +	default 0
 +	depends on PRINTK
 +	depends on ARM64 || X86_64 || RISCV_TIMER
 +	help
-+	  Specifies the frequency value (in KHz) of the cycle counter
-+	  used for early times information.
++	  Boolean value, disabled by default.
 +
-+	  Set this to provide timing information for printks in early boot
++	  Set this to provide cycles information for printks in early boot
 +	  (before the start of kernel timekeeping), that would otherwise
-+	  show as 0.
-+
-+	  To calculate the value for your system, boot your system, and
-+	  use the value expressed on the tsc or cntvct_el0 calibration line
-+	  in your kernel message log:
-+	  ex x86_64: tsc: Refined TSC clocksource calibration: 2095.057 MHz
-+          In that case, use the value 2095057.
-+	  ex arm64: arch_timer: cp15 timer running at 54.00MHz (phys).
-+	  In that case, use the value of 54000.
++	  show as 0. Profiling by relative monotonic values, not time. 
 +
 +	  Note that this causes the kernel to show, for some early printks,
-+	  times that are relative to processor power on, instead of
++	  cycles that are relative to processor power on, instead of
 +	  relative to the start of kernel timekeeping.  When kernel
 +	  timekeeping starts, the timestamps values reset, causing
-+	  a discontinuity in the timestamp values.  If you see
-+	  non-monotonic printk timestamps, please don't freak out.
++	  a discontinuity in the timestamp values.
 +
-+	  Set to 0 to disable this feature.
++	  If unsure, keep it disabled as per its default.
 +
  config LOG_BUF_SHIFT
  	int "Kernel log buffer size (16 => 64KB, 17 => 128KB)"
@@ -157,21 +120,23 @@ diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
 index 0323149548f6..ddeab81f04ef 100644
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
-@@ -46,6 +46,7 @@
- #include <linux/ctype.h>
- #include <linux/uio.h>
- #include <linux/sched/clock.h>
-+#include <linux/early_times.h>
- #include <linux/sched/debug.h>
- #include <linux/sched/task_stack.h>
- #include <linux/panic.h>
 @@ -2294,6 +2295,8 @@ int vprintk_store(int facility, int level,
  	 * timestamp with respect to the caller.
  	 */
  	ts_nsec = local_clock();
-+	if (unlikely(!ts_nsec))
-+		ts_nsec = early_times_ns();
  
++#if CONFIG_EARLY_BOOT_TIMINGS
++#include "early_times.h"
++		/*
++		 * Very few developers are using this feature and they're expecting to deal
++		 * with it as a single point of change hack to be further customised by them.
++		 * The right shift by 2^10 is a raw extimation to provide 6-figure within the
++		 * first second when the kernel internal cycle/nS calibration isn't ready yet.
++		 */
++		if (unlikely(!ts_nsec))
++			ts_nsec = __early_raw_cycles >> 10;
++#endif
++
  	caller_id = printk_caller_id();
  
 -- 

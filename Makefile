@@ -67,7 +67,7 @@ all:
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig
+.PHONY: update defconfig patches
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -75,21 +75,21 @@ MUSL_DPNDS += $(MUSLCFGMAK) bbox/.config $(KDIR)/.config
 
 PATCH_NAME := printk-early-boot-timestamps-hack-v5
 PATCH_NAME += bothering-warn_unseeded_randomness-fix
+PATHC_KDIR := musl/patches/linux-$(KERNVER)
 
-musl/.conf: $(MUSL_DPNDS)
+patches: .sync
+	mkdir -p $(PATHC_KDIR) && for fp in $(PATCH_NAME); do \
+	  cp -alLf cnfg/$$fp.patch $(PATHC_KDIR)/0001-$$fp.diff; done
+
+musl/.conf: patches $(MUSL_DPNDS)
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
-#	for a in musl/Makefile musl/litecross/Makefile; do \
-#		test -r $$a.bak || cp -af $$a $$a.bak; done ||:
 	cp -alLf cnfg/Makefile.musl musl/Makefile
 	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
-	mkdir -p musl/patches/linux-$(KERNVER)/
-	for f in $(PATCH_NAME); do cp -alLf cnfg/$$f.patch \
-	  musl/patches/linux-$(KERNVER)/0001-$$f.diff; done
 	touch $@
 
-defconfig: .sync
+defconfig:
 	rm -f musl/.conf && $(MAKELNX) musl/.conf
 
 gzcmd.sh:
@@ -163,7 +163,7 @@ $(KDIR)/.conf: | $(KDIR)/.config
 	$(MAKELNX) -C $(KDIR) olddefconfig
 	touch $@
 
-$(KIMG): $(KDIR)/.conf
+$(KIMG): patches $(KDIR)/.conf
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	$(MAKELNX) -C $(KDIR) all
 	cp -alLf $(KDIR)/arch/$(ARCH)/boot/bzImage $@
@@ -219,7 +219,6 @@ $(KDIR)/System.map: $(KIMG)
 
 kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
-#	$(MAKELNX) -C $(LNXPATH) all #modules_prepare
 	$(MAKELNX) -C kdev dist
 	@echo
 	touch $@
@@ -293,8 +292,6 @@ clean:
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
 	rm -f musl/{config.mak,.conf}
-#	for a in musl/Makefile musl/litecross/Makefile; do \
-#		test -r $$a.bak && cp -f $$a.bak $$a; done ||:
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
 # Protected by: test -r $lnxpath/.config

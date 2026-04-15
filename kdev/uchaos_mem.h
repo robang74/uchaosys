@@ -139,7 +139,7 @@ static u64 kbufptr_mseed(u64 t) {
   avgt = i ? IDIV(avgt * 10, i) : 0;
   prtkinfo("Init mts %uB access x%u times: %u < %u.%u > %u %s\n",
     (u32)sze, i, (u32)mint, (u32)(avgt / 10), (u32)(avgt % 10),
-      (u32)maxt, USE_RAW_CYCLES ? "uP" : "uS");
+      (u32)maxt, USE_RAW_CYCLES ? "uP" : "nS");
 #endif
   return v * TS_N_MULVAL;
 }

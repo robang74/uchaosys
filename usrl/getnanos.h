@@ -3,7 +3,9 @@
  *
  */
 
-static inline uint64_t get_nanos(void) {
+#define get_nanos() ({ volatile uint64 t = _get_nanos(); t; })
+
+static inline uint64_t _get_nanos(void) {
     static const unsigned long BLN = 1000000000;
     static uint64_t start = 0;
     struct timespec ts;

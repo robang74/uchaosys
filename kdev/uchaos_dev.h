@@ -30,7 +30,7 @@
   #endif
   #ifndef USE_RAW_CYCLES
     #define USE_RAW_CYCLES 0
-    #define get_time_ns() ktime_get_ns()
+    #define get_time_ns() ({ volatile u64 t = ktime_get_ns(); t; })
   #else
     #define get_time_ns() __early_raw_cycles
   #endif

@@ -1,3 +1,22 @@
+cnfg/bothering-warn_unseeded_randomness-fix.patch V1
+
+Better than hiding the warning, there is a third approach compared
+print_ratelimited() and printk_once(), printk one over N=256 which is
+fitting this specific case: usually at boot time too much printing for
+few seconds but still printing something in case the problem persists
+without clogging the log.
+
+On a SMP system the counter might be face a race condition due to non
+atomic increment and this can lead to skip a scheduled print or print
+two of them when just one was expected. No harm in both cases, anyway.
+
+To be honest, complaining that a suppression counter might be subject to
+a race condition on an SMP system - when, if it weren’t there, an alarm
+would be triggered stating that the system is initialising cryptographic
+directives without adequate entropy support - seems a bit surreal to me.
+
+Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
+
 --- a/drivers/char/random.c	2026-04-15 15:24:53.322497105 +0200
 +++ b/drivers/char/random.c	2026-04-15 15:27:22.362436555 +0200
 @@ -182,7 +182,8 @@ static void __cold process_random_ready_

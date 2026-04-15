@@ -1,4 +1,6 @@
-This is a heavily "refactored by hands" patch (example) based on the one by
+This is a heavily "refactored by hands" patch for Linux Kernel 5.15.202 LTS
+trying to solve the source tree janitoring vs 1-single place hack for hackers
+in need for a simple-bare profiling tool and based on the patch V4 submitted by
 
 From: Tim Bird <tim.bird@sony.com>
 Subject: [PATCH v4 1/1] printk: fix zero-valued printk timestamps in early boot
@@ -28,7 +30,7 @@ Signed-off-by: Tim Bird <tim.bird@sony.com>
 Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
 ---
 V5 -> V4
-  Rationale: single point of change hack for printk.
+  Rationale: single point of change hack for printk. Code rewritten, entirely.
   It provides a feature for kernel hackers willing to profiling the early boot
   with a basic printk approach (rather than using HW monitors which might not
   be available or immediately available). Thus, it is a first-look or a last
@@ -51,50 +53,16 @@ V1 -> V2
   Add 'depends on' to restrict arches (to handle ppc bug)
   Add early_ts_offset to avoid discontinuity
   Save cycles in ts_nsec, and convert on output
-  Move conditional code to include file (early_times.h>
+  Move conditional code to include file early_times.h
 
-diff -pruN /dev/null kernel/printk/early_times.h
-new file mode 100644
-index 000000000000..82bacfd0e26b
---- /dev/null
-+++ kernel/printk/early_times.h
-@@ -0,0 +1,26 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _EARLY_TIMES_H
-+#define _EARLY_TIMES_H
-+
-+#include <linux/timekeeping.h>
-+
-+/*
-+ * Fencing isn't optional here, otherwise unreliable values displaying
-+ */
-+#if defined(CONFIG_ARM64)
-+		#include <asm/sysreg.h>
-+		#define __early_raw_cycles ({ u64 val; \
-+		    asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
-+#elif defined(CONFIG_X86_64)
-+		#define __early_raw_cycles ({ u64 val; \
-+		    asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
-+		        : "=a"(val) : : "rdx"); val; })
-+#elif defined(CONFIG_RISCV_TIMER)
-+		#define __early_raw_cycles ({ u64 val; \
-+		    asm volatile("fence; rdtime %0" : "=r"(val)); val; })
-+#else
-+		#define __early_raw_cycles 0
-+#endif
-+
-+#endif /* _EARLY_TIMES_H */
-diff --git a/init/Kconfig b/init/Kconfig
-index 7484cd703bc1..40c3123c2c27 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -792,6 +792,26 @@ config IKHEADERS
- 	  or similar programs.  If you build the headers as a module, a module called
- 	  kheaders.ko is built which can be loaded on-demand to get access to headers.
+--- a/init/Kconfig	2026-04-15 11:34:05.823433712 +0200
++++ b/init/Kconfig	2026-04-15 11:36:12.703334604 +0200
+@@ -833,6 +833,26 @@ config PRINTK_INDEX
  
-+config EARLY_BOOT_TIMINGS
-+	int "Early boot printk shows times in raw cycle counter style"
+ 	  There is no additional runtime cost to printk with this enabled.
+ 
++config PRINTK_EARLY_BOOT_TIMINGS
++	bool "Early boot printk shows times in raw cycle counter style"
 +	default 0
 +	depends on PRINTK
 +	depends on ARM64 || X86_64 || RISCV_TIMER
@@ -113,31 +81,56 @@ index 7484cd703bc1..40c3123c2c27 100644
 +
 +	  If unsure, keep it disabled as per its default.
 +
- config LOG_BUF_SHIFT
- 	int "Kernel log buffer size (16 => 64KB, 17 => 128KB)"
- 	range 12 25
-diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
-index 0323149548f6..ddeab81f04ef 100644
---- a/kernel/printk/printk.c
-+++ b/kernel/printk/printk.c
-@@ -2294,6 +2295,8 @@ int vprintk_store(int facility, int level,
- 	 * timestamp with respect to the caller.
+ #
+ # Architectures with an unreliable sched_clock() should select this:
+ #
+--- /dev/null	2026-04-10 15:35:49.659741644 +0200
++++ b/kernel/printk/early_times.h	2026-04-15 11:32:49.786728602 +0200
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _EARLY_TIMES_H
++#define _EARLY_TIMES_H
++
++#include <linux/timekeeping.h>
++
++/*
++ * Fencing isn't optional here, otherwise unreliable values displaying
++ */
++#if defined(CONFIG_ARM64)
++	#include <asm/sysreg.h>
++	#define __early_raw_cycles ({ u64 val; \
++		asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
++#elif defined(CONFIG_X86_64)
++	#define __early_raw_cycles ({ u64 val; \
++		asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
++			: "=a"(val) : : "rdx"); val; })
++#elif defined(CONFIG_RISCV_TIMER)
++	#define __early_raw_cycles ({ u64 val; \
++		asm volatile("fence; rdtime %0" : "=r"(val)); val; })
++#else
++	#define __early_raw_cycles 0
++#endif
++
++#endif /* _EARLY_TIMES_H */
+--- a/kernel/printk/printk.c	2026-04-15 11:39:55.372066802 +0200
++++ b/kernel/printk/printk.c	2026-04-15 11:39:33.458953582 +0200
+@@ -2151,6 +2151,18 @@ int vprintk_store(int facility, int leve
  	 */
  	ts_nsec = local_clock();
  
-+#if CONFIG_EARLY_BOOT_TIMINGS
++#if CONFIG_PRINTK_EARLY_BOOT_TIMINGS
 +#include "early_times.h"
-+		/*
-+		 * Very few developers are using this feature and they're expecting to deal
-+		 * with it as a single point of change hack to be further customised by them.
-+		 * The right shift by 2^10 is a raw extimation to provide 6-figure within the
-+		 * first second when the kernel internal cycle/nS calibration isn't ready yet.
-+		 */
-+		if (unlikely(!ts_nsec))
-+			ts_nsec = __early_raw_cycles >> 10;
++	/*
++	 * Very few developers are using this feature and they're expecting to deal
++	 * with it as a single point of change hack to be further customised by them.
++	 * The right shift by 2^10 is a raw extimation to provide 6-figure within the
++	 * first second when the kernel internal cycle/nS calibration isn't ready yet.
++	 */
++	if (unlikely(!ts_nsec))
++		ts_nsec = __early_raw_cycles >> 10;
 +#endif
 +
- 	caller_id = printk_caller_id();
+ 	if (!printk_enter_irqsave(recursion_ptr, irqflags))
+ 		return 0;
  
--- 
-2.43.0

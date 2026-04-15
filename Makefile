@@ -67,7 +67,7 @@ all:
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig patches
+.PHONY: update defconfig
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -77,15 +77,13 @@ PATCH_NAME := printk-early-boot-timestamps-hack-v5
 PATCH_NAME += bothering-warn_unseeded_randomness-fix
 PATHC_KDIR := musl/patches/linux-$(KERNVER)
 
-patches: .sync
-	mkdir -p $(PATHC_KDIR) && for fp in $(PATCH_NAME); do \
-	  cp -alLf cnfg/$$fp.patch $(PATHC_KDIR)/0001-$$fp.diff; done
-
-musl/.conf: patches $(MUSL_DPNDS)
+musl/.conf: .sync $(MUSL_DPNDS)
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
 	cp -alLf cnfg/Makefile.musl musl/Makefile
 	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
+	mkdir -p $(PATHC_KDIR) && for fp in $(PATCH_NAME); do \
+	  cp -alLf cnfg/$$fp.patch $(PATHC_KDIR)/0001-$$fp.diff; done
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
 	touch $@
 
@@ -163,7 +161,7 @@ $(KDIR)/.conf: | $(KDIR)/.config
 	$(MAKELNX) -C $(KDIR) olddefconfig
 	touch $@
 
-$(KIMG): patches $(KDIR)/.conf
+$(KIMG): musl/.conf $(KDIR)/.conf
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	$(MAKELNX) -C $(KDIR) all
 	cp -alLf $(KDIR)/arch/$(ARCH)/boot/bzImage $@

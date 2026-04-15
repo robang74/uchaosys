@@ -42,23 +42,23 @@ The data reported below are indicative and specific for the reference tagged ver
 Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time:  970 s  (16m 10s)`&hairsp;¹
-- `dev/build environment size: 5529 MB (5.40 GB)`
-- `repository .zip copy  size:  464 KB (pdf+img)`
+- `dev/build environment size: 6490 MB (6.34 GB)`
+- `repository .zip copy  size:  476 KB (pdf+img)`
 
 Reference architecture **x86_64**, system footprint:
 
-- `uncompressed .cpio    size:  664 KB`
+- `uncompressed .cpio    size:  672 KB`
 - `initramfs.cpio.gz     size:  416 KB`
 - `linux kernel image    size: 1384 KB`
-- `qemu bootable system  size: 1800 KB (1.76 MB)`&hairsp;²
+- `qemu bootable system  size: 1808 KB (1.76 MB)`&hairsp;²
 
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.062 s `**!!!**
-- `total available memory in userland: 18876 KB`
-    - `host: 32768, zram: -4719, cpio:  -664 KB`
-    - `mlnx: 23544, used: -2448, buff: -1460 KB`
+- `total time for being ready to user: 0.068 s `**!!!**
+- `total available memory in userland: 18856 KB`
+    - `host: 32768, zram: -4714, cpio:  -664 KB`
+    - `mlnx: 23544, used: -2394, buff: -1492 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 

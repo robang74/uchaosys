@@ -41,7 +41,7 @@ The data reported below are indicative and specific for the reference tagged ver
 
 Reference processor **i5-8365**, toolchain metrics:
 
-- `system building total time: 1059 s  (17m 39s)`&hairsp;¹
+- `system building total time:  970 s  (16m 10s)`&hairsp;¹
 - `dev/build environment size: 5529 MB (5.40 GB)`
 - `repository .zip copy  size:  464 KB (pdf+img)`
 
@@ -116,7 +116,7 @@ cd uchaosys
 time make sources
 #    real	 2m42.075s
 time make buildall
-#    real	22m33.494s
+#    real	16m10.232s  <-- v0.6.8: -29%, parallelism
 # to run uChaoSys on u/qemu
 make runqemu
 

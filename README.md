@@ -62,7 +62,7 @@ Running this minimal system, the essential metrics:
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 
-¹ without accounting sources download variable time.<br>
+¹ in v0.6.8 without sources download variable time.<br>
 ² without `RNG_test` for which .cpio size +2.28 MB.
 
 <br>
@@ -116,15 +116,10 @@ cd uchaosys
 time make sources
 #    real	 2m42.075s
 time make buildall
-#    real	16m10.232s  <-- v0.6.8: -29%, parallelism
+#    real	20m53.959s  <-- v0.6.9: everything
+
 # to run uChaoSys on u/qemu
 make runqemu
-
-# ancillary activities
-time make rngtest
-#    real	 0m20.835s
-time make buildemu
-#    real	 2m55.193s
 # to test self-hosting u/qemu
 make uemutest
 ```

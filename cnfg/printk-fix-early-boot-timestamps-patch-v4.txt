@@ -81,7 +81,6 @@ index 000000000000..82bacfd0e26b
 +	return read_sysreg(cntvct_el0);
 +#elif defined(CONFIG_RISCV_TIMER)
 +	u64 val;
-+
 +	asm volatile("rdtime %0" : "=r"(val));
 +	return val;
 +#else
@@ -89,20 +88,21 @@ index 000000000000..82bacfd0e26b
 +#endif
 +}
 +
-+#define NS_PER_KHZ	((u32)1000000) // 0. anticipating the 32 bit cast, for devs 
-+
 +/* returns a nanosecond value based on early cycles */
 +static inline u64 early_times_ns(void)
 +{
-+		/* if (CONFIG_EARLY_CYCLES_KHZ) // 1. !fallback, always returns a value
++		// 1. !fallback, always returns a value
++		/* if (CONFIG_EARLY_CYCLES_KHZ)
 +		 * Note: the multiply must precede the division to avoid
 +		 * truncation and loss of resolution
 +		 * Don't use fancier MULT/SHIFT math here. Since this is
 +		 * static, the compiler can optimize the math operations.
-+		 */ // 2. Elvis NS_PER_KHZ?:1 vs fallback, by david.laight.linux@gmail.com
-+		    // 3. Need for mul_u64_u32_div() in early boot, by geert@linux-m68k.org
-+		return mul_u64_u32_div(early_unsafe_cycles(), NS_PER_KHZ, CONFIG_EARLY_CYCLES_KHZ ?: NS_PER_KHZ);
-+		    // 4. patch fix with mul=div when 0?:, by roberto.foglietta@gmail.com
++		 */
++		// 2. Elvis CYCLES_KHZ?:1 vs fallback, by david.laight.linux@gmail.com
++		// 3. Need for mul_u64_u32_div() in early boot, by geert@linux-m68k.org
++		return mul_u64_u32_div(early_unsafe_cycles(), NSEC_PER_MSEC,
++				CONFIG_EARLY_CYCLES_KHZ ?: NSEC_PER_MSEC);
++		// 4. patch fix with mul=div when 0?:, by roberto.foglietta@gmail.com
 +}
 +#else
 +static inline u64 early_times_ns(void)

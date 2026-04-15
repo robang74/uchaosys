@@ -29,12 +29,13 @@
 #define atomic_t bool
 #define ATOMIC_INIT(a) (a)
 #define printk(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
-#define ktime_get_ns get_nanos
+#define get_time_ns get_nanos
 #define cpu_relax sched_yield
 #define signal_pending(a) (a)
 #define prtkinfo printk
 #define current false
 #define GFP_KERNEL 0
+#define USE_RAW_CYCLES 0 // Always undefined in userland
 #define kfree free
 
 static int min_delta = 3;

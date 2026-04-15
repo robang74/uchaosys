@@ -40,9 +40,8 @@ PRINTK := 0x$(shell grep -w "_printk" $(KMAP) 2>/dev/null |\
              tail -n1 | cut -d' ' -f1 | cut -d: -f2)
 ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 
-OPTS := CFLAGS="$(CFLAGS)"
-OPTS += LDFLAGS="$(LDFLAGS)"
-OPTS += EXTRA_CFLAGS="$(EXTRA_CFLAGS)"
+ccflags-y += $(CFLAGS) $(EXTRA_CFLAGS)
+ldflags-y += $(LDFLAGS)"
 
 $(KDIR)/.conf:
 	$(MAKE) -C $(KDIR) olddefconfig

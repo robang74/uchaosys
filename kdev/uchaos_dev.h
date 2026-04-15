@@ -7,6 +7,35 @@
 #ifndef UCHAOS_DEV_H
 #define UCHAOS_DEV_H
 
+#ifdef __KERNEL__
+  #if defined(_USE_RAW_CYCLES) || !defined(MODULE)
+    /*
+     * Fencing isn't optional here, otherwise unreliable values displaying
+     */
+    #if defined(CONFIG_ARM64)
+      #define USE_RAW_CYCLES 1
+	    #include <asm/sysreg.h>
+	    #define __early_raw_cycles ({ u64 val; \
+		    asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
+    #elif defined(CONFIG_X86_64)
+      #define USE_RAW_CYCLES 1
+	    #define __early_raw_cycles ({ u64 val; \
+		    asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
+			    : "=a"(val) : : "rdx"); val; })
+    #elif defined(CONFIG_RISCV_TIMER)
+      #define USE_RAW_CYCLES 1
+	    #define __early_raw_cycles ({ u64 val; \
+		    asm volatile("fence; rdtime %0" : "=r"(val)); val; })
+    #endif
+  #endif
+  #ifndef USE_RAW_CYCLES
+    #define USE_RAW_CYCLES 0
+    #define get_time_ns() ktime_get_ns()
+  #else
+    #define get_time_ns() __early_raw_cycles
+  #endif
+#endif //__KERNEL__
+
 #define AB  (6)
 #define ABL (AB-3)        //  2 or  3
 #define ABN (1<<AB)       // 32 or 64
@@ -138,7 +167,7 @@ static archul_t djb2tum(archul_t seed, size_t num)
     else { ons = ent = 0; } // useless and gcc ignores, unless ons/ent defined static
 
     if( !ons ) {
-        ons = ktime_get_ns();
+        ons = get_time_ns();
         hsh = knuthmx(hsh ^ ons);
     }
 
@@ -153,13 +182,13 @@ reschedule:
 /*
  * RATIONALE: we cannot ignore that in some extreme conditions this code can
  * create a livelock rescheduling for an unlimited number of times. Something
- * exotic like ktime_get_ns() function pointer was corrupted in a way that it
+ * exotic like get_time_ns() function pointer was corrupted in a way that it
  * returns always the same value. The expectation is 3-12 range of reschedules
  * for each function cold-call. When 1% might require 100x more, performance
  * is halved and it is a degradation of the service but never a lock. Hopefully,
  * we never see this kind of failure in a production system. In critical systems
- * a lock/hack by ktime_get_ns() can cost a disaster, not just low-quality entropy
- * or scarcity. Anyway, when ktime_get_ns() systematically fails much probably
+ * a lock/hack by get_time_ns() can cost a disaster, not just low-quality entropy
+ * or scarcity. Anyway, when get_time_ns() systematically fails much probably
  * other parts of the kernel would create DoS or SysFail in such a way that
  * uChaos will be the least of the issues. Not being a critical one, is enough.
  */
@@ -185,7 +214,7 @@ reschedule:
         nexp++;
 #endif
         do {
-            tns = ktime_get_ns();
+            tns = get_time_ns();
             dlt = tns - ons;
             if( !dlt ) {                                      goto reschedule; }
             else ons = tns;
@@ -301,10 +330,10 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
 }
 
 static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
-    archul_t seed = HASHSEED ^ ktime_get_ns();
+    archul_t seed = HASHSEED ^ get_time_ns();
 #if USE_TSMEM_SEED
     kbuf = ts_mempages_zalloc();
-    seed = (!kbuf)  ? knuthmx(seed) : kbufptr_mseed(ktime_get_ns());
+    seed = (!kbuf)  ? knuthmx(seed) : kbufptr_mseed(get_time_ns());
 #else
     kbuf = NULL;
     seed =            knuthmx(seed) ;
@@ -319,7 +348,7 @@ static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
 
     ebuf[0] = seed;
     // by default settings, the previous call with init_runs brings in variance
-    seed    = murmux3(ktime_get_ns(), seed);
+    seed    = murmux3(get_time_ns(),  seed);
     ebuf[1] = djb2tum(seed,      loop_mult);
     // by default settings, further calls with loop_mult have a smaller variance
     ebuf[2] = djb2tum(0,         loop_mult);

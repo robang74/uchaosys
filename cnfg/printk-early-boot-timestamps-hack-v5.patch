@@ -8,9 +8,9 @@ Date: Fri, 10 Apr 2026 14:37:41 -0600
 Message-ID: <20260410203741.997410-2-tim.bird@sony.com>
 
 During early boot, printk timestamps are reported as zero before
-kernel timekeeping starts (i.e. before time_init()).  This
-hinders boot-time optimization efforts.  This period ranges from
-17 to 1700 milliseconds on different embedded machines running Linux.
+kernel timekeeping starts (i.e. before time_init()). This hinders
+boot-time optimization efforts. This period ranges from 17 to 1700
+milliseconds on different embedded machines running Linux.
 
 Add support for early timestamps based on processor cycle-generators
 that need no kernel initialization.This feature isn't intended for a 
@@ -18,7 +18,7 @@ generic distro kernels but for temporary use during kernel development
 and boot-time research and optimization by kernel hackers only.
 
 This yields non-zero timestamps for printks from the very start
-of kernel execution.  The timestamps are relative to the start of
+of kernel execution. The timestamps are relative to the start of
 an architecture-specific counter (e.g. tsc on x86_64 and cntvct_el0
 on arm64). Affected timestamps reflect cycle counter related values
 since init (usually machine power-on or virtual machine start) instead
@@ -57,7 +57,7 @@ V1 -> V2
 
 --- a/init/Kconfig	2026-04-15 11:34:05.823433712 +0200
 +++ b/init/Kconfig	2026-04-15 11:36:12.703334604 +0200
-@@ -833,6 +833,26 @@ config PRINTK_INDEX
+@@ -833,6 +833,27 @@ config PRINTK_INDEX
  
  	  There is no additional runtime cost to printk with this enabled.
  
@@ -66,16 +66,17 @@ V1 -> V2
 +	default 0
 +	depends on PRINTK
 +	depends on ARM64 || X86_64 || RISCV_TIMER
++	select PRINTK_TIME
 +	help
 +	  Boolean value, disabled by default.
 +
 +	  Set this to provide cycles information for printks in early boot
 +	  (before the start of kernel timekeeping), that would otherwise
-+	  show as 0. Profiling by relative monotonic values, not time. 
++	  show as 0. Profiling by relative monotonic values, not time.
 +
 +	  Note that this causes the kernel to show, for some early printks,
 +	  cycles that are relative to processor power on, instead of
-+	  relative to the start of kernel timekeeping.  When kernel
++	  relative to the start of kernel timekeeping. When kernel
 +	  timekeeping starts, the timestamps values reset, causing
 +	  a discontinuity in the timestamp values.
 +
@@ -115,7 +116,7 @@ V1 -> V2
 +#endif /* _EARLY_TIMES_H */
 --- a/kernel/printk/printk.c	2026-04-15 11:39:55.372066802 +0200
 +++ b/kernel/printk/printk.c	2026-04-15 11:39:33.458953582 +0200
-@@ -2151,6 +2151,18 @@ int vprintk_store(int facility, int leve
+@@ -2151,6 +2151,16 @@ int vprintk_store(int facility, int leve
  	 */
  	ts_nsec = local_clock();
  
@@ -124,11 +125,9 @@ V1 -> V2
 +	/*
 +	 * Very few developers are using this feature and they're expecting to deal
 +	 * with it as a single point of change hack to be further customised by them.
-+	 * The right shift by 2^10 is a raw extimation to provide 6-figure within the
-+	 * first second when the kernel internal cycle/nS calibration isn't ready yet.
 +	 */
 +	if (unlikely(!ts_nsec))
-+		ts_nsec = __early_raw_cycles >> 10;
++		ts_nsec = __early_raw_cycles;
 +#endif
 +
  	if (!printk_enter_irqsave(recursion_ptr, irqflags))

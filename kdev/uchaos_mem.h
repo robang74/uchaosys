@@ -99,6 +99,12 @@ static void *ts_mempages_zalloc(void) {
 
 #define IDIV(a,b) ({ u64 _a=(a), _b=(b); (_a + (_b >> 1)) / _b; })
 
+#ifndef _NO_PROVIDE_STATS // Logic inversion, stats here are light a 1-time only
+  #ifndef  _PROVIDE_STATS
+  #define  _PROVIDE_STATS
+  #endif
+#endif
+
 static u64 kbufptr_mseed(u64 t) {
   register unsigned i;
   register archul_t v = TS_N_ADDVAL;
@@ -116,7 +122,7 @@ static u64 kbufptr_mseed(u64 t) {
     for (i = 0; i < TS_N_REPLICAS; ++i) {
       memcpy((void *)ptr, (void *)_printk + ((u16)t1 & msk), sze);
       v ^= *ptr + TS_N_ADDVAL;
-      t2 = ktime_get_ns();
+      t2 = get_time_ns();
       dt = (t2 > t1) ? t2 - t1 : 0;
       v ^= rotlbit(v + dt - odt, dt);
       ptr = (volatile archul_t *)( (u64)buf + ((v + t1) & msk) );
@@ -131,8 +137,9 @@ static u64 kbufptr_mseed(u64 t) {
   }
 #ifdef _PROVIDE_STATS
   avgt = i ? IDIV(avgt * 10, i) : 0;
-  prtkinfo("Init mts %uB access x%u times: %u < %u.%u > %u nS\n",
-    (u32)sze, i, (u32)mint, (u32)(avgt / 10), (u32)(avgt % 10), (u32)maxt);
+  prtkinfo("Init mts %uB access x%u times: %u < %u.%u > %u %s\n",
+    (u32)sze, i, (u32)mint, (u32)(avgt / 10), (u32)(avgt % 10),
+      (u32)maxt, USE_RAW_CYCLES ? "uP" : "uS");
 #endif
   return v * TS_N_MULVAL;
 }

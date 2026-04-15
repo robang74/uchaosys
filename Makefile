@@ -30,8 +30,9 @@ KMOD        := uchaos_dev.ko
 # Tools and Options
 HOSTCC      := gcc
 CC          := $(CCPREFIX)gcc
+EXTRA_CFLAGS += -falign-functions=32
 OPTS        := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
-OPTS        += CFLAGS_EXTRA="-falign-functions=32" KERNVER=$(KERNVER)
+OPTS        += EXTRA_CFLAGS="$(EXTRA_CFLAGS)" KERNVER=$(KERNVER)
 GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH  := refs/heads/main
 
@@ -72,6 +73,8 @@ MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
 MUSL_DPNDS += $(MUSLCFGMAK) bbox/.config $(KDIR)/.config
 
+PATCH_NAME := printk-early-boot-timestamps-hack-v5
+
 musl/.conf: $(MUSL_DPNDS)
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
@@ -80,6 +83,9 @@ musl/.conf: $(MUSL_DPNDS)
 	cp -alLf cnfg/Makefile.musl musl/Makefile
 	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
+	mkdir -p musl/patches/linux-$(KERNVER)/
+	cp -alLf cnfg/$(PATCH_NAME).patch \
+	  musl/patches/linux-$(KERNVER)/0001-$(PATCH_NAME).diff
 	touch $@
 
 defconfig: .sync

@@ -3,13 +3,14 @@
  *
  */
 
-#define get_nanos() ({ volatile uint64 t = _get_nanos(); t; })
+#define get_nanos() ({ uint64_t _t=_get_nanos(); \
+                      asm volatile("" : "+g"(_t)); _t; })
 
-static inline uint64_t _get_nanos(void) {
+static inline volatile uint64_t _get_nanos(void) {
     static const unsigned long BLN = 1000000000;
     static uint64_t start = 0;
     struct timespec ts;
-
+    
     clock_gettime(CLOCK_MONOTONIC, &ts);
     if (!start) {
         start = (uint64_t)ts.tv_sec * BLN + ts.tv_nsec;

@@ -122,12 +122,27 @@ time make buildall
 make runqemu
 # to test self-hosting u/qemu
 make uemutest
+# function for further tests
+p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
 
 # to test speed and DRAM tail slayer jittering
-p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
 p8 | dd bs=1M of=/dev/null
+#> Init mts 4096B access x7 times: 90 < 983.1 > 4635 nS
+#> Init mts 4096B access x7 times: 81 < 859.9 > 4115 nS
+#> Init mts 4096B access x7 times: 56 < 628.0 > 3053 nS
+#> Init mts 4096B access x7 times: 56 < 679.4 > 3236 nS
+#> Init mts 4096B access x7 times: 56 < 637.0 > 3100 nS
+#> Init mts 4096B access x7 times: 83 < 866.1 > 4054 nS
+#> Init mts 4096B access x7 times: 91 < 891.4 > 4156 nS
+#> Init mts 4096B access x7 times: 83 < 880.6 > 4171 nS
+#> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 15.2865 s, 70.2 MB/s
+
 # QA w/ RNG_test using PractRand version 0.96
 p8 | prnd/RNG_test stdin64
+#> ...
+#> rng=RNG_stdin64, seed=unknown
+#> length= 1 gigabyte (2^30 bytes), time= 14.6 seconds
+#>  no anomalies in 227 test result(s)
 ```
 
 The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.

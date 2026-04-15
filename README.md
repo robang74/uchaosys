@@ -127,6 +127,12 @@ time make buildemu
 #    real	 2m55.193s
 # to test self-hosting u/qemu
 make uemutest
+
+# to test speed and DRAM tail slayer jittering
+p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
+p8 | dd bs=1M of=/dev/null
+# QA w/ RNG_test using PractRand version 0.96
+p8 | prnd/RNG_test stdin64
 ```
 
 The instructions above are able to provide the same output in about 20m, depending on the download transfer rate, unfortunately these days many GNU repositories are experiencing severe downtime.

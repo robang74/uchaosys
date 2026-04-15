@@ -1,0 +1,12 @@
+--- a/drivers/char/random.c	2026-04-15 15:24:53.322497105 +0200
++++ b/drivers/char/random.c	2026-04-15 15:27:22.362436555 +0200
+@@ -182,7 +182,8 @@ static void __cold process_random_ready_
+ }
+ 
+ #define warn_unseeded_randomness() \
+-	if (IS_ENABLED(CONFIG_WARN_ALL_UNSEEDED_RANDOM) && !crng_ready()) \
++	if (IS_ENABLED(CONFIG_WARN_ALL_UNSEEDED_RANDOM) && !crng_ready() \
++	&& !({ static u8 x=-1; ++x; })) \
+ 		printk_deferred(KERN_NOTICE "random: %s called from %pS with crng_init=%d\n", \
+ 				__func__, (void *)_RET_IP_, crng_init)
+ 

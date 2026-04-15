@@ -74,6 +74,7 @@ MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
 MUSL_DPNDS += $(MUSLCFGMAK) bbox/.config $(KDIR)/.config
 
 PATCH_NAME := printk-early-boot-timestamps-hack-v5
+PATCH_NAME += bothering-warn_unseeded_randomness-fix
 
 musl/.conf: $(MUSL_DPNDS)
 	@echo "START >>> "$@": "$^ | tee -a $(MAKELOG)
@@ -84,8 +85,8 @@ musl/.conf: $(MUSL_DPNDS)
 	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
 	mkdir -p musl/patches/linux-$(KERNVER)/
-	cp -alLf cnfg/$(PATCH_NAME).patch \
-	  musl/patches/linux-$(KERNVER)/0001-$(PATCH_NAME).diff
+	for f in $(PATCH_NAME); do cp -alLf cnfg/$$f.patch \
+	  musl/patches/linux-$(KERNVER)/0001-$$f.diff; done
 	touch $@
 
 defconfig: .sync

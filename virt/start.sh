@@ -106,7 +106,7 @@ if [ "${QZERO:-0}" = "0" ]; then
     qaccel="$qaccel -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc"
 #   netisl="$netisl -device virtio-net-pci,netdev=net0"
   fi
-  netisl="-net none"
+  netisl="-serial mon:stdio -net none"
 else
   echo
   echo "Zero Kelvin Linux mode"
@@ -117,7 +117,7 @@ else
   cmdlnx="$cmdlnx deferred_probe_timeout=0 page_alloc.shuffle=0 memtest=0"
   cmdlnx="lpj=2000000 noapic nolapic clocksource=pit video=off nomodeset $cmdlnx"
   cmdlnx="$cmdlnx random.trust_cpu=off mitigations=off"
-  netisl="-net none -nodefaults"
+  netisl="-serial mon:stdio -nodefaults"
 
   if [ "${ZWARM:-0}" = "1" ]; then
     qaccel="-cpu qemu64 -smp 1";

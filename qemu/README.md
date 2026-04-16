@@ -46,7 +46,7 @@ cp -arf virt cpio.tmp
 cd virt
 sh start.sh -uqm64
   > cd virt
-  > sh start.sh -w1 -zm32 -M q35
+  > sh start.sh -zw -m32 -M q35
   >   > free; head /proc/cpuinfo
   >   > qq
   > qq

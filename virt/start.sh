@@ -90,7 +90,7 @@ fi
 
 # Preparing the QEMU virtual machine configuration #############################
 
-export QTTYUC=${QTTYUC:-console=ttyS0,115200n8}
+export QTTYUC=${QTTYUC:-console=hvc0}
 
 cmdlnx="$cmdlnx HOST=x86_64 root=/dev/ram0 init=/init $QTTYUC net.ifnames=0 nokaslr"
 nograp="-nographic -vga none -display none"

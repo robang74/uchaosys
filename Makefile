@@ -4,53 +4,54 @@
 #
 
 # Settings /////////////////////////////////////////////////////////////////////
-ARCH        ?= x86_64
-ENV_VARS    ?=
-NCPU        ?= $(shell nproc)
-MUSLCFGMAK  := cnfg/musl-125x.config.mak
-BBOXCFG     := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
+ARCH         ?= x86_64
+ENV_VARS     ?=
+NCPU         ?= $(shell nproc)
+MUSLCFGMAK   := cnfg/musl-125x.config.mak
+BBOXCFG      := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 
 # Extract kernel version from config
-KERNVER     := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
+KERNVER      := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
                  tail -n1 | tr -dc 0-9.)
-KVER_SHORT  := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
-KERNCFG     := cnfg/linux-$(KVER_SHORT).config
+KVER_SHORT   := $(shell echo $(KERNVER) | tr -dc 0-9 | head -c3)x
+KERNCFG      := cnfg/linux-$(KVER_SHORT).config
 
 # Paths
-VDIR        := virt
-SDIR        := musl/sources
-KDIR        := musl/linux-$(KERNVER)
-QBIN        := qemu-system-$(ARCH)
-MUSLTGZ     := musl-output.tar.gz
-LNXPATH     := kdev/linux-kernel
-CCPREFIX    := $(ARCH)-linux-musl-
-CPIOTMP     := cpio.tmp
-KMOD        := uchaos_dev.ko
+VDIR         := virt
+SDIR         := musl/sources
+KDIR         := musl/linux-$(KERNVER)
+QBIN         := qemu-system-$(ARCH)
+MUSLTGZ      := musl-output.tar.gz
+LNXPATH      := kdev/linux-kernel
+CCPREFIX     := $(ARCH)-linux-musl-
+CPIOTMP      := cpio.tmp
+KMOD         := uchaos_dev.ko
+
+OUTPUT       ?= musl/output
+KIMG         := $(KDIR)/bzImage
+export PATH  := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
 # Tools and Options
-HOSTCC      := gcc
-CC          := $(CCPREFIX)gcc
+HOSTCC       := gcc
+CC           := $(CCPREFIX)gcc
 EXTRA_CFLAGS += -falign-functions=32
-OPTS        := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX) CCPREFIX=$(CCPREFIX)
-OPTS        += EXTRA_CFLAGS="$(EXTRA_CFLAGS)" KERNVER=$(KERNVER)
-GZCMD_REPO  := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
-GZCMD_PATH  := refs/heads/main
+OPTS         := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX)
+OPTS         += CCPREFIX=$(CCPREFIX) KERNVER=$(KERNVER)
+OPTS         += EXTRA_CFLAGS="$(EXTRA_CFLAGS)" PATH=$(PATH)
+GZCMD_REPO   := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
+GZCMD_PATH   := refs/heads/main
 
-OUTPUT      ?= musl/output
-KIMG        := $(KDIR)/bzImage
-export PATH := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
+KDIR_FILES   := $(addprefix $(KDIR)/, .config vmlinux bzImage System.map)
+VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))
+CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 
-KDIR_FILES  := $(addprefix $(KDIR)/, .config vmlinux bzImage System.map)
-VIRT_FILES  := $(addprefix virt/, *.bin *.rom .done $(QBIN))
-CONF_FILES  := $(addsuffix /.conf, bbox musl $(KDIR))
+ARTIFACTS    := bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
+ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done $(KIMG)
+ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
+ARTIFACTS    += prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/
 
-ARTIFACTS   := bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
-ARTIFACTS   += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done $(KIMG)
-ARTIFACTS   += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
-ARTIFACTS   += prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/
-
-MAKELNX     := $(MAKE) $(OPTS) -j$(NCPU)
-MAKELOG     := make.log
+MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
+MAKELOG      := make.log
 
 #QROMS      := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
 #QROMS_PATH := qemu/src/pc-bios
@@ -75,7 +76,7 @@ endef
 
 all:
 	rm -f $(MAKELOG)
-	for tg in update sources buildall install; do $(MAKELNX) $$tg; done
+	for tg in update sources buildall; do $(MAKELNX) $$tg; done
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
@@ -283,11 +284,12 @@ glib:
 	$(MAKELNX) -C musl $@
 
 # //////////////////////////////////////////////////////////////////////////////
+.PHONY: clean veryclean deepclean distclean buildsys qemutest qemurset runqemu
 
-.PHONY: clean veryclean distclean buildsys qemutest qemurset runqemu
-
-# target: clean ////////////////////////////////////////////////////////////////
 clean:
+	$(MAKELNX) realclean defconfig
+
+realclean:
 	@$(call print_start,"","Removing artifacts and cleaning virt/ folder")
 	rm -rf $(ARTIFACTS)
 	rm -f $(shell ls -1d virt/* | grep -v start.sh ||:)
@@ -302,40 +304,42 @@ clean:
 	rm -f bbox/.config
 # Remove all the hashes added, as well
 	rm -f musl/$(shell cd cnfg && command ls -1 hashes/* ||:)
+# Remove qemu binary
+	rm -f qemu/$(QBIN)
 
-# target: veryclean ////////////////////////////////////////////////////////////
-# This removes files that the script normally protects with 'test' or 'if' logic
-veryclean: clean
+veryclean: realclean
 	@$(call print_start,"","Cleaning ...")
 	echo gzcmd.sh minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
 	for dir in kdev usrl prnd $(LNXPATH); do $(MAKELNX) -C $$dir $@ ||:; done
 # Call qemu/make.sh clean
-	cd qemu && sh make.sh clean
+	cd qemu && sh make.sh $@
 # Call prnd/make veryclean
-	for dir in musl bbox; do $(MAKELNX) -C $$dir clean ||:; done
+	for dir in musl bbox qemu; do $(MAKELNX) -C $$dir clean ||:; done
 
-# target: distclean ////////////////////////////////////////////////////////////
-distclean: veryclean
+deepclean: veryclean
 	@$(call print_start,"","Removing everything apart from the updated repo")
 # Call qemu/make.sh veryclean
-	cd qemu && sh make.sh veryclean
+	cd qemu && sh make.sh $@
 	for dir in musl bbox; do $(MAKELNX) -C $$dir $@ ||:; done
-	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) $(SDIR)/ .sync
+	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) .sync
 
-# target: buildsys /////////////////////////////////////////////////////////////
+distclean: deepclean
+	cd qemu && sh make.sh $@
+	rm -rf $(SDIR)/
+	
+
+# target: build related ////////////////////////////////////////////////////////
+.PHONY: buildemu
+
 buildsys:
 	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg; done
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
-# target: buildall /////////////////////////////////////////////////////////////
 buildall:
 	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg; done
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
-# target: buildemu /////////////////////////////////////////////////////////////
-.PHONY: buildemu
-
-qemu/output/.done:
+qemu/output/.done: minz/amalgamation/.done
 	@$(call print_start,"","")
 	cd qemu && $(OPTS) time -p sh make.sh sources
 	touch $@
@@ -343,27 +347,33 @@ qemu/output/.done:
 virt/.done: qemu/output/.done
 	@$(call print_start,"","")
 	cp -alLf qemu/output/* virt/
+	$(MAKELNX) install
 	touch $@
 
 buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
 
-# target: qemurset //////////////////////////////////////////////////////////////
+# targets: qemu related ////////////////////////////////////////////////////////
+QEMU_FILES := virt/$(QBIN) virt/initramfs.cpio.gz
+
+virt/$(QBIN):
+	$(MAKELNX) buildemu
+
+virt/initramfs.cpio.gz:
+	$(MAKELNX) install
+
 qemurset:
 	@$(call print_start,"","")
 	rm -rf $(CPIOTMP)/virt $(CPIOTMP)/.done
 	$(MAKELNX) install
 
-# target: qemutest //////////////////////////////////////////////////////////////
-qemutest: virt/.done $(CPIOTMP)/.done
+qemutest: $(QEMU_FILES) $(CPIOTMP)/.done
 	@$(call print_start,"","")
 	rm -rf $(CPIOTMP)/virt/
-# cp -arf cpio/* $(CPIOTMP)/
 	sh cpio.sh -c
 	cp -arf virt/ $(CPIOTMP)/
 	cd virt && $(ENV_VARS) KARGS="UCTEST=9" sh start.sh -uqm64 -M q35
 
-# target: runqemu //////////////////////////////////////////////////////////////
-runqemu: virt/.done $(CPIOTMP)/.done
+runqemu: $(QEMU_FILES)
 	@$(call print_start,"","Prepare and start the KVM 32MB machine")
 	cd virt && $(ENV_VARS) sh start.sh -qm32 -M q35
 

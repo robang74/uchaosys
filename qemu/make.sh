@@ -39,7 +39,19 @@ if [ "${1:-}" = "clean" ]; then
   rm -rf $to_clean
   test "${2:-}" = "" && exit
   shift
-elif [ "${1:-}" = "veryclean" ]; then
+fi
+if [ "${1:-}" = "veryclean" ]; then
+  rm -rf $to_clean src/
+  test "${2:-}" = "" && exit
+  shift
+fi
+if [ "${1:-}" = "deepclean" ]; then
+  rm -rf $to_clean src/
+  rm -f $qbin $qbin.???
+  test "${2:-}" = "" && exit
+  shift
+fi
+if [ "${1:-}" = "distclean" ]; then
   rm -rf $to_clean src/
   rm -f $qbin $qbin.??? $url_name
   test "${2:-}" = "" && exit

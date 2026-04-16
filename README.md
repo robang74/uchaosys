@@ -171,6 +171,20 @@ The result above has been achieved in 7-days from the initial commit of this pro
 
 ![from-pre-kernel-boot-time-to-console.png](docs/from-pre-kernel-boot-time-to-console.png)
 
+Pre-Kernel boot time related to qemu, KVM and bios/roms is:
+- `0.251 / 1.896 = 0.13 s` **→** total: `0.298 s` (verbose printouts on the console)
+- `0.219 / 1.896 = 0.12 s` **→** total: `0.208 s` (**quiet**, boot data collection by dmesg)
+
+Printouts on the console are responsible for not less than 1/3 of the boot time **!!!**
+
+```sh
+virt/qemu-system-x86_64 -m 32 -kernel bzImage -initrd initramfs.cpio.gz \
+-nographic -vga none -display none -no-reboot -name tinylnx -enable-kvm \
+-cpu host,migratable=off,+invtsc -overcommit mem-lock=on -append 'quiet '\
+'HOST=x86_64 root=/dev/ram0 init=/init console=ttyS0,115200n8 net.ifnames=0 '\
+'nokaslr' -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc
+```
+
 <br>
 
 ### License

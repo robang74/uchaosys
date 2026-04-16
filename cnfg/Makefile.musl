@@ -1,7 +1,7 @@
 #
 # (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
 #     Copyright notice and related license applies to the changes, original
-#     Makefile remains under the terms and authorship as previously it was.
+#     Original remains under the terms and authorship as previously it was.
 #
 
 SOURCES = sources

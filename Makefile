@@ -1,6 +1,6 @@
 #
 # (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, MIT license
-#     Makefile created by converting make.lst shell script
+#     Makefile created by converting the initial make.lst shell script
 #
 
 # Settings /////////////////////////////////////////////////////////////////////
@@ -53,15 +53,12 @@ ARTIFACTS    += prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
 
-#QROMS      := bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom
-#QROMS_PATH := qemu/src/pc-bios
-
 define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
 endef
 
 define print_line
-	echo $1" $(date +%N) >>> "$@": "$^ | tee -a $(MAKELOG)
+	echo "$1 $(shell date +%s) >>> "$@": "$^ | tee -a $(MAKELOG)
 endef
 
 define print_start
@@ -76,7 +73,7 @@ endef
 
 all:
 	rm -f $(MAKELOG)
-	for tg in update sources buildall; do $(MAKELNX) $$tg; done
+	for tg in sources buildall; do $(MAKELNX) $$tg || exit 1; done
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
@@ -84,7 +81,7 @@ all:
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
-MUSL_DPNDS += $(MUSLCFGMAK) bbox/.config $(KDIR)/.config
+MUSL_DPNDS += $(MUSLCFGMAK) # bbox/.config $(KDIR)/.config
 
 PATCH_NAME := printk-early-boot-timestamps-hack-v6
 PATCH_NAME += bothering-warn_unseeded_randomness-fix
@@ -97,7 +94,7 @@ PATHC_KDIR := musl/patches/linux-$(KERNVER)
 	@echo
 	touch $@
 
-musl/.conf: .sync $(MUSL_DPNDS)
+musl/.conf: $(SDIR)/.done $(MUSL_DPNDS)
 	@$(call print_start,"","")
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
 	cp -alLf cnfg/Makefile.musl musl/Makefile
@@ -119,7 +116,7 @@ gzcmd.gz.sh: gzcmd.sh
 	sh $< $< gzcmd
 	touch $@
 
-$(SDIR)/.done: musl/.conf | gzcmd.gz.sh
+$(SDIR)/.done: .sync
 	@$(call print_start,"","Wait downloading sources ...")
 	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl extract_all
 	@echo "Sources download completed successfully"
@@ -129,9 +126,9 @@ $(SDIR)/.done: musl/.conf | gzcmd.gz.sh
 update: .sync
 
 defconfig:
-	rm -f musl/.conf && $(MAKELNX) musl/.conf
+	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
-sources: $(SDIR)/.done musl/.conf .sync | gzcmd.gz.sh
+sources: musl/.conf | gzcmd.gz.sh
 
 # target: toolchain ////////////////////////////////////////////////////////////
 .PHONY: toolchain
@@ -253,7 +250,7 @@ rngtest: prnd/RNG_test
 	@echo
 
 # target: install //////////////////////////////////////////////////////////////
-.PHONY: install
+.PHONY: install glib
 
 $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	@$(call print_start,"","")
@@ -326,17 +323,16 @@ deepclean: veryclean
 distclean: deepclean
 	cd qemu && sh make.sh $@
 	rm -rf $(SDIR)/
-	
 
 # target: build related ////////////////////////////////////////////////////////
 .PHONY: buildemu
 
 buildsys:
-	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg; done
+	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg || exit 1; done
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 buildall:
-	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg; done
+	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg || exit 1; done
 	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
 
 qemu/output/.done: minz/amalgamation/.done

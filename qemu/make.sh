@@ -19,7 +19,7 @@ src_dir="src"
 top_dir=$PWD
 dst_dir=$(realpath $PWD/output)
 
-export ARCH="x86_64"
+export ARCH="${ARCH:-x86_64}"
 out_dir="$PWD/$bin_dir"
 qbin="qemu-system-$ARCH"
 
@@ -159,13 +159,13 @@ if [ "${1:-}" = "sources" -o ! -d src/ ]; then
 EOF
 fi
 test "${1:-}" = "sources" && shift
-cp minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
+cp -af minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################
 
 path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 $xlto -falign-functions=32 $xppe"
+CFLAGS="-O1 -march=x86-64-v3 $xlto -falign-functions=32 $xppe $EXTRA_CFLAGS"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
 export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
@@ -215,8 +215,9 @@ if ! ls -1 slirp/libslirp*.p/*.o 2>/dev/null | grep -q \.o ; then
   set -e
   cd slirp
   rm -rf $bld_dir; mkdir -p $bld_dir
+# meson --reconfigure $bld_dir
   meson build --prefix=$PWD/$bld_dir
-  CFLAGS="$CFLAGS" ninja -j$ncpu -C $bld_dir
+  ninja -j$ncpu -C $bld_dir
   cd ..
   set +e
 fi

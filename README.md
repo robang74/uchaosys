@@ -167,7 +167,9 @@ Since v0.6.5 this project also provides the option of compiling an experimental 
 
 It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.44&nbsp;MB).
 
-This result has been achieved in 7-days from the initial commit of this project.
+The result above has been achieved in 7-days from the initial commit of this project. Here below after 1mo:
+
+![from-pre-kernel-boot-time-to-console.png](docs/from-pre-kernel-boot-time-to-console.png)
 
 <br>
 

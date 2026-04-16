@@ -85,7 +85,7 @@ MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
 MUSL_DPNDS += $(MUSLCFGMAK) bbox/.config $(KDIR)/.config
 
-PATCH_NAME := printk-early-boot-timestamps-hack-v5
+PATCH_NAME := printk-early-boot-timestamps-hack-v6
 PATCH_NAME += bothering-warn_unseeded_randomness-fix
 PATHC_KDIR := musl/patches/linux-$(KERNVER)
 

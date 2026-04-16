@@ -29,6 +29,11 @@ kernel timekeeping starts.
 Signed-off-by: Tim Bird <tim.bird@sony.com>
 Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
 ---
+V5 -> V6
+  Feature moved in the proper menu place, immediately after:
+  Kernel hacking -> printk and dmesg options -> show timitng information printks
+  Comments and descriptions more clearly indicate the aim and the limits of this
+  patch and the related feature introduced by this patch.
 V4 -> V5
   Rationale: single point of change hack for printk. Code rewritten, entirely.
   It provides a feature for kernel hackers willing to profiling the early boot
@@ -57,7 +62,7 @@ V1 -> V2
 
 --- a/lib/Kconfig.debug	2026-04-16 08:52:44.771618719 +0200
 +++ b/lib/Kconfig.debug	2026-04-16 08:55:08.358941989 +0200
-@@ -18,6 +18,27 @@ config PRINTK_TIME
+@@ -18,6 +18,29 @@ config PRINTK_TIME
  	  The behavior is also controlled by the kernel command line
  	  parameter printk.time=1. See Documentation/admin-guide/kernel-parameters.rst
  
@@ -70,9 +75,11 @@ V1 -> V2
 +	help
 +	  Boolean value, disabled by default.
 +
-+	  Set this to provide cycles information for printks in early boot
-+	  (before the start of kernel timekeeping), that would otherwise
-+	  show as 0. Profiling by relative monotonic values, not time.
++	  Set this option to provide cycles information for printks at early
++	  boot times (before the start of kernel timekeeping), that would
++	  otherwise show as 0.
++
++	  Useful for profiling by relative monotonic values, not time.
 +
 +	  Note that this causes the kernel to show, for some early printks,
 +	  cycles that are relative to processor power on, instead of
@@ -116,15 +123,17 @@ V1 -> V2
 +#endif /* _EARLY_TIMES_H */
 --- a/kernel/printk/printk.c	2026-04-15 11:39:55.372066802 +0200
 +++ b/kernel/printk/printk.c	2026-04-15 11:39:33.458953582 +0200
-@@ -2151,6 +2151,16 @@ int vprintk_store(int facility, int leve
+@@ -2151,6 +2151,18 @@ int vprintk_store(int facility, int leve
  	 */
  	ts_nsec = local_clock();
  
 +#if CONFIG_PRINTK_EARLY_BOOT_TIMINGS
 +#include "early_times.h"
 +	/*
-+	 * Very few developers are using this feature and they're expecting to deal
-+	 * with it as a single point of change hack to be further customised by them.
++	 * Very few developers are going to use this feature and it is
++	 * expected they're able to deal with it as a single entry-point of
++	 * changes. An hack to be further customised by them for porting the
++	 * kernel on not-yet-supported silicon or bug fixing / optimisations.
 +	 */
 +	if (unlikely(!ts_nsec))
 +		ts_nsec = __early_raw_cycles;

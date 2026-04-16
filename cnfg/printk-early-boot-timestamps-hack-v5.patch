@@ -55,11 +55,11 @@ V1 -> V2
   Save cycles in ts_nsec, and convert on output
   Move conditional code to include file early_times.h
 
---- a/init/Kconfig	2026-04-15 11:34:05.823433712 +0200
-+++ b/init/Kconfig	2026-04-15 11:36:12.703334604 +0200
-@@ -833,6 +833,27 @@ config PRINTK_INDEX
- 
- 	  There is no additional runtime cost to printk with this enabled.
+--- a/lib/Kconfig.debug	2026-04-16 08:52:44.771618719 +0200
++++ b/lib/Kconfig.debug	2026-04-16 08:55:08.358941989 +0200
+@@ -18,6 +18,27 @@ config PRINTK_TIME
+ 	  The behavior is also controlled by the kernel command line
+ 	  parameter printk.time=1. See Documentation/admin-guide/kernel-parameters.rst
  
 +config PRINTK_EARLY_BOOT_TIMINGS
 +	bool "Early boot printk shows times in raw cycle counter style"
@@ -80,11 +80,11 @@ V1 -> V2
 +	  timekeeping starts, the timestamps values reset, causing
 +	  a discontinuity in the timestamp values.
 +
-+	  If unsure, keep it disabled as per its default.
++	  If unsure, say N.
 +
- #
- # Architectures with an unreliable sched_clock() should select this:
- #
+ config PRINTK_CALLER
+ 	bool "Show caller information on printks"
+ 	depends on PRINTK
 --- /dev/null	2026-04-10 15:35:49.659741644 +0200
 +++ b/kernel/printk/early_times.h	2026-04-15 11:32:49.786728602 +0200
 @@ -0,0 +1,26 @@

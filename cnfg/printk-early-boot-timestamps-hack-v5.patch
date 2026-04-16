@@ -29,7 +29,7 @@ kernel timekeeping starts.
 Signed-off-by: Tim Bird <tim.bird@sony.com>
 Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
 ---
-V5 -> V4
+V4 -> V5
   Rationale: single point of change hack for printk. Code rewritten, entirely.
   It provides a feature for kernel hackers willing to profiling the early boot
   with a basic printk approach (rather than using HW monitors which might not

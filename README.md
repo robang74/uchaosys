@@ -113,6 +113,7 @@ url="github.com/robang74/uchaosys.git"
 git clone https://$url --jobs $(nproc)
 cd uchaosys
 #    git switch <branch>
+#    make update && copy -alLrf sources from previous
 time make sources
 #    real	 2m42.075s
 time make buildall

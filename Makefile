@@ -74,7 +74,7 @@ endef
 all:
 	rm -f $(MAKELOG)
 	for tg in sources buildall; do $(MAKELNX) $$tg || exit 1; done
-	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
+	$(call print_stop)
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig
@@ -124,6 +124,7 @@ $(SDIR)/.done: .sync
 	touch $@
 
 update: .sync
+	@$(call print_stop)
 
 defconfig:
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
@@ -328,12 +329,14 @@ distclean: deepclean
 .PHONY: buildemu
 
 buildsys:
+	@$(call print_start,"","
 	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg || exit 1; done
-	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
+	@$(call print_stop)
 
 buildall:
+	@$(call print_start,"","")
 	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg || exit 1; done
-	@echo "STOP >>> "$@": "$^ | tee -a $(MAKELOG)
+	@$(call print_stop)
 
 qemu/output/.done: minz/amalgamation/.done
 	@$(call print_start,"","")
@@ -347,6 +350,7 @@ virt/.done: qemu/output/.done
 	touch $@
 
 buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
+	@$(call print_stop)
 
 # targets: qemu related ////////////////////////////////////////////////////////
 QEMU_FILES := virt/$(QBIN) virt/initramfs.cpio.gz

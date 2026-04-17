@@ -94,7 +94,7 @@ PATHC_KDIR := musl/patches/linux-$(KERNVER)
 	@echo
 	touch $@
 
-musl/.conf: $(SDIR)/.done $(MUSL_DPNDS)
+musl/.conf: $(MUSL_DPNDS)
 	@$(call print_start,"","")
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
 	cp -alLf cnfg/Makefile.musl musl/Makefile
@@ -128,7 +128,7 @@ update: .sync
 defconfig:
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
-sources: musl/.conf | gzcmd.gz.sh
+sources: musl/.conf $(SDIR)/.done | gzcmd.gz.sh
 
 # target: toolchain ////////////////////////////////////////////////////////////
 .PHONY: toolchain
@@ -288,7 +288,7 @@ clean:
 
 realclean:
 	@$(call print_start,"","Removing artifacts and cleaning virt/ folder")
-	rm -rf $(ARTIFACTS)
+	rm -rf $(ARTIFACTS) $(SDIR)/*.tmp
 	rm -f $(shell ls -1d virt/* | grep -v start.sh ||:)
 	@echo "Removing custom configuration files and links"
 # Protected by: test -r musl/config.mak
@@ -306,7 +306,7 @@ realclean:
 
 veryclean: realclean
 	@$(call print_start,"","Cleaning ...")
-	echo gzcmd.sh minz/_build/ qemu/src/ | xargs -P0 -I {} rm -rf "{}"
+	rm -rf gzcmd.sh minz/_build/ qemu/src/
 	for dir in kdev usrl prnd $(LNXPATH); do $(MAKELNX) -C $$dir $@ ||:; done
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh $@

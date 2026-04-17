@@ -113,6 +113,7 @@ $(SOURCES):
 	mkdir -p $@
 
 $(SOURCES)/config.sub: | $(SOURCES)
+	echo "MUSL >>> $@: $^"
 	mkdir -p $@.tmp
 	cd $@.tmp && $(DL_CMD) $(notdir $@) "https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)"
 	cd $@.tmp && touch $(notdir $@)
@@ -120,13 +121,17 @@ $(SOURCES)/config.sub: | $(SOURCES)
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
-$(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
+$(SOURCES)/%.ok: hashes/%.sha1  | $(SOURCES)
+	echo "MUSL >>> $@: $^"
 	mkdir -p $@.tmp
 	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)
 	cd $@.tmp && touch $(notdir $@)
 	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).sha1
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
+	touch $@.ok
+
+$(SOURCES)/%: $(SOURCES)/%.ok
 
 endif ##########################################################################
 
@@ -141,6 +146,7 @@ define extract_tar
 endef
 
 musl-git-%:
+	echo "MUSL >>> $@: $^"
 	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
 	cd $@.tmp && git fsck
@@ -156,6 +162,7 @@ musl-git-%:
 	$(call extract_tar,$@,xJf,$<)
 
 %: %.orig
+	echo "MUSL >>> $@: $^"
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir $@.tmp; cd $@.tmp && $(COWPATCH) -I ../$<
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
@@ -178,12 +185,15 @@ all:
 else
 
 $(BUILD_DIR):
+	echo "MUSL >>> $@: $^"
 	mkdir -p $@
 
 $(BUILD_DIR)/Makefile: | $(BUILD_DIR)
+	echo "MUSL >>> $@: $^"
 	ln -sf $(REL_TOP)/litecross/Makefile $@
 
 $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
+	echo "MUSL >>> $@: $^"
 	printf >$@ '%s\n' \
 	"TARGET = $(TARGET)" \
 	"HOST = $(HOST)" \

@@ -121,7 +121,7 @@ $(SOURCES)/config.sub: | $(SOURCES)
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
-$(SOURCES)/%.ok: hashes/%.sha1  | $(SOURCES)
+$(SOURCES)/%.ok: hashes/%.sha1 | $(SOURCES)
 	echo "MUSL >>> $@: $^"
 	mkdir -p $@.tmp
 	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)

@@ -45,10 +45,10 @@ KDIR_FILES   := $(addprefix $(KDIR)/, .config vmlinux bzImage System.map)
 VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))
 CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 
-ARTIFACTS    := bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
+ARTIFACTS    := prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/ ucfg/pkg-config
+ARTIFACTS    += bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
 ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done $(KIMG)
 ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
-ARTIFACTS    += prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/
 
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
@@ -77,7 +77,7 @@ all:
 	$(call print_stop)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig
+.PHONY: update defconfig _sources
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -129,10 +129,13 @@ update: .sync
 defconfig:
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
-sources: musl/.conf $(SDIR)/.done | gzcmd.gz.sh
+_sources: musl/.conf $(SDIR)/.done | gzcmd.gz.sh
+
+sources:
+	@$(MAKELNX) _sources
 
 # target: toolchain ////////////////////////////////////////////////////////////
-.PHONY: toolchain
+.PHONY: toolchain _toolchain
 
 $(OUTPUT)/.done:
 	@$(call print_start,"","")
@@ -147,10 +150,13 @@ $(MUSLTGZ): $(OUTPUT)/.done
 	@$(call print_size,$@,m,MB)
 	@echo
 
-toolchain: $(SDIR)/.done $(OUTPUT)/.done $(MUSLTGZ)
+_toolchain: $(SDIR)/.done $(OUTPUT)/.done $(MUSLTGZ)
+
+toolchain:
+	@$(MAKELNX) _toolchain
 
 # target: bzImage //////////////////////////////////////////////////////////////
-.PHONY: bzImage
+.PHONY: bzImage _bzImage
 
 $(KDIR): $(SDIR)/.done
 	@$(call print_start,"","")
@@ -175,10 +181,13 @@ $(KIMG): musl/.conf $(KDIR) $(KDIR)/.conf
 	@echo
 	touch $@
 
-bzImage: $(SDIR)/.done musl/.conf $(KDIR) $(KDIR)/.conf $(KIMG)
+_bzImage: $(SDIR)/.done musl/.conf $(KDIR) $(KDIR)/.conf $(KIMG)
+
+bzImage:
+	@$(MAKELNX) _bzImage
 
 # target: busybox //////////////////////////////////////////////////////////////
-.PHONY: busybox
+.PHONY: busybox _busybox
 
 bbox/.config: $(BBOXCFG)
 	cp -alLf $(BBOXCFG) bbox/.config ||:
@@ -197,7 +206,10 @@ bbox/busybox.elf: | bbox/.conf
 	@file $@ | cut -d, -f1,2,4; $(call print_size,$@,k,KB)
 	@echo
 
-busybox: bbox/.config bbox/.conf bbox/busybox.elf
+_busybox: bbox/.config bbox/.conf bbox/busybox.elf
+
+busybox:
+	@$(MAKELNX) _busybox
 
 # target: miniz ////////////////////////////////////////////////////////////////
 .PHONY: miniz
@@ -326,21 +338,14 @@ distclean: deepclean
 	rm -rf $(SDIR)/
 
 # target: build related ////////////////////////////////////////////////////////
-.PHONY: buildemu
+.PHONY: buildemu _buildemu
 
-buildsys:
-	@$(call print_start,"","
-	for tg in bzImage busybox miniz uchaos rngtest; do $(MAKELNX) $$tg || exit 1; done
-	@$(call print_stop)
+ucfg/pkg-config:
+	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
 
-buildall:
+qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config
 	@$(call print_start,"","")
-	for tg in toolchain buildsys buildemu; do $(MAKELNX) $$tg || exit 1; done
-	@$(call print_stop)
-
-qemu/output/.done: minz/amalgamation/.done
-	@$(call print_start,"","")
-	cd qemu && $(OPTS) time -p sh make.sh sources
+	cd qemu && time -p sh make.sh sources
 	touch $@
 
 virt/.done: qemu/output/.done
@@ -349,7 +354,20 @@ virt/.done: qemu/output/.done
 	$(MAKELNX) install
 	touch $@
 
-buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
+_buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
+	@$(call print_stop)
+
+buildemu:
+	@$(MAKELNX) _buildemu
+
+buildsys:
+	@$(call print_start,"","")
+	for tg in _bzImage _busybox miniz uchaos rngtest; do $(MAKELNX) $$tg || exit 1; done
+	@$(call print_stop)
+
+buildall:
+	@$(call print_start,"","")
+	for tg in _toolchain buildsys _buildemu; do $(MAKELNX) $$tg || exit 1; done
 	@$(call print_stop)
 
 # targets: qemu related ////////////////////////////////////////////////////////

@@ -355,16 +355,16 @@ install-gcc: | obj_gcc/.lc_built
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
 
 install-zlib: | obj_zlib/.lc_built
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-pcre2: | obj_pcre2/.lc_built
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-zlib: | obj_zlib/.lc_built
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
+	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-pcre2: | obj_pcre2/.lc_built
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT)/lib install
+	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
 install-glib: install-meson | obj_glib/.lc_built
 	$(NINJIA) -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install

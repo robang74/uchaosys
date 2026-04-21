@@ -175,7 +175,7 @@ $(KIMG): musl/.conf $(KDIR) $(KDIR)/.conf
 	@echo
 	touch $@
 
-bzImage: $(SDIR)/.done musl/.conf $(KDIR) $(KDIR)/.conf $(KIMG)   
+bzImage: $(SDIR)/.done musl/.conf $(KDIR) $(KDIR)/.conf $(KIMG)
 
 # target: busybox //////////////////////////////////////////////////////////////
 .PHONY: busybox

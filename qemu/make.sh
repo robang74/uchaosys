@@ -165,21 +165,30 @@ cp -af minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
-CFLAGS="-O1 -march=x86-64-v3 $xlto -falign-functions=32 $xppe $EXTRA_CFLAGS"
+CFLAGS="-O1 -march=x86-64-v3 -falign-functions=32 $xppe $EXTRA_CFLAGS"
 export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
-export LDFLAGS="$LDFLAGS $xlto -Wl,--gc-sections -falign-functions=32"
+export LDFLAGS="$LDFLAGS -Wl,--gc-sections -falign-functions=32"
 
 export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
-export    CC="${CROSS_COMPILE}gcc"
-export    LD="${CROSS_COMPILE}ld"
-export    AR="${CROSS_COMPILE}ar"
-export    NM="${CROSS_COMPILE}nm"
-export STRIP="${CROSS_COMPILE}strip"
+export    CPP="${CROSS_COMPILE}g++"
+export     CC="${CROSS_COMPILE}gcc"
+export     LD="${CROSS_COMPILE}ld"
+export     AR="${CROSS_COMPILE}ar"
+export     NM="${CROSS_COMPILE}nm"
+export  STRIP="${CROSS_COMPILE}strip"
+export PKGCFG="$(realpath $PWD/../ucfg/pkg-config)"
 
 mkdir -p $bld_dir
 
 ################################################################################
+
+LIBA=""
+glib="/usr/lib/${ARCH}-linux-gnu"
+mlib="/usr/lib/${ARCH}-linux-musl"
+for i in $ld_libz $ld_glib; do # util pthread pcre2-8
+  LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
+done
 
 if [ ! -n "$ld_libz" ]; then
   luz="minz/miniz"
@@ -209,22 +218,55 @@ fi
 # - kernel-level acceleration (passthrough-like via TAP)
 # both should be available because they contributes jittering in different ways
 
-if ! ls -1 slirp/libslirp*.p/*.o 2>/dev/null | grep -q \.o ; then
+list_slirp_objs() { command ls -1 --color=never \
+  slirp/$bld_dir/libslirp.a.p/*.o 2>/dev/null | tr '\n' ' '; }
+
+if ! list_slirp_objs | grep -qe "\.o$"; then
   echo "Compiling libslirp ... "
   echo
   set -e
   cd slirp
+  case "$ARCH" in
+    mips*|ppc*|s390*) endian="big" ;;
+    *)                endian="little" ;;
+  esac
+  M_LDFLAGS=$(echo $LDFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
+  M_CFLAGS=$( echo  $CFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
+  M_LIBA=$(   echo    $LIBA | sed "s/ /', '/g; s/^/'/; s/$/'/")
+  cat <<EOF > cross.txt
+[binaries]
+c = 'gcc' # '$CC'
+cpp = 'g++' # '$CPP'
+ar = 'ar' # '$AR'
+nm = 'nm' # '$NM'
+strip = 'strip' # '$STRIP'
+pkgconfig = 'pkg-config' # '$PKGCFG'
+
+[built-in options]
+c_args = [$M_CFLAGS]
+cpp_args = [$M_CFLAGS]
+c_link_args = [$M_LDFLAGS,$M_LIBA]
+cpp_link_args = [$M_LDFLAGS,$M_LIBA]
+default_library = 'static'
+auto_features = 'disabled'
+#c_std = 'c99'
+
+[host_machine]
+system = 'linux'
+cpu_family = '$(echo $ARCH | sed 's/i.86/x86/')'
+cpu = '$ARCH'
+endian = '$endian'
+EOF
   rm -rf $bld_dir; mkdir -p $bld_dir
-# meson --reconfigure $bld_dir
-  meson build --prefix=$PWD/$bld_dir
+  meson setup $bld_dir --prefix=$PWD/$bld_dir --cross-file cross.txt
   ninja -j$ncpu -C $bld_dir
   cd ..
   set +e
 fi
+OBJS="$OBJS $(list_slirp_objs)"
 
 luc="libucustom"
 if [ ! -r "$luc.a" ]; then
-  OBJS="$OBJS "$(find slirp/$bld_dir/libslirp*.p/ -name \*.o)
   echo
   echo "Preparting libucustom ... "
   ${AR:-ar} rcs $bld_dir/$luc.a $OBJS
@@ -235,14 +277,8 @@ LIBA="$LIBA $top_dir/$bld_dir/$luc.a"
 ################################################################################
 
 cd $bld_dir
-CFLAGS="$CFLAGS -I$PWD"
+CFLAGS="$CFLAGS -I$PWD $xlto"
 hd="/usr/include"; cp $hd/zlib.h $hd/zconf.h . || exit 1
-
-glib="/usr/lib/${ARCH}-linux-gnu"
-mlib="/usr/lib/${ARCH}-linux-musl"
-for i in $ld_libz $ld_glib; do # util pthread pcre2-8
-  LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
-done
 
 printf "\nStatic libraries found:\n"
 prnt $LIBA #read -p "param 1: $1" key
@@ -250,7 +286,7 @@ echo
 if [ "$ld_glib" = "" ]; then
   LDFLAGS="$LDFLAGS -L$glib/libc.so.6 -Wl,-rpath,$glib -Wl,-Bdynamic -lglib-2.0"
 fi
-LDFLAGS="$LDFLAGS -Wl,-Bstatic $LIBA"
+LDFLAGS="$LDFLAGS $xlto -Wl,-Bstatic $LIBA"
 
 if [ "${1:-}" != "noconfig" ]; then
   CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \

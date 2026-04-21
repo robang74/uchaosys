@@ -13,3 +13,6 @@
 [submodule "slirp"]
 	path = qemu/slirp
 	url = https://github.com/robang74/libslirp.git
+[submodule "ucfg"]
+	path = ucfg
+	url = https://github.com/robang74/u-config.git

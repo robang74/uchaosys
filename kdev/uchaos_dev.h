@@ -19,6 +19,9 @@
 		    asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
     #elif defined(CONFIG_X86_64)
       #define USE_RAW_CYCLES 1
+		/*
+		 * Ignoring rdtscp is fine, supposing uchaos seeds the crng only
+		 */
 	    #define __early_raw_cycles ({ u64 val; \
 		    asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
 			    : "=a"(val) : : "rdx"); val; })

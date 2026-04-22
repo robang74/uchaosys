@@ -29,25 +29,27 @@ KMOD         := uchaos_dev.ko
 
 OUTPUT       ?= musl/output
 KIMG         := $(KDIR)/bzImage
+HDIR         := $(CURDIR)/$(OUTPUT)/$(ARCH)-linux-musl/include
 export PATH  := $(CURDIR)/$(OUTPUT)/bin:$(CURDIR)/$(OUTPUT)/$(ARCH)/bin:$(PATH)
 
 # Tools and Options
 HOSTCC       := gcc
 CC           := $(CCPREFIX)gcc
 EXTRA_CFLAGS += -falign-functions=32
+export EXTRA_CFLAGS := $(EXTRA_CFLAGS)
 OPTS         := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX)
 OPTS         += CCPREFIX=$(CCPREFIX) KERNVER=$(KERNVER)
 OPTS         += EXTRA_CFLAGS="$(EXTRA_CFLAGS)" PATH=$(PATH)
 GZCMD_REPO   := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
 GZCMD_PATH   := refs/heads/main
 
-KDIR_FILES   := $(addprefix $(KDIR)/, .config vmlinux bzImage System.map)
+KDIR_FILES   := $(addprefix $(KDIR)/, vmlinux bzImage System.map)
 VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))
 CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 
 ARTIFACTS    := prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/ ucfg/pkg-config
 ARTIFACTS    += bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
-ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done $(KIMG)
+ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
 ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
 
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
@@ -69,12 +71,20 @@ define print_stop
 	$(call print_line, "STOP ");
 endef
 
-.PHONY: all update sources buildall install
+.PHONY: all update sources buildall install status
 
 all:
 	rm -f $(MAKELOG)
 	for tg in sources buildall; do $(MAKELNX) $$tg || exit 1; done
 	$(call print_stop)
+
+status:
+	@echo "Target completed:"
+	@for i in $(ARTIFACTS); do ok="ok"; test -e "$$i" || ok="ko"; \
+	  echo "  $$i: $$ok"; done | grep -e ": ok$$" | sort
+	@echo "Target missing:"
+	@for i in $(ARTIFACTS); do ok="ok"; test -e "$$i" || ok="ko"; \
+	  echo "  $$i: $$ok"; done | grep -e ": ko$$" | sort
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig _sources
@@ -119,6 +129,7 @@ gzcmd.gz.sh: gzcmd.sh
 $(SDIR)/.done: .sync
 	@$(call print_start,"","Wait downloading sources ...")
 	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl extract_all
+	@$(call print_stop)
 	@echo "Sources download completed successfully"
 	@echo
 	touch $@
@@ -127,19 +138,23 @@ update: .sync
 	@$(call print_stop)
 
 defconfig:
+	rm -f bbox/.config bbox/.conf $(KDIR)/.hdrs
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
-_sources: musl/.conf $(SDIR)/.done | gzcmd.gz.sh
+_sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
 
 sources:
+	@$(call print_start,"","")
 	@$(MAKELNX) _sources
+	@$(call print_stop)
 
 # target: toolchain ////////////////////////////////////////////////////////////
 .PHONY: toolchain _toolchain
 
-$(OUTPUT)/.done:
+$(OUTPUT)/.done: $(KDIR)/.hdrs
 	@$(call print_start,"","")
 	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl install
+	@$(call print_stop)
 	touch $@
 
 $(MUSLTGZ): $(OUTPUT)/.done
@@ -153,7 +168,9 @@ $(MUSLTGZ): $(OUTPUT)/.done
 _toolchain: $(SDIR)/.done $(OUTPUT)/.done $(MUSLTGZ)
 
 toolchain:
+	@$(call print_start,"","")
 	@$(MAKELNX) _toolchain
+	@$(call print_stop)
 
 # target: bzImage //////////////////////////////////////////////////////////////
 .PHONY: bzImage _bzImage
@@ -171,9 +188,15 @@ $(KDIR)/.conf: | $(KDIR)/.config
 	$(MAKELNX) -C $(KDIR) olddefconfig
 	touch $@
 
+$(KDIR)/.hdrs: $(SDIR)/.done
+	@$(call print_start,"","")
+	$(MAKELNX) -C $(KDIR) INSTALL_HDR_PATH=$(CURDIR)/$(OUTPUT)/$(ARCH)-linux-musl headers_install
+	touch $@
+
 $(KIMG): musl/.conf $(KDIR) $(KDIR)/.conf
 	@$(call print_start,"","")
 	$(MAKELNX) -C $(KDIR) all
+	@$(call print_stop)
 	cp -alLf $(KDIR)/arch/$(ARCH)/boot/bzImage $@
 	@echo
 	@strings $(KDIR)/vmlinux | grep -e "^Linux version" | tr , \\n
@@ -181,10 +204,12 @@ $(KIMG): musl/.conf $(KDIR) $(KDIR)/.conf
 	@echo
 	touch $@
 
-_bzImage: $(SDIR)/.done musl/.conf $(KDIR) $(KDIR)/.conf $(KIMG)
+_bzImage: $(SDIR)/.done musl/.conf $(KDIR) $(KDIR)/.conf $(KDIR)/.hdrs $(KIMG)
 
 bzImage:
+	@$(call print_start,"","")
 	@$(MAKELNX) _bzImage
+	@$(call print_stop)
 
 # target: busybox //////////////////////////////////////////////////////////////
 .PHONY: busybox _busybox
@@ -195,21 +220,25 @@ bbox/.config: $(BBOXCFG)
 bbox/.conf: | bbox/.config
 	@$(call print_start,"","")
 	yes "" |  $(MAKE) $(OPTS) -j1 -C bbox oldconfig
+	@$(call print_stop)
 	touch $@
 
-bbox/busybox.elf: | bbox/.conf
-	@$(call print_start,"","")
+bbox/busybox.elf: | bbox/.conf $(KDIR)/.hdrs
 	rm -f $@
+	@$(call print_start,"","")
 	$(MAKELNX) -C bbox busybox
+	@$(call print_stop)
 	cp -alLf bbox/busybox $@
 	@echo
 	@file $@ | cut -d, -f1,2,4; $(call print_size,$@,k,KB)
 	@echo
 
-_busybox: bbox/.config bbox/.conf bbox/busybox.elf
+_busybox: bbox/.config bbox/.conf $(KDIR)/.hdrs bbox/busybox.elf
 
 busybox:
+	@$(call print_start,"","")
 	@$(MAKELNX) _busybox
+	@$(call print_stop)
 
 # target: miniz ////////////////////////////////////////////////////////////////
 .PHONY: miniz
@@ -221,6 +250,7 @@ minz/amalgamation/.done: cnfg/amalgamate.sh
 	touch $@
 
 miniz: minz/amalgamation/.done
+	@$(call print_stop)
 
 # target: uchaos ///////////////////////////////////////////////////////////////
 .PHONY: uchaos
@@ -234,12 +264,14 @@ $(KDIR)/System.map: $(KIMG)
 kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
 	@$(call print_start,"","")
 	$(MAKELNX) -C kdev dist
+	@$(call print_stop)
 	@echo
 	touch $@
 
 usrl/uchaosbox:
 	@$(call print_start,"","")
 	$(MAKELNX) -C usrl uchaosbox
+	@$(call print_stop)
 	@echo
 
 uchaos: minz/amalgamation/.done usrl/uchaosbox $(LNXPATH) kdev/$(KMOD).gz
@@ -256,6 +288,7 @@ uchaos: minz/amalgamation/.done usrl/uchaosbox $(LNXPATH) kdev/$(KMOD).gz
 prnd/RNG_test:
 	@$(call print_start,"","")
 	$(MAKELNX) CCSYSROOT="-static -mavx2" -C prnd RNG_test
+	@$(call print_stop)
 
 rngtest: prnd/RNG_test
 	@$(call print_start,"","")
@@ -309,7 +342,7 @@ realclean:
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
 # Protected by: test -r $lnxpath/.config
-	rm -f $(KDIR)/{.config,.conf}
+	rm -f $(KDIR)/{.config,.conf,.hdrs}
 # Protected by: test -r bbox/.config
 	rm -f bbox/.config
 # Remove all the hashes added, as well
@@ -331,7 +364,7 @@ deepclean: veryclean
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh $@
 	for dir in musl bbox; do $(MAKELNX) -C $$dir $@ ||:; done
-	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) .sync
+	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) $(MAKELOG) .sync
 
 distclean: deepclean
 	cd qemu && sh make.sh $@
@@ -358,7 +391,9 @@ _buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
 	@$(call print_stop)
 
 buildemu:
+	@$(call print_start,"","")
 	@$(MAKELNX) _buildemu
+	@$(call print_stop)
 
 buildsys:
 	@$(call print_start,"","")

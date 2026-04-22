@@ -5,7 +5,7 @@
 #
 
 TOPDIR ?= $(shell realpath ../../..)
-OUTPUT := $(CURDIR)/output
+OUTPUT := $(TOPDIR)/output
 
 BINUTILS_SRCDIR = BINUTILS_SRCDIR_not_set
 GCC_SRCDIR = GCC_SRCDIR_not_set
@@ -104,15 +104,18 @@ FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
 NINJA := ninja
-MESON := $(OUTPUT)/bin/meson.pyz
+MESON := $(TOPDIR)/output/bin/meson.pyz
 
-FULL_GLIB_CONFIG = --static --disable-shared \
-	--prefix= --host=$(TARGET) \
-  --with-sysroot=$(SYSROOT) \
+FULL_GLIB_CONFIG = -Dtests=false --prefix=/ \
   --buildtype=release --default-library=static \
-  -Dgio=disabled -Dtests=false -DHAVE_DECL_BASENAME=1
+  --strip --optimization 1 --wrap-mode=forcefallback \
 
-# --cross-file=cross_musl.txt \
+##  --wrap-mode=nodownload -Dzlib=enabled -Dpcre2=enabled -Dlibffi=enabled
+#
+#  -DHAVE_DECL_BASENAME=1
+#--buildtype release --prefer-static --strip --optimization 1 \
+#	  --includedir $(OUTPUT)/include/ --cross-file cross.ini obj_glib src_glib \
+#	    --wrap-mode=forcefallback --prefix=/ -Dtests=false -Ddefault_library=static
 
 ifneq ($(NATIVE),)
 HOST:=$(TARGET)
@@ -125,7 +128,7 @@ BUILD = $(GUESS)$(if $(subst $(TARGET_CANON),,$(GUESS)),,xx)
 endif
 
 ifeq ($(HOST),)
-SYSROOT = /$(TARGET)
+SYSROOT =  # /$(TARGET)
 FULL_BINUTILS_CONFIG += --build=$(BUILD) --host=$(BUILD)
 FULL_GCC_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot \
 	AR_FOR_TARGET=$(PWD)/obj_binutils/binutils/ar \
@@ -156,7 +159,6 @@ endif
 # Activate colors
 CFLAGS += -fdiagnostics-color=always
 CXXFLAGS += -fdiagnostics-color=always
-FULL_GLIB_CONFIG += --color=always
 
 ifeq ($(TARGET),)
 
@@ -180,7 +182,7 @@ extra-libs: zlib pcre2
 
 install-toolchain: install-gcc install-binutils install-meson
 
-install-libs: install-pcre2 install-zlib install-glib
+install-libs: install-pcre2 install-zlib
 
 binutils: obj_binutils/.lc_built
 
@@ -191,16 +193,16 @@ zlib: obj_zlib/.lc_built
 pcre2: obj_pcre2/.lc_built
 
 src_meson/meson.pyz: src_meson
-	cd $(MESON_SRCDIR) && python3 packaging/create_zipapp.py \
+	cd src_meson && python3 packaging/create_zipapp.py \
 	  --outfile meson.pyz --interpreter '/usr/bin/env python3' .
 
 install-meson: src_meson/meson.pyz
-	mkdir -p $(OUTPUT)/bin/
-	cp -aflL $(MESON_SRCDIR)/meson.pyz $(OUTPUT)/bin/
+	mkdir -p $(dir $(MESON))
+	cp -aflL $(MESON_SRCDIR)/meson.pyz $(MESON)
 
-glib: all install install-glib
+glib: install-glib
 
-.PHONY: all musl toolchain extra-libs glib clean
+.PHONY: all musl toolchain extra-libs glib install-glib clean
 .PHONY: install-musl install-toolchain install-meson install-libs
 
 src_binutils: | $(BINUTILS_SRCDIR)
@@ -229,8 +231,8 @@ endif
 
 ifneq ($(GLIB_SRCDIR),)
 src_glib: | $(GLIB_SRCDIR)
-	rm -rf $(GLIB_SRCDIR)/.git*
 	ln -sf $(GLIB_SRCDIR) $@
+	rm -rf $@/.git*
 endif
 
 ifneq ($(GMP_SRCDIR),)
@@ -273,7 +275,7 @@ obj_%:
 obj_sysroot/include:
 	mkdir -p $@
 
-obj_sysroot/usr: | obj_sysroot
+obj_sysroot/usr:   | obj_sysroot
 	ln -sf . $@
 
 obj_sysroot/lib32: | obj_sysroot
@@ -287,7 +289,7 @@ obj_binutils/.lc_configured: | obj_binutils src_binutils
 	touch $@
 
 obj_binutils/.lc_built: | obj_binutils/.lc_configured
-	cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all
+	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" -C obj_binutils all
 	touch $@
 
 obj_gcc/.lc_configured: | obj_gcc src_gcc
@@ -295,7 +297,7 @@ obj_gcc/.lc_configured: | obj_gcc src_gcc
 	touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
-	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" all-gcc
+	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" -C obj_gcc all-gcc
 	touch $@
 
 obj_musl/.lc_configured: | obj_musl src_musl
@@ -303,18 +305,18 @@ obj_musl/.lc_configured: | obj_musl src_musl
 	touch $@
 
 obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
-	cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers
+	$(MAKE) DESTDIR=$(CURDIR)/obj_sysroot -C obj_musl install-headers
 	touch $@
 
 obj_gcc/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
-	cd obj_gcc && $(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" all-target-libgcc
+	$(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" -C obj_gcc all-target-libgcc
 
 obj_musl/.lc_built: | obj_musl/.lc_configured
-	cd obj_musl && $(MAKE) $(MUSL_VARS)
+	$(MAKE) $(MUSL_VARS) -C obj_musl
 	touch $@
 
 obj_sysroot/.lc_libs: | obj_musl/.lc_built
-	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot install
+	$(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot -C obj_musl install
 	touch $@
 
 obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
@@ -322,7 +324,7 @@ obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
 	touch $@
 
 obj_zlib/.lc_built: | obj_zlib/.lc_configured
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
+	$(MAKE) MAKE="$(MAKE)" -C obj_zlib # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
@@ -330,47 +332,42 @@ obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 	touch $@
 
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
+	$(MAKE) MAKE="$(MAKE)" -C obj_pcre2 # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_glib/.lc_configured: | src_glib obj_sysroot/.lc_headers obj_glib
 	sed -i '/add_test_setup(.thorough./,+5d' src_glib/meson.build
-	MESON=$(MESON) PREFIX="$(TOPDIR)/output/bin/x86_64-linux-musl-" sh -x $(TOPDIR)/../cnfg/cross.sh obj_glib/cross.ini
-	cd obj_glib && $(MESON) setup --buildtype release --prefer-static --strip --optimization 1 --includedir $(OUTPUT)/include/ -Dtests=false --cross-file cross.ini . ../src_glib
+	MESON=$(MESON) PKGCFG="pkg-config" PREFIX="$(ARCH)-linux-musl-" \
+	  sh -x $(TOPDIR)/../cnfg/cross.sh cross.ini
+	$(MESON) setup $(FULL_GLIB_CONFIG) --cross-file cross.ini obj_glib src_glib
 	touch $@
 
 obj_glib/.lc_built: obj_glib/.lc_configured
-	$(NINJA) -C obj_glib && touch $@
+	$(NINJA) -C obj_glib
+	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
-	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)"
+	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" -C obj_gcc
 	touch $@
 
 install-musl: | obj_musl/.lc_built
-	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+	$(MAKE) $(MUSL_VARS) DESTDIR=$(OUTPUT)$(SYSROOT) -C obj_musl install
 
 install-binutils: | obj_binutils/.lc_built
-	cd obj_binutils && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
+	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(OUTPUT) -C obj_binutils install
 
 install-gcc: | obj_gcc/.lc_built
-	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(DESTDIR)$(OUTPUT) install
-	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
+	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(OUTPUT) -C obj_gcc install
+	ln -sf $(TARGET)-gcc $(OUTPUT)/bin/$(TARGET)-cc
 
 install-zlib: | obj_zlib/.lc_built
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+	$(MAKE) MAKE="$(MAKE)" DESTDIR=$(OUTPUT)$(SYSROOT) -C obj_zlib install
 
 install-pcre2: | obj_pcre2/.lc_built
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
-
-install-zlib: | obj_zlib/.lc_built
-	cd obj_zlib && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
-
-install-pcre2: | obj_pcre2/.lc_built
-	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+	$(MAKE) MAKE="$(MAKE)" DESTDIR=$(OUTPUT)$(SYSROOT) -C obj_pcre2 install
 
 install-glib: | obj_glib/.lc_built
-	DESTDIR=$(DESTDIR)$(OUTPUT) $(NINJA) -C obj_glib install
-	touch $@
+	DESTDIR=$(CURDIR) $(NINJA) -C obj_glib install
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))
@@ -389,8 +386,8 @@ obj_kernel_headers/.lc_built: | src_kernel_headers
 	find obj_kernel_headers/staged/include '(' -name .install -o -name ..install.cmd ')' -exec rm {} +
 	touch $@
 install-kernel-headers: | obj_kernel_headers/.lc_built
-	mkdir -p $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
-	cp -R obj_kernel_headers/staged/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
+	mkdir -p $(OUTPUT)$(SYSROOT)/include
+	cp -R obj_kernel_headers/staged/include/* $(OUTPUT)$(SYSROOT)/include
 endif
 endif
 

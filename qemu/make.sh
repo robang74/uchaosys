@@ -26,7 +26,7 @@ qbin="qemu-system-$ARCH"
 # PARAMETRIC BUILDING # ====================================================== #
 #
 # ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
-  ld_glib="glib-2.0"           # unset to have a glib-2.0 dynamic binary (TODO)
+# ld_glib="glib-2.0"           # unset to have a glib-2.0 dynamic binary (TODO)
   ncpu=$(nproc)                # number of pipelines for parallel compilation
   xppe="-pipe"                 # usually faster in compiling  but not always
   xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment
@@ -180,18 +180,22 @@ export     AR="${CROSS_COMPILE}ar"
 export     NM="${CROSS_COMPILE}nm"
 export  STRIP="${CROSS_COMPILE}strip"
 export  MESON="$path/bin/meson.pyz"
-export PKGCFG="$(realpath $PWD/../ucfg/pkg-config)"
+#export PKGCFG="$(realpath $PWD/../ucfg/pkg-config)"
+export PKGCFG="$path/$ARCH-linux-musl/usr/local/bin/pkg-config"
+export PKG_CONFIG_PATH="$path/$ARCH-linux-musl/usr/local/lib/pkgconfig/"
 
 mkdir -p $bld_dir
 
 ################################################################################
 
 LIBA=""
-glib="/usr/lib/${ARCH}-linux-gnu"
-mlib="/usr/lib/${ARCH}-linux-musl"
-for i in $ld_libz $ld_glib; do # util pthread pcre2-8
-  LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
-done
+if [ -n "$ld_libz$ld_glib" ]; then
+  libdir="/usr/lib/${ARCH}-linux-musl"
+  libdir="/usr/lib/${ARCH}-linux-gnu"
+  for i in $ld_libz $ld_glib; do # util pthread pcre2-8
+    LIBA="$LIBA "$(find $libdir/ -name lib$i.a | head -n1 )
+  done
+fi
 
 if [ ! -n "$ld_libz" ]; then
   luz="minz/miniz"

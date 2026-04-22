@@ -53,8 +53,10 @@ SHA1_CMD = sha1sum -c
 COWPATCH = $(CURDIR)/cowpatch.sh
 
 HOST = $(if $(NATIVE),$(TARGET))
-OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
-BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
+#OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
+#BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
+OUTPUT = $(CURDIR)/output
+BUILD_DIR = build/
 
 export TOPDIR = $(CURDIR)
 

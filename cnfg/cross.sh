@@ -5,13 +5,17 @@ case "$ARCH" in
   *)                endian="little" ;;
 esac
 
+LDFLAGS=${LDFLAGS:--g0}
+CFLAGS=${CFLAGS:--O1}
+LIBA=${LIBA:--s}
+
+CFLAGS="$CFLAGS -I$PWD/obj_sysroot/include -I$PWD/../output/include"
+
 M_LDFLAGS=$(echo $LDFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
 M_CFLAGS=$( echo  $CFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
 M_LIBA=$(   echo    $LIBA | sed "s/ /', '/g; s/^/'/; s/$/'/")
 
-eval test -n "$M_LDFLAGS" || M_LDFLAGS="'-g0'"
-eval test -n "$M_CFLAGS"  || M_CFLAGS="'-O1'"
-eval test -n "$M_LIBA"    || M_LIBA="'-s'"
+echo "meson: $MESON"
 
 CC=${CC:-${PREFIX}cc}
 AR=${AR:-${PREFIX}ar}

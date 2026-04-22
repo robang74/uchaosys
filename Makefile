@@ -125,6 +125,7 @@ musl/.conf: $(MUSL_DPNDS)
 	mkdir -p $(PATHC_KDIR) && for fp in $(PATCH_NAME); do \
 	  cp -alLf cnfg/$$fp.patch $(PATHC_KDIR)/0001-$$fp.diff; done
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
+	rm -f $(SDIR)/.done
 	touch $@
 
 gzcmd.sh:

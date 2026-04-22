@@ -177,7 +177,7 @@ toolchain: gcc binutils
 
 extra-libs: zlib pcre2
 
-install-toolchain: install-gcc install-binutils
+install-toolchain: install-gcc install-binutils install-meson
 
 install-libs: install-pcre2 install-zlib
 

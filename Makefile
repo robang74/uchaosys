@@ -58,7 +58,7 @@ MAKELOG      := make.log
 TRGDONE      := gzcmd.gz.sh kdev/uckaos prnd/RNG_test usrl/uchaosbox
 TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD).gz
 TRGDONE      += virt/initramfs.cpio.gz $(KIMG) qemu/output/$(QBIN)
-TRGDONE      += $(MUSLTGZ)
+TRGDONE      += musl/output/meson.pyz $(MUSLTGZ)
 
 define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
@@ -417,7 +417,7 @@ virt/.done: qemu/output/.done
 	$(MAKELNX) install
 	touch $@
 
-_buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
+_buildemu: $(KIMG) kdev/$(KMOD).gz qemu/output/.done virt/.done
 	@$(call print_stop)
 
 buildemu:

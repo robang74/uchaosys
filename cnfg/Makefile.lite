@@ -4,6 +4,7 @@
 #     Makefile remains under the terms and authorship as previously it was.
 #
 
+TOPDIR ?= $(shell realpath ../../..)
 OUTPUT := $(CURDIR)/output
 
 BINUTILS_SRCDIR = BINUTILS_SRCDIR_not_set
@@ -102,8 +103,8 @@ FULL_ZLIB_CONFIG = --static --disable-crcvx \
 FULL_PCRE2_CONFIG = --disable-shared \
 	--prefix= --host=$(TARGET)
 
-NINJIA := ninjia
-MESON  := $(OUTPUT)/bin/meson.pyz
+NINJA := ninja
+MESON := $(OUTPUT)/bin/meson.pyz
 
 FULL_GLIB_CONFIG = --static --disable-shared \
 	--prefix= --host=$(TARGET) \
@@ -179,7 +180,7 @@ extra-libs: zlib pcre2
 
 install-toolchain: install-gcc install-binutils install-meson
 
-install-libs: install-pcre2 install-zlib
+install-libs: install-pcre2 install-zlib install-glib
 
 binutils: obj_binutils/.lc_built
 
@@ -197,7 +198,7 @@ install-meson: src_meson/meson.pyz
 	mkdir -p $(OUTPUT)/bin/
 	cp -aflL $(MESON_SRCDIR)/meson.pyz $(OUTPUT)/bin/
 
-glib: install-meson obj_glib/.lc_built install-glib
+glib: all install install-glib
 
 .PHONY: all musl toolchain extra-libs glib clean
 .PHONY: install-musl install-toolchain install-meson install-libs
@@ -332,13 +333,14 @@ obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
-obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
-	touch obj_glib/cross_musl.txt
-	cd obj_glib && $(MESON) setup --buildtype release --prefer-static --strip --optimization 1 --includedir $(OUTPUT)/include/ . ../src_glib
+obj_glib/.lc_configured: | src_glib obj_sysroot/.lc_headers obj_glib
+	sed -i '/add_test_setup(.thorough./,+5d' src_glib/meson.build
+	MESON=$(MESON) PREFIX="$(TOPDIR)/output/bin/x86_64-linux-musl-" sh -x $(TOPDIR)/../cnfg/cross.sh obj_glib/cross.ini
+	cd obj_glib && $(MESON) setup --buildtype release --prefer-static --strip --optimization 1 --includedir $(OUTPUT)/include/ -Dtests=false --cross-file cross.ini . ../src_glib
 	touch $@
 
 obj_glib/.lc_built: obj_glib/.lc_configured
-	$(NINJIA) -C obj_glib && touch $@
+	$(NINJA) -C obj_glib && touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)"
@@ -366,8 +368,8 @@ install-zlib: | obj_zlib/.lc_built
 install-pcre2: | obj_pcre2/.lc_built
 	cd obj_pcre2 && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
-install-glib: install-meson | obj_glib/.lc_built
-	$(NINJIA) -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install
+install-glib: | obj_glib/.lc_built
+	DESTDIR=$(DESTDIR)$(OUTPUT) $(NINJA) -C obj_glib install
 	touch $@
 
 ifneq ($(LINUX_SRCDIR),)

@@ -56,7 +56,7 @@ HOST = $(if $(NATIVE),$(TARGET))
 OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
 BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
 
-REL_TOP = ../../..
+export TOPDIR = $(CURDIR)
 
 -include config.mak
 
@@ -190,26 +190,26 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)/Makefile: | $(BUILD_DIR)
 	echo "MUSL >>> $@: $^"
-	ln -sf $(REL_TOP)/litecross/Makefile $@
+	ln -sf $(TOPDIR)/litecross/Makefile $@
 
 $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	echo "MUSL >>> $@: $^"
 	printf >$@ '%s\n' \
 	"TARGET = $(TARGET)" \
 	"HOST = $(HOST)" \
-	"MUSL_SRCDIR = $(REL_TOP)/musl-$(MUSL_VER)" \
-	"GCC_SRCDIR = $(REL_TOP)/gcc-$(GCC_VER)" \
-	"BINUTILS_SRCDIR = $(REL_TOP)/binutils-$(BINUTILS_VER)" \
-	$(if $(GMP_VER),"GMP_SRCDIR = $(REL_TOP)/gmp-$(GMP_VER)") \
-	$(if $(MPC_VER),"MPC_SRCDIR = $(REL_TOP)/mpc-$(MPC_VER)") \
-	$(if $(MPFR_VER),"MPFR_SRCDIR = $(REL_TOP)/mpfr-$(MPFR_VER)") \
-	$(if $(ISL_VER),"ISL_SRCDIR = $(REL_TOP)/isl-$(ISL_VER)") \
-	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(REL_TOP)/zlib-$(ZLIB_VER)") \
-	$(if $(PCRE2_VER),"PCRE2_SRCDIR = $(REL_TOP)/pcre2-$(PCRE2_VER)") \
-	$(if $(MESON_VER),"MESON_SRCDIR = $(REL_TOP)/meson-$(MESON_VER)") \
-	$(if $(GLIB_VER),"GLIB_SRCDIR = $(REL_TOP)/glib-$(GLIB_VER)") \
-	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
-	"-include $(REL_TOP)/config.mak"
+	"MUSL_SRCDIR = $(TOPDIR)/musl-$(MUSL_VER)" \
+	"GCC_SRCDIR = $(TOPDIR)/gcc-$(GCC_VER)" \
+	"BINUTILS_SRCDIR = $(TOPDIR)/binutils-$(BINUTILS_VER)" \
+	$(if $(GMP_VER),"GMP_SRCDIR = $(TOPDIR)/gmp-$(GMP_VER)") \
+	$(if $(MPC_VER),"MPC_SRCDIR = $(TOPDIR)/mpc-$(MPC_VER)") \
+	$(if $(MPFR_VER),"MPFR_SRCDIR = $(TOPDIR)/mpfr-$(MPFR_VER)") \
+	$(if $(ISL_VER),"ISL_SRCDIR = $(TOPDIR)/isl-$(ISL_VER)") \
+	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(TOPDIR)/zlib-$(ZLIB_VER)") \
+	$(if $(PCRE2_VER),"PCRE2_SRCDIR = $(TOPDIR)/pcre2-$(PCRE2_VER)") \
+	$(if $(MESON_VER),"MESON_SRCDIR = $(TOPDIR)/meson-$(MESON_VER)") \
+	$(if $(GLIB_VER),"GLIB_SRCDIR = $(TOPDIR)/glib-$(GLIB_VER)") \
+	$(if $(LINUX_VER),"LINUX_SRCDIR = $(TOPDIR)/linux-$(LINUX_VER)") \
+	"-include $(TOPDIR)/config.mak"
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) $@

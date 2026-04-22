@@ -4,20 +4,36 @@ case "$ARCH" in
   mips*|ppc*|s390*) endian="big" ;;
   *)                endian="little" ;;
 esac
+
 M_LDFLAGS=$(echo $LDFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
 M_CFLAGS=$( echo  $CFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
 M_LIBA=$(   echo    $LIBA | sed "s/ /', '/g; s/^/'/; s/$/'/")
+
+eval test -n "$M_LDFLAGS" || M_LDFLAGS="'-g0'"
+eval test -n "$M_CFLAGS"  || M_CFLAGS="'-O1'"
+eval test -n "$M_LIBA"    || M_LIBA="'-s'"
+
+CC=${CC:-${PREFIX}cc}
+AR=${AR:-${PREFIX}ar}
+NM=${NM:-${PREFIX}nm}
+LD=${LD:-${PREFIX}ld}
+CPP=${CPP:-${PREFIX}g++}
+STRIP=${STRIP:-${PREFIX}strip}
+NINJA=${NINJA:-${PREFIX}ninja}
+MESON=${MESON:-${PREFIX}meson}
+PKGCFG=${PKGCFG:-${PREFIX}pkg-config}
+
 cat <<EOF > ${1:-cross.ini}
 [binaries]
-c = 'gcc' # '$CC'
-ar = 'ar' # '$AR'
-nm = 'nm' # '$NM'
-ld = 'ld' # '$LD'
-cpp = 'g++' # '$CPP'
-strip = 'strip' # '$STRIP'
-ninja = 'ninja' # '$NINJA'
+c = '$CC'
+ar = '$AR'
+nm = '$NM'
+ld = '$LD'
+cpp = '$CPP'
+strip = '$STRIP'
+ninja = '$NINJA'
 meson = '$MESON' # 'meson'
-pkg-config = 'pkg-config' # '$PKGCFG'
+pkg-config = '$PKGCFG'
 
 [built-in options]
 c_args = [$M_CFLAGS]

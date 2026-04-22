@@ -164,6 +164,7 @@ cp -af minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################
 
+cnfgpath="$(realpath $PWD/../cnfg)"
 path="$(realpath $PWD/../musl/output)"
 export PATH="$path/bin:$path/$ARCH/bin:$PATH"
 CFLAGS="-O1 -march=x86-64-v3 -falign-functions=32 $xppe $EXTRA_CFLAGS"
@@ -230,7 +231,7 @@ if ! list_slirp_objs | grep -qe "\.o$"; then
   set -e
   cd slirp
   rm -rf $bld_dir; mkdir -p $bld_dir
-  LIBA="$LIBA" sh ../cross.sh $crf
+  LIBA="$LIBA" sh $cnfgpath/cross.sh $crf
   $MESON setup $bld_dir --prefix=$PWD/$bld_dir --cross-file $crf
   ninja -j$ncpu -C $bld_dir
   cd ..

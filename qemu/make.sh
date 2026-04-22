@@ -171,13 +171,14 @@ export CFLAGS="$CFLAGS -fdata-sections -ffunction-sections -fno-stack-protector"
 LDFLAGS="-Wl,--allow-shlib-undefined -Wl,--copy-dt-needed-entries $xppe"
 export LDFLAGS="$LDFLAGS -Wl,--gc-sections -falign-functions=32"
 
-export CROSS_COMPILE=$path/bin/$ARCH-linux-musl-
+export CROSS_COMPILE="$path/bin/$ARCH-linux-musl-"
 export    CPP="${CROSS_COMPILE}g++"
 export     CC="${CROSS_COMPILE}gcc"
 export     LD="${CROSS_COMPILE}ld"
 export     AR="${CROSS_COMPILE}ar"
 export     NM="${CROSS_COMPILE}nm"
 export  STRIP="${CROSS_COMPILE}strip"
+export  MESON="$path/bin/meson.pyz"
 export PKGCFG="$(realpath $PWD/../ucfg/pkg-config)"
 
 mkdir -p $bld_dir
@@ -223,43 +224,14 @@ list_slirp_objs() { command ls -1 --color=never \
   slirp/$bld_dir/libslirp.a.p/*.o 2>/dev/null | tr '\n' ' '; }
 
 if ! list_slirp_objs | grep -qe "\.o$"; then
+  crf="$bld_dir/cross.ini"
   echo "Compiling libslirp ... "
   echo
   set -e
   cd slirp
-  case "$ARCH" in
-    mips*|ppc*|s390*) endian="big" ;;
-    *)                endian="little" ;;
-  esac
-  M_LDFLAGS=$(echo $LDFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
-  M_CFLAGS=$( echo  $CFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
-  M_LIBA=$(   echo    $LIBA | sed "s/ /', '/g; s/^/'/; s/$/'/")
-  cat <<EOF > cross.txt
-[binaries]
-c = 'gcc' # '$CC'
-cpp = 'g++' # '$CPP'
-ar = 'ar' # '$AR'
-nm = 'nm' # '$NM'
-strip = 'strip' # '$STRIP'
-pkgconfig = 'pkg-config' # '$PKGCFG'
-
-[built-in options]
-c_args = [$M_CFLAGS]
-cpp_args = [$M_CFLAGS]
-c_link_args = [$M_LDFLAGS,$M_LIBA]
-cpp_link_args = [$M_LDFLAGS,$M_LIBA]
-default_library = 'static'
-auto_features = 'disabled'
-#c_std = 'c99'
-
-[host_machine]
-system = 'linux'
-cpu_family = '$(echo $ARCH | sed 's/i.86/x86/')'
-cpu = '$ARCH'
-endian = '$endian'
-EOF
   rm -rf $bld_dir; mkdir -p $bld_dir
-  meson setup $bld_dir --prefix=$PWD/$bld_dir --cross-file cross.txt
+  LIBA="$LIBA" sh ../cross.sh $crf
+  $MESON setup $bld_dir --prefix=$PWD/$bld_dir --cross-file $crf
   ninja -j$ncpu -C $bld_dir
   cd ..
   set +e

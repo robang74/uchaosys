@@ -42,7 +42,7 @@ The data reported below are indicative and specific for the reference tagged ver
 Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time:  970 s  (16m 10s)`&hairsp;¹
-- `dev/build environment size: 6490 MB (6.34 GB)`
+- `dev/build environment size: 5479 MB (5.35 GB)`
 - `repository .zip copy  size:  520 KB (pdf+img)`
 
 Reference architecture **x86_64**, system footprint:
@@ -55,10 +55,10 @@ Reference architecture **x86_64**, system footprint:
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.068 s `**!!!**
+- `total time for being ready to user: 0.064 s `**!!!**
 - `total available memory in userland: 18856 KB`
     - `host: 32768, zram: -4714, cpio:  -664 KB`
-    - `mlnx: 23544, used: -2394, buff: -1492 KB`
+    - `mlnx: 23544, used: -2408, buff: -1492 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 
@@ -117,7 +117,7 @@ cd uchaosys
 time make sources
 #    real	 2m42.075s
 time make buildall status
-#    real	20m53.959s  <-- v0.6.9: everything
+#    real	19m13.068s  <-- everything since v0.6.9
 
 # to run uChaoSys on u/qemu
 make runqemu

@@ -121,7 +121,7 @@ time make buildall
 # to run uChaoSys on u/qemu
 make runqemu
 # to test self-hosting u/qemu
-make uemutest
+make qemutest
 # function for further tests
 p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
 

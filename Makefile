@@ -76,20 +76,28 @@ define print_stop
 	$(call print_line, "STOP ");
 endef
 
-.PHONY: all update sources buildall install status
+define print_status
+	for i in $(TRGDONE); do ok="ok"; test -e "$$i" || ok="ko"; \
+		echo "  $$i: $$ok"; done | grep -e ": $1$$"  || echo "  none"
+endef
+
+.PHONY: all update sources buildall install status _status
 
 all:
 	rm -f $(MAKELOG)
-	for tg in sources buildall; do $(MAKELNX) $$tg || exit 1; done
-	$(call print_stop)
+	for tg in sources buildall status; do $(MAKELNX) $$tg || exit 1; done
+	@$(call print_stop)
+
+_status:
+	@echo
+	@echo "Target completed:"
+	@$(call print_status,"ok")
+	@echo "Target missing:"
+	@$(call print_status,"ko")
+	@echo
 
 status:
-	@echo "Target completed:"
-	@for i in $(TRGDONE); do ok="ok"; test -e "$$i" || ok="ko"; \
-	  echo "  $$i: $$ok"; done | grep -e ": ok$$" | grep . || echo "  none"
-	@echo "Target missing:"
-	@for i in $(TRGDONE); do ok="ok"; test -e "$$i" || ok="ko"; \
-	  echo "  $$i: $$ok"; done | grep -e ": ko$$" | grep . || echo "  none"
+	@make _status | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig _sources
@@ -332,7 +340,7 @@ glib:
 	$(MAKELNX) -C musl $@
 
 # //////////////////////////////////////////////////////////////////////////////
-.PHONY: clean veryclean deepclean distclean buildsys qemutest qemurset runqemu
+.PHONY: clean realclean veryclean deepclean distclean
 
 clean:
 	$(MAKELNX) realclean defconfig
@@ -376,7 +384,7 @@ distclean: deepclean
 	rm -rf $(SDIR)/
 
 # target: build related ////////////////////////////////////////////////////////
-.PHONY: buildemu _buildemu
+.PHONY: buildemu _buildemu buildsys
 
 ucfg/pkg-config:
 	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
@@ -411,6 +419,8 @@ buildall:
 	@$(call print_stop)
 
 # targets: qemu related ////////////////////////////////////////////////////////
+.PHONY: qemutest qemurset runqemu
+
 QEMU_FILES := virt/$(QBIN) virt/initramfs.cpio.gz
 
 virt/$(QBIN):

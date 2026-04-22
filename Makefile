@@ -65,15 +65,15 @@ define print_size
 endef
 
 define print_line
-	echo "$1 $(shell date +%s) >>> "$@": "$^ | tee -a $(MAKELOG)
+	echo "$2 $1 $(shell date +%s) $2 "$@": "$^ | tee -a $(MAKELOG)
 endef
 
 define print_start
-	echo "$1"; $(call print_line, "START"); echo "$2"
+	echo "$1"; $(call print_line,"START","=o="); echo "$2"
 endef
 
 define print_stop
-	$(call print_line, "STOP ");
+	$(call print_line,"STOP ","~x~");
 endef
 
 define print_status
@@ -125,7 +125,6 @@ musl/.conf: $(MUSL_DPNDS)
 	mkdir -p $(PATHC_KDIR) && for fp in $(PATCH_NAME); do \
 	  cp -alLf cnfg/$$fp.patch $(PATHC_KDIR)/0001-$$fp.diff; done
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
-	rm -f $(SDIR)/.done
 	touch $@
 
 gzcmd.sh:
@@ -157,7 +156,7 @@ updatebbox:
 	  && git checkout FETCH_HEAD
 
 defconfig:
-	rm -f bbox/.config bbox/.conf $(KDIR)/.hdrs
+	rm -f bbox/.config bbox/.conf $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
 _sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
@@ -166,6 +165,18 @@ sources:
 	@$(call print_start,"","")
 	@$(MAKELNX) _sources
 	@$(call print_stop)
+
+copysrc: $(FROM)/
+	@test -d  $(FROM)/
+	make -j$(NCPU) update
+	cp -arlLf $(FROM)/$(SDIR) musl/
+	cp -arlLf $(FROM)/qemu/v*.tar.* qemu/
+	rm -f $(SDIR)/.done
+	make -j$(NCPU) defconfig
+	@echo
+	@$(call print_stop)
+	du -ks qemu/v*.tar.* $(SDIR)
+	@echo
 
 # target: toolchain ////////////////////////////////////////////////////////////
 .PHONY: toolchain _toolchain

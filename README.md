@@ -112,11 +112,11 @@ Last but not least, the chaos engine is **exactly** the same in kernel and user 
 url="github.com/robang74/uchaosys.git"
 git clone https://$url --jobs $(nproc)
 cd uchaosys
-#    git switch <branch>
-#    make update && copy -alLrf sources from previous
+#    git switch ${branch:-main}
+#    make copysrc FROM=$prevpath
 time make sources
 #    real	 2m42.075s
-time make buildall
+time make buildall status
 #    real	20m53.959s  <-- v0.6.9: everything
 
 # to run uChaoSys on u/qemu

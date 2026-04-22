@@ -55,6 +55,11 @@ ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
 
+TRGDONE      := gzcmd.gz.sh kdev/uckaos prnd/RNG_test usrl/uchaosbox
+TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD).gz
+TRGDONE      += virt/initramfs.cpio.gz $(KIMG) qemu/output/$(QBIN)
+TRGDONE      += $(MUSLTGZ)
+
 define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
 endef
@@ -80,11 +85,11 @@ all:
 
 status:
 	@echo "Target completed:"
-	@for i in $(ARTIFACTS); do ok="ok"; test -e "$$i" || ok="ko"; \
-	  echo "  $$i: $$ok"; done | grep -e ": ok$$" | sort
+	@for i in $(TRGDONE); do ok="ok"; test -e "$$i" || ok="ko"; \
+	  echo "  $$i: $$ok"; done | grep -e ": ok$$" | grep . || echo "  none"
 	@echo "Target missing:"
-	@for i in $(ARTIFACTS); do ok="ok"; test -e "$$i" || ok="ko"; \
-	  echo "  $$i: $$ok"; done | grep -e ": ko$$" | sort
+	@for i in $(TRGDONE); do ok="ok"; test -e "$$i" || ok="ko"; \
+	  echo "  $$i: $$ok"; done | grep -e ": ko$$" | grep . || echo "  none"
 
 # target: sources //////////////////////////////////////////////////////////////
 .PHONY: update defconfig _sources

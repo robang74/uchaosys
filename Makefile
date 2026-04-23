@@ -36,9 +36,9 @@ export PATH  := $(HDIR)/bin:$(HDIR)/$(ARCH)/bin:$(PATH)
 HOSTCC       := gcc
 CC           := $(CCPREFIX)gcc
 EXTRA_CFLAGS += -falign-functions=32
-EXTRA_CFLAGS += -isystem $(PWD)/musl/output/include
-EXTRA_CFLAGS += -isystem $(PWD)/musl/build/obj_sysroot/include
-SYSROOT_ARGS := --sysroot=$(PWD)/musl/output/x86_64-linux-musl
+EXTRA_CFLAGS += -isystem  $(PWD)/musl/output/include
+EXTRA_CFLAGS += -isystem  $(PWD)/musl/build/obj_sysroot/include
+EXTRA_CFLAGS += --sysroot=$(PWD)/musl/output/
 #export EXTRA_CFLAGS := $(EXTRA_CFLAGS)
 #C_INCLUDE_PATH := $(PWD)/musl/output/include:$(PWD)/musl/build/obj_sysroot/include
 #CPLUS_INCLUDE_PATH := $(PWD)/musl/output/x86_64-linux-musl/include/c++/14.3.0
@@ -108,7 +108,7 @@ status:
 	@make _status | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig _sources
+.PHONY: update defconfig
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -133,7 +133,7 @@ $(SDIR)/.done: .sync
 	@echo
 	touch $@
 
-musl/.conf: $(MUSL_DPNDS) $(SDIR)/.done
+musl/.conf: $(MUSL_DPNDS)
 	@$(call print_start,"","")
 	cp -arf cnfg/hashes/*.sha1 musl/hashes/
 	cp -alLf cnfg/Makefile.musl musl/Makefile
@@ -155,11 +155,10 @@ gzcmd.gz.sh: gzcmd.sh
 	sh $< $< gzcmd
 	touch $@
 
-_sources: gzcmd.gz.sh musl/.conf
-
-sources:
+sources: .sync gzcmd.gz.sh
 	@$(call print_start,"","")
-	@$(MAKELNX) _sources
+	@$(MAKELNX) musl/.conf
+	@$(MAKELNX) $(SDIR)/.done
 	@$(call print_stop)
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -194,8 +193,8 @@ copysrc: .sync $(FROM)/
 
 ucfg/pkg-config:
 	$(HOSTCC) $(EXTRA_CFLAGS) -o $@ ucfg/main_posix.c -s -O1
-	mkdir -p $(HDIR)/usr/local/bin/
-	cp -alLf $@ $(HDIR)/usr/local/bin/
+	mkdir -p $(HDIR)/usr/bin/
+	cp -alLf $@ $(HDIR)/usr/bin/
 
 $(OUTPUT)/.glib: $(OUTPUT)/.hdrs
 	@$(call print_start,"","")
@@ -204,7 +203,8 @@ $(OUTPUT)/.glib: $(OUTPUT)/.hdrs
 
 glib: $(OUTPUT)/.glib
 
-$(MUSLTGZ): $(OUTPUT)/.glib ucfg/pkg-config
+# $(OUTPUT)/.glib ucfg/pkg-config
+$(MUSLTGZ): ucfg/pkg-config
 	@$(call print_start,"","")
 	rm -f $(MUSLTGZ) ; tar czf $@ $(OUTPUT)/
 	@echo
@@ -287,7 +287,7 @@ bbox/busybox.elf: | bbox/.conf $(OUTPUT)/.hdrs
 
 busybox:
 	@$(call print_start,"","")
-	@$(MAKELNX) bbox/busybox.elf
+	@$(MAKELNX) bbox/busybox.elf CFLAGS="$(EXTRA_CFLAGS)"
 	@$(call print_stop)
 
 # target: miniz ////////////////////////////////////////////////////////////////
@@ -296,7 +296,7 @@ busybox:
 minz/amalgamation/.done: cnfg/amalgamate.sh
 	@$(call print_start,"","")
 	cp -alLf cnfg/amalgamate.sh minz/
-	cd minz && $(OPTS) sh -x amalgamate.sh
+	cd minz && EXTRA_CFLAGS="$(EXTRA_CFLAGS)" sh -x amalgamate.sh
 	touch $@
 
 miniz: minz/amalgamation/.done
@@ -320,7 +320,7 @@ kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
 
 usrl/uchaosbox:
 	@$(call print_start,"","")
-	$(MAKELNX) -C usrl uchaosbox
+	$(MAKELNX) -C usrl uchaosbox CFLAGS="$(EXTRA_CFLAGS)"
 	@$(call print_stop)
 	@echo
 
@@ -420,9 +420,9 @@ distclean: deepclean
 # target: build related ////////////////////////////////////////////////////////
 .PHONY: buildemu _buildemu buildsys
 
-qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config
+qemu/output/.done: minz/amalgamation/.done
 	@$(call print_start,"","")
-	cd qemu && time -p sh make.sh sources
+	cd qemu && $(OPTS) time -p sh make.sh sources
 	touch $@
 
 virt/.done: qemu/output/.done
@@ -473,3 +473,7 @@ runqemu: $(QEMU_FILES)
 	@$(call print_start,"","Prepare and start the KVM 32MB machine")
 	cd virt && $(ENV_VARS) sh start.sh -qm32 -M q35
 
+# //////////////////////////////////////////////////////////////////////////////
+
+.DEFAULT:
+	$(MAKELNX) -C musl $@

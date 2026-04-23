@@ -57,16 +57,16 @@ ifneq ($(LIBTOOL),)
 LIBTOOL_ARG = LIBTOOL=$(LIBTOOL)
 endif
 
-GCC_CONFIG_FOR_TARGET += HAVE_DECL_BASENAME=0
-LIBTOOL_ARG += HAVE_DECL_BASENAME=0
+GCC_CONFIG_FOR_TARGET += HAVE_DECL_BASENAME=1
+LIBTOOL_ARG += HAVE_DECL_BASENAME=1
 
-MAKE += HAVE_DECL_BASENAME=0
+MAKE += HAVE_DECL_BASENAME=1
 MAKE += MULTILIB_OSDIRNAMES=
 MAKE += INFO_DEPS= infodir=
 MAKE += ac_cv_prog_lex_root=lex.yy
-MAKE += gcc_cv_have_decl_basename=no
-MAKE +=  ac_cv_have_decl_basename=no
-MAKE +=  ac_cv_func_basename=no
+MAKE += gcc_cv_have_decl_basename=yes
+MAKE +=  ac_cv_have_decl_basename=yes
+MAKE +=  ac_cv_func_basename=yes
 MAKE += MAKEINFO=false
 
 FULL_BINUTILS_CONFIG = \
@@ -95,20 +95,23 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 	--enable-libstdcxx-time=rt
 
 FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
-	--prefix= --host=$(TARGET)
+	--prefix= --host=$(HOST)
 
 FULL_ZLIB_CONFIG = --static --disable-crcvx \
-	--prefix= --host=$(TARGET)
+	--prefix= --host=$(HOST)
 
 FULL_PCRE2_CONFIG = --disable-shared \
-	--prefix= --host=$(TARGET)
+	--prefix= --host=$(HOST)
 
-NINJA := ninja
-MESON := $(TOPDIR)/output/bin/meson.pyz
+NINJA  := ninja
+MESON  := $(TOPDIR)/output/bin/meson.pyz
+PKGCFG := $(TOPDIR)/output/usr/bin/pkg-config
 
 FULL_GLIB_CONFIG = -Dtests=false --prefix=/ \
   --buildtype=release --default-library=static \
   --strip --optimization 1 --wrap-mode=forcefallback \
+  -Dman-pages=disabled -Ddocumentation=false -Dintrospection=disabled \
+  -Dselinux=disabled -Dxattr=false
 
 ##  --wrap-mode=nodownload -Dzlib=enabled -Dpcre2=enabled -Dlibffi=enabled
 #
@@ -170,9 +173,11 @@ install: all
 
 else
 
-all: musl toolchain extra-libs
+all: musl toolchain
+# extra-libs
 
-install: install-musl install-toolchain install-libs
+install: install-musl install-toolchain
+# install-libs
 
 musl: obj_musl/.lc_built
 
@@ -337,10 +342,10 @@ obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 
 obj_glib/.lc_configured: | src_glib obj_sysroot/.lc_headers obj_glib
 	sed -i '/add_test_setup(.thorough./,+5d' src_glib/meson.build
-	MESON=$(MESON) PKGCFG="pkg-config" PREFIX="$(ARCH)-linux-musl-" \
-	  sh -x $(TOPDIR)/../cnfg/cross.sh cross.ini
+	MESON=$(MESON) PKGCFG="" PREFIX="" sh -x $(TOPDIR)/../cnfg/cross.sh cross.ini
 	$(MESON) setup $(FULL_GLIB_CONFIG) --cross-file cross.ini obj_glib src_glib
 	touch $@
+# $(ARCH)-linux-musl- # $(PKGCFG)
 
 obj_glib/.lc_built: obj_glib/.lc_configured
 	$(NINJA) -C obj_glib

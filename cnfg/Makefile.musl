@@ -136,8 +136,6 @@ $(SOURCES)/%.ok: hashes/%.sha1 | $(SOURCES)
 $(SOURCES)/%: $(SOURCES)/%.ok
 
 endif ##########################################################################
-
-
 # Rules for extracting and patching sources, or checking them out from git.
 
 define extract_tar
@@ -214,13 +212,13 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	"-include $(TOPDIR)/config.mak"
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
-	cd $(BUILD_DIR) && $(MAKE) $@
-
-glib:
-	cd $(BUILD_DIR) && $(MAKE) $@
+	$(MAKE) -C $(BUILD_DIR) $@
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
-	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@
+	$(MAKE) OUTPUT=$(OUTPUT) -C $(BUILD_DIR) $@
+
+.DEFAULT:
+	$(MAKE) -C $(BUILD_DIR) $@
 
 endif
 

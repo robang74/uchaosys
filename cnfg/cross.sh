@@ -9,13 +9,12 @@ LDFLAGS=${LDFLAGS:--g0}
 CFLAGS=${CFLAGS:--O1}
 LIBA=${LIBA:--s}
 
-CFLAGS="$CFLAGS -I$PWD/obj_sysroot/include -I$PWD/../output/include"
+#CFLAGS="$CFLAGS -I$PWD/obj_sysroot/include -I$PWD/../output/include -D_GNU_SOURCE"
+#LDFLAGS="$LDFLAGS -L$PWD/output/lib -lc"
 
 M_LDFLAGS=$(echo $LDFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
 M_CFLAGS=$( echo  $CFLAGS | sed "s/ /', '/g; s/^/'/; s/$/'/")
 M_LIBA=$(   echo    $LIBA | sed "s/ /', '/g; s/^/'/; s/$/'/")
-
-echo "meson: $MESON"
 
 CC=${CC:-${PREFIX}cc}
 AR=${AR:-${PREFIX}ar}

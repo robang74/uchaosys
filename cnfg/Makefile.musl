@@ -129,27 +129,29 @@ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-headers-*)): SITE 
 $(SOURCES):
 	mkdir -p $@
 
-$(SOURCES)/config.sub: | $(SOURCES)
-	@echo ">>> MUSL  >>> $@: $^"
-	mkdir -p $@.tmp
-	cd $@.tmp && $(DL_CMD) $(notdir $@) "https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)"
-	cd $@.tmp && touch $(notdir $@)
-	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).$(CONFIG_SUB_REV).sha1
-	mv $@.tmp/$(notdir $@) $@
-	rm -rf $@.tmp
+CONFIG_URL := https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)
 
 define download
 	mkdir -p $1.tmp
-	cd $1.tmp && $(DL_CMD) $(notdir $1) $(SITE)/$(notdir $1)
+	cd $1.tmp && $(DL_CMD) $(notdir $1) $2
 	cd $1.tmp && touch $(notdir $1)
 	cd $1.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $1).sha1
 	mv $1.tmp/$(notdir $1) $1
 	rm -rf $1.tmp
 endef
 
+define print_start
+	echo ">>> MUSL  >>> $1: $2"
+endef
+
+$(SOURCES)/config.sub: | $(SOURCES)
+	@$(call print_start,$@,$^)
+	test -r $@.ok || $(call download,$@,"$(CONFIG_URL)",.$(CONFIG_SUB_REV))
+	touch   $@.ok
+
 $(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
-	@echo ">>> MUSL  >>> $@: $^"
-	test -r $@.ok || $(call download,$@)
+	@$(call print_start,$@,$^)
+	test -r $@.ok || $(call download,$@,$(SITE)/$(notdir $@),)
 	touch   $@.ok
 
 endif ##########################################################################
@@ -163,7 +165,7 @@ define extract_tar
 endef
 
 musl-git-%:
-	@echo ">>> MUSL  >>> $@: $^"
+	@$(call print_start,$@,$^)
 	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
 	cd $@.tmp && git fsck
@@ -179,7 +181,7 @@ musl-git-%:
 	$(call extract_tar,$@,xJf,$<)
 
 %: %.orig
-	@echo ">>> MUSL  >>> $@: $^"
+	@$(call print_start,$@,$^)
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir $@.tmp; cd $@.tmp && $(COWPATCH) -I ../$<
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
@@ -202,15 +204,15 @@ all:
 else
 
 $(BUILD_DIR):
-	@echo ">>> MUSL  >>> $@: $^"
+	@$(call print_start,$@,$^)
 	mkdir -p $@
 
 $(BUILD_DIR)/Makefile: | $(BUILD_DIR)
-	@echo ">>> MUSL  >>> $@: $^"
+	@$(call print_start,$@,$^)
 	ln -sf $(TOPDIR)/litecross/Makefile $@
 
 $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
-	@echo ">>> MUSL  >>> $@: $^"
+	@$(call print_start,$@,$^)
 	printf >$@ '%s\n' \
 	"TARGET = $(TARGET)" \
 	"HOST = $(HOST)" \
@@ -230,9 +232,11 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	"-include $(TOPDIR)/config.mak"
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
+	@$(call print_start,$@,$^)
 	$(MAKE) -C $(BUILD_DIR) $@
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
+	@$(call print_start,$@,$^)
 	$(MAKE) OUTPUT=$(OUTPUT) -C $(BUILD_DIR) $@
 
 #.DEFAULT:

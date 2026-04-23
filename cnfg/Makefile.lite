@@ -17,8 +17,8 @@ COMMON_CONFIG =
 GCC_CONFIG =
 TOOLCHAIN_CONFIG =
 
-XGCC_DIR = ../obj_gcc/gcc
-XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR)
+XGCC_DIR := $(TOPDIR)/build/obj_gcc/gcc
+XGCC     := $(XGCC_DIR)/xgcc -B $(XGCC_DIR)
 
 -include config.mak
 
@@ -141,8 +141,12 @@ FULL_GCC_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot \
 	STRIP_FOR_TARGET=$(PWD)/obj_binutils/binutils/strip-new \
 	--build=$(BUILD) --host=$(BUILD) \
 	# end
-FULL_MUSL_CONFIG += CC="$(XGCC)" LIBCC="../obj_gcc/$(TARGET)/libgcc/libgcc.a"
-MUSL_VARS = AR=../obj_binutils/binutils/ar RANLIB=../obj_binutils/binutils/ranlib
+FULL_GCC_CONFIG += $(LIBTOOL_ARG)
+#MUSL_VARS := AR=$(PWD)/obj_binutils/binutils/ar
+#MUSL_VARS += AS=$(PWD)/obj_binutils/gas/as-new
+#MUSL_VARS += RANLIB=$(PWD)/obj_binutils/binutils/ranlib
+FULL_MUSL_CONFIG += CC="$(XGCC)" LIBCC="$(PWD)/obj_gcc/$(TARGET)/libgcc/libgcc.a"
+#FULL_MUSL_CONFIG += $(MUSL_VARS)
 obj_musl/.lc_configured: | obj_gcc/gcc/.lc_built
 obj_musl/.lc_built: | obj_gcc/$(TARGET)/libgcc/libgcc.a
 obj_gcc/gcc/.lc_built: | obj_sysroot/usr obj_sysroot/lib32 obj_sysroot/lib64 obj_sysroot/include
@@ -310,26 +314,28 @@ obj_gcc/.lc_configured: | obj_gcc src_gcc
 	touch $@
 
 obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
-	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" -C obj_gcc all-gcc
+	$(MAKE) MAKE="$(MAKE)" -C obj_gcc all-gcc
 	touch $@
+#  $(MUSL_VARS) $(LIBTOOL_ARG) $(XGCC_VARS)
 
 obj_musl/.lc_configured: | obj_musl src_musl
-	cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG)
+	cd obj_musl && ../src_musl/configure $(FULL_GCC_CONFIG) $(FULL_MUSL_CONFIG)
 	touch $@
 
 obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
-	$(MAKE) DESTDIR=$(CURDIR)/obj_sysroot -C obj_musl install-headers
+	$(MAKE) MAKE="$(MAKE) DESTDIR=$(CURDIR)/obj_sysroot -C obj_musl install-headers
 	touch $@
 
 obj_gcc/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
-	$(MAKE) MAKE="$(MAKE) enable_shared=no $(LIBTOOL_ARG)" -C obj_gcc all-target-libgcc
+	$(MAKE) MAKE="$(MAKE)" $(MUSL_VARS) $(LIBTOOL_ARG) -C obj_gcc all-target-libgcc
+# enable_shared=no
 
 obj_musl/.lc_built: | obj_musl/.lc_configured
-	$(MAKE) $(MUSL_VARS) -C obj_musl
+	$(MAKE) MAKE="$(MAKE) $(MUSL_VARS) -C obj_musl
 	touch $@
 
 obj_sysroot/.lc_libs: | obj_musl/.lc_built
-	$(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot -C obj_musl install
+	$(MAKE) MAKE="$(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot -C obj_musl install
 	touch $@
 
 obj_zlib/.lc_configured: | obj_zlib src_zlib obj_sysroot/.lc_headers
@@ -350,7 +356,7 @@ obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 
 obj_slirp/.lc_configured: | obj_slirp src_slirp obj_sysroot/.lc_headers
 	MESON=$(MESON) PKGCFG="" PREFIX="" sh -x $(TOPDIR)/../cnfg/cross.sh cross.ini
-	$(MESON) setup $(FULL_SLIRP_CONFIG) --cross-file cross.ini obj_slirp src_slirp
+	MAKE="$(MAKE) $(MESON) setup $(FULL_SLIRP_CONFIG) --cross-file cross.ini obj_slirp src_slirp
 	touch $@
 
 obj_slirp/.lc_built: | obj_slirp/.lc_configured
@@ -360,22 +366,22 @@ obj_slirp/.lc_built: | obj_slirp/.lc_configured
 obj_glib/.lc_configured: | src_glib obj_sysroot/.lc_headers obj_glib
 	sed -i '/add_test_setup(.thorough./,+5d' src_glib/meson.build
 	MESON=$(MESON) PKGCFG="" PREFIX="" sh -x $(TOPDIR)/../cnfg/cross.sh cross.ini
-	$(MESON) setup $(FULL_GLIB_CONFIG) --cross-file cross.ini obj_glib src_glib
+	MAKE="$(MAKE) $(MESON) setup $(FULL_GLIB_CONFIG) --cross-file cross.ini obj_glib src_glib
 	touch $@
 # $(ARCH)-linux-musl- # $(PKGCFG)
 
 obj_glib/.lc_built: obj_glib/.lc_configured
-	$(NINJA) -C obj_glib
+	MAKE="$(MAKE) $(NINJA) -C obj_glib
 	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
-	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" -C obj_gcc
+	$(MAKE) MAKE="$(MAKE) $(FULL_GCC_CONFIG)" -C obj_gcc
 	touch $@
 
 # install targets //////////////////////////////////////////////////////////////
 
 install-musl: | obj_musl/.lc_built
-	$(MAKE) $(MUSL_VARS) DESTDIR=$(OUTPUT)$(SYSROOT) -C obj_musl install
+	$(MAKE) MAKE="$(MAKE) $(MUSL_VARS) DESTDIR=$(OUTPUT)$(SYSROOT) -C obj_musl install
 
 install-binutils: | obj_binutils/.lc_built
 	$(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)" DESTDIR=$(OUTPUT) -C obj_binutils install
@@ -391,7 +397,7 @@ install-pcre2: | obj_pcre2/.lc_built
 	$(MAKE) MAKE="$(MAKE)" DESTDIR=$(OUTPUT)$(SYSROOT) -C obj_pcre2 install
 
 install-glib: | obj_glib/.lc_built
-	DESTDIR=$(CURDIR) $(NINJA) -C obj_glib install
+	MAKE="$(MAKE) DESTDIR=$(CURDIR) $(NINJA) -C obj_glib install
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))

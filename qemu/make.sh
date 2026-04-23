@@ -26,7 +26,7 @@ qbin="qemu-system-$ARCH"
 # PARAMETRIC BUILDING # ====================================================== #
 #
 # ld_libz="z"                  # set ot "z" for libz, or "" to use miniz
-# ld_glib="glib-2.0"           # unset to have a glib-2.0 dynamic binary (TODO)
+  ld_glib="glib-2.0"           # unset to have a glib-2.0 dynamic binary (TODO)
   ncpu=$(nproc)                # number of pipelines for parallel compilation
   xppe="-pipe"                 # usually faster in compiling  but not always
   xlto="-flto=$ncpu -fno-plt"  # set for profuction, unset for faster devolpment
@@ -191,6 +191,7 @@ mkdir -p $bld_dir
 LIBA=""
 if [ -n "$ld_libz$ld_glib" ]; then
   libdir="/usr/lib/${ARCH}-linux-musl"
+  test -d $libdir ||
   libdir="/usr/lib/${ARCH}-linux-gnu"
   for i in $ld_libz $ld_glib; do # util pthread pcre2-8
     LIBA="$LIBA "$(find $libdir/ -name lib$i.a | head -n1 )

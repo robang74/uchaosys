@@ -228,6 +228,7 @@ toolchain: $(OUTPUT)/.built
 
 $(KDIR)/.config: $(KERNCFG)
 	cp -alLf $(KERNCFG) $(KDIR)/.config ||:
+	sed -e "s,^\(headers: .* archheaders\) archscripts,\\1," -i $(KDIR)/Makefile
 
 $(KDIR)/.conf: | $(KDIR)/.config
 	@$(call print_start,"","")
@@ -257,7 +258,6 @@ $(KDIR): $(KIMG)
 	@touch   $@
 	@echo
 
-
 bzImage: $(OUTPUT)/.built
 	@$(call print_start,"","")
 	@$(MAKELNX) $(KDIR)
@@ -275,7 +275,8 @@ bbox/.conf: | bbox/.config
 	@$(call print_stop)
 	touch $@
 
-bbox/busybox.elf: | bbox/.conf $(OUTPUT)/.hdrs
+# $(OUTPUT)/.hdrs
+bbox/busybox.elf: | bbox/.conf
 	rm -f $@
 	@$(call print_start,"","")
 	$(MAKELNX) -C bbox busybox

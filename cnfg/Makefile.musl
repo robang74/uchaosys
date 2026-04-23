@@ -45,22 +45,28 @@ MUSL_REPO = https://git.musl-libc.org/git/musl
 LINUX_SITE = https://cdn.kernel.org/pub/linux/kernel
 LINUX_HEADERS_SITE = https://ftp.barfooze.de/pub/sabotage/tarballs
 
-GLIB_SITE = https://download.gnome.org/sources/glib/$(shell echo $(GLIB_VER) | cut -d. -f1,2)
+GLIB_VTAG = $(shell echo $(GLIB_VER) | cut -d. -f1,2)
+GLIB_SITE = https://download.gnome.org/sources/glib/$(GLIB_VTAG)
 
 DL_CMD = wget -c -O
 SHA1_CMD = sha1sum -c
 
-COWPATCH = $(CURDIR)/cowpatch.sh
-
 HOST = $(if $(NATIVE),$(TARGET))
-#OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
-#BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
-OUTPUT = $(CURDIR)/output
-BUILD_DIR = build/
 
-export TOPDIR = $(CURDIR)
+# The aim is to compile something that runs on the system
+# on which has been compiled for. Thus, keep it simple.
+# OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
+# BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
+
+export TOPDIR  := $(CURDIR)
+OUTPUT         := $(TOPDIR)/output
+BUILD_DIR      := build/
+
+COWPATCH := $(TOPDIR)/cowpatch.sh
 
 -include config.mak
+
+################################################################################
 
 SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(GMP_VER),gmp-$(GMP_VER)) \
@@ -223,3 +229,4 @@ install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.ma
 endif
 
 .SECONDARY:
+

@@ -16,6 +16,7 @@ MPFR_VER = 4.2.2
 ISL_VER = 0.27
 ZLIB_VER = 1.3.2
 PCRE2_VER = 10.47
+SLIRP_VER = 4.9.1
 MESON_VER = 1.10.2
 NINJIA_VER = 1.13.2
 GLIB_VER = 2.88.0
@@ -37,6 +38,7 @@ MPFR_SITE = $(GNU_SITE)/mpfr
 ISL_SITE = $(USR_SITE)/isl/archive/refs/tags
 ZLIB_SITE = $(USR_SITE)/zlib/archive/refs/tags
 PCRE2_SITE = $(USR_SITE)/pcre2/archive/refs/tags
+SLIRP_SITE = $(USR_SITE)/libslirp/archive/refs/tags
 MESON_SITE = $(USR_SITE)/meson/archive/refs/tags
 
 MUSL_SITE = https://musl.libc.org/releases
@@ -61,10 +63,15 @@ HOST = $(if $(NATIVE),$(TARGET))
 export TOPDIR  := $(CURDIR)
 OUTPUT         := $(TOPDIR)/output
 BUILD_DIR      := build/
+NCPU           ?= $(shell nproc 2>/dev/null || echo 1)
+export NCPU    := $(NCPU)
 
 COWPATCH := $(TOPDIR)/cowpatch.sh
 
 -include config.mak
+
+ARCH         ?= x86_64
+export ARCH  := $(ARCH)
 
 ################################################################################
 
@@ -75,6 +82,7 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(ISL_VER),isl-$(ISL_VER)) \
 	$(if $(ZLIB_VER),zlib-$(ZLIB_VER)) \
 	$(if $(PCRE2_VER),pcre2-$(PCRE2_VER)) \
+	$(if $(SLIRP_VER),slirp-$(SLIRP_VER)) \
 	$(if $(MESON_VER),meson-$(MESON_VER)) \
 	$(if $(GLIB_VER),glib-$(GLIB_VER)) \
 	$(if $(LINUX_VER),linux-$(LINUX_VER))
@@ -88,7 +96,7 @@ veryclean: clean
 	rm -rf gcc-* binutils-* musl-* isl-*
 	rm -rf mpfr-* mpc-* pcre2-* linux-*
 	rm -rf gmp-* zlib-* glib-* meson-*
-	rm -rf $(OUTPUT)/
+	rm -rf slirp-* $(OUTPUT)/
 
 distclean: veryclean
 	rm -rf $(SOURCES)/
@@ -108,6 +116,7 @@ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/isl*)): SITE = $(ISL_SIT
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/musl*)): SITE = $(MUSL_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/zlib*)): SITE = $(ZLIB_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/pcre2*)): SITE = $(PCRE2_SITE)
+$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/slirp*)): SITE = $(SLIRP_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/meson*)): SITE = $(MESON_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/glib*)): SITE = $(GLIB_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-6*)): SITE = $(LINUX_SITE)/v6.x
@@ -121,7 +130,7 @@ $(SOURCES):
 	mkdir -p $@
 
 $(SOURCES)/config.sub: | $(SOURCES)
-	echo "MUSL >>> $@: $^"
+	@echo ">>> MUSL  >>> $@: $^"
 	mkdir -p $@.tmp
 	cd $@.tmp && $(DL_CMD) $(notdir $@) "https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)"
 	cd $@.tmp && touch $(notdir $@)
@@ -129,17 +138,19 @@ $(SOURCES)/config.sub: | $(SOURCES)
 	mv $@.tmp/$(notdir $@) $@
 	rm -rf $@.tmp
 
-$(SOURCES)/%.ok: hashes/%.sha1 | $(SOURCES)
-	echo "MUSL >>> $@: $^"
-	mkdir -p $@.tmp
-	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)
-	cd $@.tmp && touch $(notdir $@)
-	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).sha1
-	mv $@.tmp/$(notdir $@) $@
-	rm -rf $@.tmp
-	touch $@.ok
+define download
+	mkdir -p $1.tmp
+	cd $1.tmp && $(DL_CMD) $(notdir $1) $(SITE)/$(notdir $1)
+	cd $1.tmp && touch $(notdir $1)
+	cd $1.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $1).sha1
+	mv $1.tmp/$(notdir $1) $1
+	rm -rf $1.tmp
+endef
 
-$(SOURCES)/%: $(SOURCES)/%.ok
+$(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
+	@echo ">>> MUSL  >>> $@: $^"
+	test -r $@.ok || $(call download,$@)
+	touch   $@.ok
 
 endif ##########################################################################
 # Rules for extracting and patching sources, or checking them out from git.
@@ -152,7 +163,7 @@ define extract_tar
 endef
 
 musl-git-%:
-	echo "MUSL >>> $@: $^"
+	@echo ">>> MUSL  >>> $@: $^"
 	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
 	cd $@.tmp && git fsck
@@ -168,7 +179,7 @@ musl-git-%:
 	$(call extract_tar,$@,xJf,$<)
 
 %: %.orig
-	echo "MUSL >>> $@: $^"
+	@echo ">>> MUSL  >>> $@: $^"
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir $@.tmp; cd $@.tmp && $(COWPATCH) -I ../$<
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
@@ -191,15 +202,15 @@ all:
 else
 
 $(BUILD_DIR):
-	echo "MUSL >>> $@: $^"
+	@echo ">>> MUSL  >>> $@: $^"
 	mkdir -p $@
 
 $(BUILD_DIR)/Makefile: | $(BUILD_DIR)
-	echo "MUSL >>> $@: $^"
+	@echo ">>> MUSL  >>> $@: $^"
 	ln -sf $(TOPDIR)/litecross/Makefile $@
 
 $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
-	echo "MUSL >>> $@: $^"
+	@echo ">>> MUSL  >>> $@: $^"
 	printf >$@ '%s\n' \
 	"TARGET = $(TARGET)" \
 	"HOST = $(HOST)" \
@@ -212,6 +223,7 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	$(if $(ISL_VER),"ISL_SRCDIR = $(TOPDIR)/isl-$(ISL_VER)") \
 	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(TOPDIR)/zlib-$(ZLIB_VER)") \
 	$(if $(PCRE2_VER),"PCRE2_SRCDIR = $(TOPDIR)/pcre2-$(PCRE2_VER)") \
+	$(if $(SLIRP_VER),"SLIRP_SRCDIR = $(TOPDIR)/slirp-$(SLIRP_VER)") \
 	$(if $(MESON_VER),"MESON_SRCDIR = $(TOPDIR)/meson-$(MESON_VER)") \
 	$(if $(GLIB_VER),"GLIB_SRCDIR = $(TOPDIR)/glib-$(GLIB_VER)") \
 	$(if $(LINUX_VER),"LINUX_SRCDIR = $(TOPDIR)/linux-$(LINUX_VER)") \
@@ -223,8 +235,8 @@ all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	$(MAKE) OUTPUT=$(OUTPUT) -C $(BUILD_DIR) $@
 
-.DEFAULT:
-	$(MAKE) -C $(BUILD_DIR) $@
+#.DEFAULT:
+#	$(MAKE) -C $(BUILD_DIR) $@
 
 endif
 

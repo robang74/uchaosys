@@ -4,6 +4,7 @@
 #     Makefile remains under the terms and authorship as previously it was.
 #
 
+NCPU   ?= $(shell nproc 2>/dev/null || echo 1)
 TOPDIR ?= $(shell realpath ../../..)
 OUTPUT ?= $(TOPDIR)/output
 
@@ -69,8 +70,7 @@ MAKE +=  ac_cv_have_decl_basename=yes
 MAKE +=  ac_cv_func_basename=yes
 MAKE += MAKEINFO=false
 
-FULL_BINUTILS_CONFIG = \
-	--disable-separate-code \
+FULL_BINUTILS_CONFIG = --disable-separate-code \
 	$(COMMON_CONFIG) $(BINUTILS_CONFIG) $(TOOLCHAIN_CONFIG) \
 	--disable-werror \
 	--target=$(TARGET) --prefix= \
@@ -94,16 +94,12 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 	--enable-initfini-array \
 	--enable-libstdcxx-time=rt
 
-FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
-	--prefix= --host=$(HOST)
+FULL_MUSL_CONFIG  = --prefix= --host=$(HOST) $(MUSL_CONFIG)
+FULL_ZLIB_CONFIG  = --prefix= --host=$(HOST) --disable-crcvx
+FULL_PCRE2_CONFIG = --prefix= --host=$(HOST)
+FULL_SLIRP_CONFIG = --prefix= --host=$(HOST)
 
-FULL_ZLIB_CONFIG = --static --disable-crcvx \
-	--prefix= --host=$(HOST)
-
-FULL_PCRE2_CONFIG = --disable-shared \
-	--prefix= --host=$(HOST)
-
-NINJA  := ninja
+NINJA  := ninja -j$(NCPU)
 MESON  := $(TOPDIR)/output/bin/meson.pyz
 PKGCFG := $(TOPDIR)/output/usr/bin/pkg-config
 
@@ -186,11 +182,12 @@ musl: obj_musl/.lc_built
 
 toolchain: gcc binutils
 
-extra-libs: zlib pcre2
+extra-libs: zlib pcre2 slirp
 
-install-toolchain: install-gcc install-binutils install-meson
+install-toolchain: install-gcc install-binutils
+# install-meson
 
-install-libs: install-pcre2 install-zlib
+install-libs: install-pcre2 install-zlib install-slirp
 
 binutils: obj_binutils/.lc_built
 
@@ -200,6 +197,8 @@ zlib: obj_zlib/.lc_built
 
 pcre2: obj_pcre2/.lc_built
 
+slirp: obj_slirp/.lc_built
+
 src_meson/meson.pyz: src_meson
 	cd src_meson && python3 packaging/create_zipapp.py \
 	  --outfile meson.pyz --interpreter '/usr/bin/env python3' .
@@ -208,7 +207,7 @@ install-meson: src_meson/meson.pyz
 	mkdir -p $(dir $(MESON))
 	cp -aflL $(MESON_SRCDIR)/meson.pyz $(MESON)
 
-glib: install-glib
+glib: install-meson install-glib
 
 # source targets ///////////////////////////////////////////////////////////////
 
@@ -224,6 +223,11 @@ src_musl: | $(MUSL_SRCDIR)
 ifneq ($(PCRE2_SRCDIR),)
 src_pcre2: | $(PCRE2_SRCDIR)
 	ln -sf $(PCRE2_SRCDIR) $@
+endif
+
+ifneq ($(SLIRP_SRCDIR),)
+src_slirp: | $(SLIRP_SRCDIR)
+	ln -sf $(SLIRP_SRCDIR) $@
 endif
 
 ifneq ($(MESON_SRCDIR),)
@@ -342,6 +346,15 @@ obj_pcre2/.lc_configured: | obj_pcre2 src_pcre2 obj_sysroot/.lc_headers
 
 obj_pcre2/.lc_built: | obj_pcre2/.lc_configured
 	$(MAKE) MAKE="$(MAKE)" -C obj_pcre2 # DESTDIR=$(CURDIR)/obj_sysroot install
+	touch $@
+
+obj_slirp/.lc_configured: | obj_slirp src_slirp obj_sysroot/.lc_headers
+	MESON=$(MESON) PKGCFG="" PREFIX="" sh -x $(TOPDIR)/../cnfg/cross.sh cross.ini
+	$(MESON) setup $(FULL_SLIRP_CONFIG) --cross-file cross.ini obj_slirp src_slirp
+	touch $@
+
+obj_slirp/.lc_built: | obj_slirp/.lc_configured
+	$(MAKE) MAKE="$(MAKE)" -C obj_slirp # DESTDIR=$(CURDIR)/obj_sysroot install
 	touch $@
 
 obj_glib/.lc_configured: | src_glib obj_sysroot/.lc_headers obj_glib

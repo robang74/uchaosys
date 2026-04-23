@@ -5,8 +5,10 @@
 
 # Settings /////////////////////////////////////////////////////////////////////
 ARCH         ?= x86_64
+export ARCH  := $(ARCH)
 ENV_VARS     ?=
-NCPU         ?= $(shell nproc)
+NCPU         ?= $(shell nproc 2>/dev/null || echo 1)
+export NCPU  := $(NCPU)
 MUSLCFGMAK   := cnfg/musl-125x.config.mak
 BBOXCFG      := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
 

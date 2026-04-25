@@ -4,6 +4,8 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
+uChaos minimal Linux system (2MB) running by a size-reduced musl-glib static qemu (7.5MB) and cpu/ram jittering randomness init of Linux cnrg for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation is an embedded Linux course including kernel internals/module basics tha can be delivered in a 10MB archive.
+
 <br>
 
 ![0KVM](docs/zero-entropy-virtual-machine.jpg)

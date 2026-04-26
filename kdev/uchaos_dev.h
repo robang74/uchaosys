@@ -355,6 +355,19 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
     return sent;
 }
 
+/* mur3sum engine for deterministic non-cryptographic hashing
+ *
+ * Notice that replacing get_time_ns() with a 64bit read from a file, and
+ * disabling the USE_TSMEM_SEED initialisation, it works as a mur3sum, an
+ * applet that given a file provides a non cryptographic hash like md5sum 
+ * but faster. The shortcoming is having just 64 or 32 bit in output which
+ * requires to port it in 128, 256 or 512 advanced ASM registry operations
+ * or for back compatibility with older/tinier CPUs wrap it around a logic
+ * that splits the input in a way the predetermined hash size is granted.
+ * Both the strategies can be engaged at the same time starting N light
+ * threads to elaborate a file long enough to make the multithreading
+ * setup O(1) negligible compared with the elaboration time O(size/N).
+ */
 static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
     archul_t seed = HASHSEED ^ get_time_ns();
 #if USE_TSMEM_SEED

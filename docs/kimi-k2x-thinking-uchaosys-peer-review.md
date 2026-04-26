@@ -91,7 +91,7 @@ The following throughput figures were obtained from the compiled binaries:
 
 | Mode | Throughput | Notes |
 |------|-----------|-------|
-| Single-thread (`uckaos`) | 25.0 MB/s | Baseline userspace |
+| Single-thread (`uckaos`) | 24.9 MB/s | Baseline userspace |
 | 4 threads (physical cores) | **92.5 MB/s** | Near-linear scaling (93% efficiency) |
 | 8 threads (SMT) | 79.6 MB/s | Contention overhead 14% |
 

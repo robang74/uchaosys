@@ -4,7 +4,7 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-uChaos minimal Linux system (2MB) running by a size-reduced musl-glib static qemu (7.5MB) and cpu/ram jittering randomness init of Linux cnrg for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation is an embedded Linux course including kernel internals/module basics tha can be delivered in a 10MB archive.
+uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB) and cpu/ram jittering randomness init of Linux cnrg for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB gzipped archive including static-linked PractRand.
 
 <br>
 
@@ -45,7 +45,7 @@ Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time:  970 s  (16m 10s)`&hairsp;¹
 - `dev/build environment size: 5479 MB (5.35 GB)`
-- `repository .zip copy  size:  520 KB (pdf+img)`
+- `repository .zip copy  size:  524 KB (pdf+img)`
 
 Reference architecture **x86_64**, system footprint:
 
@@ -168,7 +168,7 @@ Since v0.6.5 this project also provides the option of compiling an experimental 
 > FILE: 'RNG_test.gz.sh', HEAD: 1384 (4),
 > GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
 
-It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.44&nbsp;MB).
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.95&nbsp;MB).
 
 The result above has been achieved in 7-days from the initial commit of this project. Here below after 1mo:
 

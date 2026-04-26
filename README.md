@@ -125,20 +125,24 @@ time make buildall status
 make runqemu
 # to test self-hosting u/qemu
 make qemutest
-# function for further tests
-p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
 
+# function for generation rate test
+p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
 # to test speed and DRAM tail slayer jittering
 p8 | dd bs=1M of=/dev/null
-#> Init mts 4096B access x7 times: 90 < 983.1 > 4635 nS
-#> Init mts 4096B access x7 times: 81 < 859.9 > 4115 nS
-#> Init mts 4096B access x7 times: 56 < 628.0 > 3053 nS
-#> Init mts 4096B access x7 times: 56 < 679.4 > 3236 nS
-#> Init mts 4096B access x7 times: 56 < 637.0 > 3100 nS
-#> Init mts 4096B access x7 times: 83 < 866.1 > 4054 nS
-#> Init mts 4096B access x7 times: 91 < 891.4 > 4156 nS
-#> Init mts 4096B access x7 times: 83 < 880.6 > 4171 nS
-#> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 15.2865 s, 70.2 MB/s
+#> Init mts 4096B access x7 times: 56 < 615.3 > 2966 nS
+#> Init mts 4096B access x7 times: 51 < 558.6 > 2728 nS
+#> Init mts 4096B access x7 times: 55 < 631.6 > 3083 nS
+#> Init mts 4096B access x7 times: 83 < 878.6 > 4183 nS
+#> Init mts 4096B access x7 times: 92 < 953.1 > 4513 nS
+#> Init mts 4096B access x7 times: 102 < 1016.4 > 4614 nS
+#> Init mts 4096B access x7 times: 93 < 930.1 > 4382 nS
+#> Init mts 4096B access x7 times: 81 < 882.9 > 4241 nS
+#> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 13.4836 s, 79.6 MB/s
+p4() { parallel -j4 "kdev/uckaos 32768" ::: {1..4}; }
+#> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 11.6083 s, 92.5 MB/s
+kdev/uckaos $[128*1024] | dd bs=1M of=/dev/null
+#> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 43.1761 s, 24.9 MB/s
 
 # QA w/ RNG_test using PractRand version 0.96
 p8 | prnd/RNG_test stdin64

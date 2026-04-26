@@ -97,6 +97,28 @@ static inline archul_t rotlbit(archul_t n, u8 c) {
     c &= ABX; return (n << c) | (n >> ((-c) & ABX));
 }
 
+/* xxhash.com - Extremely fast non-cryptographic hash algorithm
+ *
+ * uChaos is designed to be compiled with -O1 not -O3 like XXH3 should. With it,
+ * the uChaos increase of performance is relatively small for the low contention
+ * scenario in which uChaos is used to work. Moreover the Murmur3 is a quality
+ * 10/10 hashing function like xxhash, while xxhash adds much more complication.
+ * In short terms: murmur3() is fine, and xxhash makes it shiny by comparison.
+ * In fact, xxhash is 10% faster in the best case but 2% in uChaos ideal case.
+ * Overall performance isn't 1:1 related with the hashing raw speed but it is
+ * the only metric that makes an impact here, thus the only one that matters.
+ */
+#ifdef _USE_XXHASH_H
+#define XXH_STATIC_LINKING_ONLY
+#define XXH_IMPLEMENTATION
+#define XXH_INLINE_ALL
+#define XXH_NO_STREAM
+#include "xxhash.h"
+#define murmux3(ks, p) ({ archul_t _a=ks; \
+    (archul_t)XXH3_##ABN##bits_withSeed((const void *)&_a, HASHSIZE, p); })
+#define knuthmx(ks) ({ archul_t _a=ks; \
+    (archul_t)XXH3_##ABN##bbits((const void *)&_a, HASHSIZE); })
+#else
 __attribute__((always_inline))
 static inline archul_t knuthmx(archul_t iw) {
     register archul_t w = iw;
@@ -105,7 +127,6 @@ static inline archul_t knuthmx(archul_t iw) {
     w ^= rotlbit(w, (w & 2) ? rot1 : rot2);
     return w;
 }
-
 __attribute__((always_inline))
 static inline archul_t murmux3(archul_t ks, archul_t p) {
     register archul_t z = ks;
@@ -114,6 +135,7 @@ static inline archul_t murmux3(archul_t ks, archul_t p) {
     z =  z ^ ( z >> (ABx+2));
     return z;
 }
+#endif
 
 #ifdef _SKIP_TSMEM_SEED
 #define USE_TSMEM_SEED 0

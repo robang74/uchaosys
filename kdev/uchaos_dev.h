@@ -104,37 +104,50 @@ static inline archul_t rotlbit(archul_t n, u8 c) {
  * scenario in which uChaos is used to work. Moreover the Murmur3 is a quality
  * 10/10 hashing function like xxhash, while xxhash adds much more complication.
  * In short terms: murmur3() is fine, and xxhash makes it shiny by comparison.
+ *
  * In fact, xxhash is 10% faster in the best case but 2% in uChaos ideal case.
  * Overall performance isn't 1:1 related with the hashing raw speed but it is
  * the only metric that makes an impact here, thus the only one that matters.
+ *
+ * Test              Hash None    Hash Mur3     Hash XXH3
+ * P1 (One proc)     24.9 MB/s    23.5 MB/s     24.1 MB/s
+ * P4 (Parallel 4)   67.8 MB/s    61.2 MB/s     63.4 MB/s
+ * P8 (Parallel 8)   64.5 MB/s    58.8 MB/s     60.1 MB/s
+ *
+ * Compiling the source branch _USE_HASH_NONE we can observe that the hashing
+ * generates an overload that might vary between 3% and 11%. This explains
+ * why a 8x times faster hash has so little overall impact on performance.
  */
-#ifdef _USE_XXHASH_H
-#define XXH_STATIC_LINKING_ONLY
-#define XXH_IMPLEMENTATION
-#define XXH_INLINE_ALL
-#define XXH_NO_STREAM
-#include "xxhash.h"
-#define murmux3(ks, p) ({ archul_t _a=ks; \
-    (archul_t)XXH3_##ABN##bits_withSeed((const void *)&_a, HASHSIZE, p); })
-#define knuthmx(ks) ({ archul_t _a=ks; \
-    (archul_t)XXH3_##ABN##bbits((const void *)&_a, HASHSIZE); })
+#if   defined( _USE_HASH_NONE )
+  #define knuthmx(iw)    ({ archul_t _a=iw; ~_a; })
+  #define murmux3(ks, p) ({ archul_t _a=ks; _a^(p); })
+#elif defined( _USE_HASH_XXH3 )
+  #define XXH_STATIC_LINKING_ONLY
+  #define XXH_IMPLEMENTATION
+  #define XXH_INLINE_ALL
+  #define XXH_NO_STREAM
+  #include "xxhash.h"
+  #define murmux3(ks, p) ({ archul_t _a=ks; \
+      (archul_t)XXH3_##ABN##bits_withSeed((const void *)&_a, HASHSIZE, p); })
+  #define knuthmx(ks) ({ archul_t _a=ks; \
+      (archul_t)XXH3_##ABN##bbits((const void *)&_a, HASHSIZE); })
 #else
-__attribute__((always_inline))
-static inline archul_t knuthmx(archul_t iw) {
-    register archul_t w = iw;
-    w  = rotlbit(w, getprmx16(w));
-    w *= (w & 1) ? 0x9E3779B9 : 0x045d9f3b;
-    w ^= rotlbit(w, (w & 2) ? rot1 : rot2);
-    return w;
-}
-__attribute__((always_inline))
-static inline archul_t murmux3(archul_t ks, archul_t p) {
-    register archul_t z = ks;
-    z =  p ^ ((z >> (ABx-2)) * murmul1);
-    z = (z ^ ( z <<  ABx  )) * murmul2;
-    z =  z ^ ( z >> (ABx+2));
-    return z;
-}
+  __attribute__((always_inline))
+  static inline archul_t knuthmx(archul_t iw) {
+      register archul_t w = iw;
+      w  = rotlbit(w, getprmx16(w));
+      w *= (w & 1) ? 0x9E3779B9 : 0x045d9f3b;
+      w ^= rotlbit(w, (w & 2) ? rot1 : rot2);
+      return w;
+  }
+  __attribute__((always_inline))
+  static inline archul_t murmux3(archul_t ks, archul_t p) {
+      register archul_t z = ks;
+      z =  p ^ ((z >> (ABx-2)) * murmul1);
+      z = (z ^ ( z <<  ABx  )) * murmul2;
+      z =  z ^ ( z >> (ABx+2));
+      return z;
+  }
 #endif
 
 #ifdef _SKIP_TSMEM_SEED

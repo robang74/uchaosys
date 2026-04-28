@@ -157,6 +157,7 @@ if [ "${1:-}" = "sources" -o ! -d src/ ]; then
  
  MachineState *current_machine;
 EOF
+  test "$?" = "0" || exit 1
 fi
 test "${1:-}" = "sources" && shift
 cp -af minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1

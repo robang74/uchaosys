@@ -35,7 +35,7 @@ test -r virtio/qboot.rom && cd virtio
 
 export PATH=.:$PATH
 
-chkmd5() { 
+chkmd5() {
   filenm=$(echo "$rfsimg" | sed 's/\.cpio\.gz//;s/\.cpio//');
   md5sum -c update/$filenm.md5 2>/dev/null;
 }

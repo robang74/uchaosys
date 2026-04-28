@@ -30,7 +30,7 @@ if grep -qw tmpfs /proc/filesystems; then
   fi
   mount -o nosuid,nodev,${shmsize:+size=${shmsize}k} -t tmpfs $tmpdev $tmpdir
   if grep -q " $tmpdir " /proc/mounts; then
-    echo "Temporary $tmpdir size is  ${shmsize:-$zsize} kB of ${zsize:+Z}RAM"
+    printf "\t$tmpdir:\t%8d kB of ${zsize:+Z}RAM\n" ${shmsize:-$zsize}
     echo "$TEXT" | sed -e "s,^,\t,"
   fi
 else

@@ -33,10 +33,13 @@ mkdir -p /dev/pts && mount -t devpts devpts /dev/pts
 
 # 2nd stage init
 
+stty -echoctl
 touch /etc/init.d/rcS
 chmod +x /etc/init.d/rcS
-exec /linuxrc
-stty -echoctl
+# acnsl="/sys/class/tty/console/active"
+# export acnsl=$(sed '$s@.*[ /]@@' $acnsl)
+# exec <>/dev/$acnsl >&0 2>&1 /linuxrc
+exec <>/dev/console >&0 2>&1 /linuxrc
 printf "\e[?7hRun /init exec /linuxrc\n"
 echo
 echo "Emergency shell respowning because /linuxrc failed"

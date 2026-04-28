@@ -11,11 +11,15 @@ qemubin="qemu-system-x86_64"
 rundir=$(realpath $(dirname $0))
 
 if [ -r "$rundir/$qemubin.gz.sh" ]; then
+  romstgz="$rundir/$qemubin-roms.tgz"
   qemubin="$qemubin.gz.sh"
   chmod +x "$rundir/$qemubin"
 elif [ -r "$rundir/u$qemubin.gz.sh" ]; then
+  romstgz="$rundir/u$qemubin-roms.tgz"
   qemubin="u$qemubin.gz.sh"
   chmod +x "$rundir/$qemubin"
+else
+  romstgz=
 fi
 test -r "$rundir/$kimg" && kimg="$rundir/$kimg"
 if [ -r "$rundir/$rfsimg" ]; then
@@ -26,7 +30,6 @@ fi
 
 # virtio folder contains roms/bins
 
-romstgz="$rundir/$qemubin-roms.tgz"
 test -r "$romstgz" && tar -xzf $romstgz
 test -r virtio/qboot.rom && cd virtio
 

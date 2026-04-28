@@ -8,18 +8,37 @@ append_for_kernel_debug="earlyprintk=serial nokaslr -pidfile vm.pid -panic=1"
 kimg="bzImage"
 rfsimg="initramfs.cpio"
 qemubin="qemu-system-x86_64"
-test -r $qemubin.gz.sh && qemubin="$qemubin.gz.sh"
+rundir=$(realpath $(dirname $0))
+
+if [ -r "$rundir/$qemubin.gz.sh" ]; then
+  qemubin="$qemubin.gz.sh"
+  chmod +x "$rundir/$qemubin"
+elif [ -r "$rundir/u$qemubin.gz.sh" ]; then
+  qemubin="u$qemubin.gz.sh"
+  chmod +x "$rundir/$qemubin"
+fi
+test -r "$rundir/$kimg" && kimg="$rundir/$kimg"
+if [ -r "$rundir/$rfsimg" ]; then
+  rfsimg="$rundir/$rfsimg"
+elif [ -r "$rundir/$rfsimg.gz" ]; then
+  rfsimg="$rundir/${rfsimg}.gz"
+fi
+
+# virtio folder contains roms/bins
+
+romstgz="$rundir/$qemubin-roms.tgz"
+test -r "$romstgz" && tar -xzf $romstgz
+test -r virtio/qboot.rom && cd virtio
 
 export PATH=.:$PATH
 
-test -r ${rfsimg}.gz && rfsimg="${rfsimg}.gz"
-rfsdir=$(echo "$rfsimg" | sed 's/\.cpio\.gz//;s/\.cpio//')
-
-chkmd5() { md5sum -c update/$rfsdir.md5 2>/dev/null; }
+chkmd5() { 
+  filenm=$(echo "$rfsimg" | sed 's/\.cpio\.gz//;s/\.cpio//');
+  md5sum -c update/$filenm.md5 2>/dev/null;
+}
+# test -r bzImage || cp -alLf bzImage.orig bzImage
 
 # Cope with the user's parametric input
-
-test -r bzImage || ln -sf bzImage.orig bzImage
 
 # Command line flags management
 
@@ -90,23 +109,23 @@ fi
 
 # Preparing the QEMU virtual machine configuration #############################
 
-export QTTYUC=${QTTYUC:-console=hvc0 signal=off video=off}
+export QTTYUC=${QTTYUC:-8250.nr_uarts=4 console=ttyS0,115200n8}
 
 cmdlnx="$cmdlnx HOST=x86_64 root=/dev/ram0 init=/init $QTTYUC net.ifnames=0 nokaslr"
-nograp="-nographic -vga none -display none"
+nograp="-nographic -vga none -display none -serial mon:stdio"
 
 if [ "${QZERO:-0}" = "0" ]; then
   boxnme="-name tinylnx"
   qaccel="-enable-kvm -cpu host,migratable=off,+invtsc"
 # netisl="-netdev user,id=net0,restrict=yes"
-  if "$QMACH" = "microvm" ; then
+  if [ "$QMACH" = "microvm" ]; then
     qaccel="$qaccel -M microvm,accel=kvm,x-option-roms=off,pit=off,pic=off,rtc=off,acpi=off"
 #   netisl="$netisl -device virtio-net-device,netdev=net0"
   else
     qaccel="$qaccel -M q35,accel=kvm,usb=off,vmport=off,dump-guest-core=off -boot order=dc"
 #   netisl="$netisl -device virtio-net-pci,netdev=net0"
   fi
-  netisl="-serial mon:stdio -net none"
+  netisl="-net none"
 else
   echo
   echo "Zero Kelvin Linux mode"
@@ -117,7 +136,7 @@ else
   cmdlnx="$cmdlnx deferred_probe_timeout=0 page_alloc.shuffle=0 memtest=0"
   cmdlnx="lpj=2000000 noapic nolapic clocksource=pit video=off nomodeset $cmdlnx"
   cmdlnx="$cmdlnx random.trust_cpu=off mitigations=off"
-  netisl="-serial mon:stdio -nodefaults"
+  netisl="-nodefaults"
 
   if [ "${ZWARM:-0}" = "1" ]; then
     qaccel="-cpu qemu64 -smp 1";
@@ -130,9 +149,8 @@ cmdlnx="-append '$cmdlnx ${KARGS:-}'"
 # disable this line if it creates trouble because ulimit -l isn't friendly
 grep -qi uchaos /etc/os-release || qaccel="$qaccel -overcommit mem-lock=on"
 
-cmd="$PWD/$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
-              -no-reboot ${boxnme:-} ${qaccel:-} ${netisl:-} \
-              ${cmdlnx:-} ${QARGS:-}"
+cmd="$rundir/$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
+     -no-reboot ${boxnme:-} ${qaccel:-} ${netisl:-} ${cmdlnx:-} ${QARGS:-}"
 
 # Starting the QEMU configuraed virtual machine ################################
 

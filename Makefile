@@ -425,12 +425,12 @@ distclean: deepclean
 
 qemu/output/.done: minz/amalgamation/.done
 	@$(call print_start,"","")
-	cd qemu && $(OPTS) time -p sh make.sh sources
+	cd qemu && time -p sh make.sh # sources
 	touch $@
 
 virt/.done: qemu/output/.done
 	@$(call print_start,"","")
-	cp -alLf qemu/output/* virt/
+	cp -alf qemu/output/* virt/
 	$(MAKELNX) install
 	touch $@
 

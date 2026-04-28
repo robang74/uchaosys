@@ -62,102 +62,23 @@ bld_dir="build"
 
 ################################################################################
 
-if [ "${1:-}" = "sources" -o ! -d src/ ]; then
+if [ "${1:-}" = "sources" -o ! -e src/.done ]; then
   echo
   echo "Preparing sources ... "
   echo
+  set -e
   git submodule update --init --recursive --jobs $ncpu \
     --depth 32 --single-branch slirp
   test -r $url_name ||
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
-  $infl_cmd $url_name -C $src_dir --strip-components=1
-  sed -e '/cxl\.c/d' -e '/cxl-stub/d' -i $src_dir/hw/acpi/meson.build
-  patch -p1 << EOF
---- a/$src_dir/hw/i386/acpi-build.c	2026-03-24 14:23:37.852944753 +0100
-+++ b/$src_dir/hw/i386/acpi-build.c	2026-03-24 14:26:02.097386643 +0100
-@@ -839,7 +839,9 @@ static void build_acpi0017(Aml *table)
-     method = aml_method("_STA", 0, AML_NOTSERIALIZED);
-     aml_append(method, aml_return(aml_int(0x0B)));
-     aml_append(dev, method);
--    build_cxl_dsm_method(dev);
-+ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
-+    build_cxl_dsm_method(dev);
-+ #endif
-
-     aml_append(scope, dev);
-     aml_append(table, scope);
-@@ -1014,7 +1015,9 @@ build_dsdt(GArray *table_data, BIOSLinke
-                 aml_append(aml_pkg, aml_eisaid("PNP0A08"));
-                 aml_append(aml_pkg, aml_eisaid("PNP0A03"));
-                 aml_append(dev, aml_name_decl("_CID", aml_pkg));
--                build_cxl_osc_method(dev);
-+ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
-+                build_cxl_osc_method(dev);
-+ #endif
-             } else if (pci_bus_is_express(bus)) {
-                 aml_append(dev, aml_name_decl("_HID", aml_eisaid("PNP0A08")));
-                 aml_append(dev, aml_name_decl("_CID", aml_eisaid("PNP0A03")));
-@@ -2072,8 +2074,10 @@ void acpi_build(AcpiBuildTables *tables,
-                           x86ms->oem_id, x86ms->oem_table_id);
-     }
-     if (pcms->cxl_devices_state.is_enabled) {
--        cxl_build_cedt(table_offsets, tables_blob, tables->linker,
--                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
-+ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
-+        cxl_build_cedt(table_offsets, tables_blob, tables->linker,
-+                       x86ms->oem_id, x86ms->oem_table_id, &pcms->cxl_devices_state);
-+ #endif
-     }
-
-     acpi_add_table(table_offsets, tables_blob);
---- a/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:57:57.740528905 +0100
-+++ b/$src_dir/hw/pci-host/gpex-acpi.c	2026-03-24 14:58:50.833630475 +0100
-@@ -149,7 +119,9 @@ void acpi_dsdt_add_gpex(Aml *scope, stru
-             aml_append(dev, aml_name_decl("_CRS", crs));
-
-             if (is_cxl) {
--                build_cxl_osc_method(dev);
-+ #ifndef _DISABLE_CXL //RAF: disable for a minimal build
-+                build_cxl_osc_method(dev);
-+ #endif
-             } else {
-                 /* pxb bridges do not have ACPI PCI Hot-plug enabled */
-                 acpi_dsdt_add_host_bridge_methods(dev, true);
---- a/$src_dir/hw/i386/pc_q35.c	2026-03-31 19:10:11.650911367 +0200
-+++ b/$src_dir/hw/i386/pc_q35.c	2026-03-31 19:11:06.445131700 +0200
-@@ -381,6 +381,7 @@ static void pc_q35_machine_10_2_options(
- 
- DEFINE_Q35_MACHINE_AS_LATEST(10, 2);
- 
-+#if 0
- static void pc_q35_machine_10_1_options(MachineClass *m)
- {
-     pc_q35_machine_10_2_options(m);
-@@ -695,3 +696,4 @@ static void pc_q35_machine_2_6_options(M
- }
- 
- DEFINE_Q35_MACHINE(2, 6);
-+#endif
---- a/$src_dir/hw/core/machine.c	2026-03-31 07:04:12.848337933 +0200
-+++ b/$src_dir/hw/core/machine.c	2026-03-31 07:06:08.752070371 +0200
-@@ -47,6 +47,7 @@ GlobalProperty hw_compat_10_1[] = {
- };
- const size_t hw_compat_10_1_len = G_N_ELEMENTS(hw_compat_10_1);
- 
-+#if 0
- GlobalProperty hw_compat_10_0[] = {
-     { "scsi-hd", "dpofua", "off" },
-     { "vfio-pci", "x-migration-load-config-after-iter", "off" },
-@@ -297,6 +298,7 @@ GlobalProperty hw_compat_2_6[] = {
-     { "virtio-pci", "disable-legacy", "off", .optional = true },
- };
- const size_t hw_compat_2_6_len = G_N_ELEMENTS(hw_compat_2_6);
-+#endif
- 
- MachineState *current_machine;
-EOF
-  test "$?" = "0" || exit 1
+  cd $src_dir
+  $infl_cmd ../$url_name --strip-components=1
+  sed -e '/cxl\.c/d' -e '/cxl-stub/d' -i hw/acpi/meson.build
+  patch -p1 < ../../cnfg/q35-remove-old-machines-v3-patch
+  touch .done
+  cd ..
+  set +e
 fi
 test "${1:-}" = "sources" && shift
 cp -af minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
@@ -291,7 +212,7 @@ fi
 
 ################################################################################
 
-roms="bios-256k.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
+roms="bios-microvm.bin efi-virtio.rom kvmvapic.bin linuxboot_dma.bin qboot.rom"
 
 rm -f $qbin ../$qbin.nma ../$qbin.rsp ../$qbin.ldc ../$qbin
 time -p make -j$ncpu $qbin
@@ -338,7 +259,8 @@ mkdir -p $dst_dir
 cd $bld_dir
 #opts="--strip-all --remove-section=.comment --remove-section=.note"
 ${STRIP:-strip} ${opt:--s} $qbin -o $dst_dir/$qbin
-( cd ../$src_dir/pc-bios && cp -f $roms $dst_dir )
+( cd ../$src_dir/pc-bios && cp -alLf $roms $dst_dir )
+ln -sf bios-microvm.bin $dst_dir/bios-256k.bin 
 chmod -x $dst_dir/*.rom
 
 echo

@@ -49,10 +49,11 @@ Reference processor **i5-8365**, toolchain metrics:
 
 Reference architecture **x86_64**, system footprint:
 
+- `qemu roms set         size:  359 KB` 
 - `uncompressed .cpio    size:  672 KB`
 - `initramfs.cpio.gz     size:  416 KB`
 - `linux kernel image    size: 1384 KB`
-- `qemu bootable system  size: 1808 KB (1.76 MB)`&hairsp;²
+- `qemu bootable system  size: 1259 KB (2.11 MB)`&hairsp;²
 
 Running this minimal system, the essential metrics:
 

@@ -145,8 +145,8 @@ FULL_GCC_CONFIG += $(LIBTOOL_ARG)
 #MUSL_VARS := AR=$(PWD)/obj_binutils/binutils/ar
 #MUSL_VARS += AS=$(PWD)/obj_binutils/gas/as-new
 #MUSL_VARS += RANLIB=$(PWD)/obj_binutils/binutils/ranlib
-FULL_MUSL_CONFIG += CC="$(XGCC)" LIBCC="$(PWD)/obj_gcc/$(TARGET)/libgcc/libgcc.a"
-#FULL_MUSL_CONFIG += $(MUSL_VARS)
+#ENV_MUSL_CONFIG += CC="$(XGCC)" LIBCC="$(PWD)/obj_gcc/$(TARGET)/libgcc/libgcc.a"
+#ENV_MUSL_CONFIG += AS="$(PWD)/obj_binutils/gas/as-new"
 obj_musl/.lc_configured: | obj_gcc/gcc/.lc_built
 obj_musl/.lc_built: | obj_gcc/$(TARGET)/libgcc/libgcc.a
 obj_gcc/gcc/.lc_built: | obj_sysroot/usr obj_sysroot/lib32 obj_sysroot/lib64 obj_sysroot/include
@@ -319,7 +319,7 @@ obj_gcc/gcc/.lc_built: | obj_gcc/.lc_configured
 #  $(MUSL_VARS) $(LIBTOOL_ARG) $(XGCC_VARS)
 
 obj_musl/.lc_configured: | obj_musl src_musl
-	cd obj_musl && ../src_musl/configure $(FULL_GCC_CONFIG) $(FULL_MUSL_CONFIG)
+	cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG)
 	touch $@
 
 obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot

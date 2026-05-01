@@ -132,6 +132,7 @@ $(SOURCES):
 CONFIG_URL := https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)
 
 define download
+	echo "download: $2"
 	mkdir -p $1.tmp
 	cd $1.tmp && $(DL_CMD) $(notdir $1) $2
 	cd $1.tmp && touch $(notdir $1)
@@ -146,12 +147,14 @@ endef
 
 $(SOURCES)/config.sub: | $(SOURCES)
 	@$(call print_start,$@,$^)
-	test -r $@.ok || $(call download,$@,"$(CONFIG_URL)",.$(CONFIG_SUB_REV))
+	test -r $@    || rm -f $@.ok
+	test -r $@.ok || $(call download,$@,"$(CONFIG_URL)")
 	touch   $@.ok
 
 $(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
 	@$(call print_start,$@,$^)
-	test -r $@.ok || $(call download,$@,$(SITE)/$(notdir $@),)
+	test -r $@    || rm -f $@.ok
+	test -r $@.ok || $(call download,$@,$(SITE)/$(notdir $@))
 	touch   $@.ok
 
 endif ##########################################################################

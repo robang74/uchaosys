@@ -101,12 +101,11 @@ elif [ -n "$UCTEST" ]; then
 fi
 
 if [ $imgupdte -ne 0 ]; then
-  sh -c "cd ..; ./cpio.sh -c"
-  if [ $updtquit -ne 0 ]; then
-#   cp -f $(find ../musl -name bzImage -type f | head -n1) .
-    du -k bzImage | sed -e "s/\t/ KB /"
-    exit 0
-  fi
+  sh -c "cd .. && ./cpio.sh -c"
+  du -k qemu-s* bzImage | sed -e "s/\t/ KB /" -e "s/^/ /"
+  sz=$(( ($(du -b *.rom *.bin | cut -f1 | tr '\n' +)512) >> 10 ))
+  printf "%5d KB rom/bin files\n" $sz
+  if [ $updtquit -ne 0 ]; then exit 0; fi
   read -p ">>> Updated, press ENTER to continue " key
 fi
 

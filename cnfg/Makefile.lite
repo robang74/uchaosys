@@ -4,6 +4,7 @@
 #     Makefile remains under the terms and authorship as previously it was.
 #
 
+NCPU   ?= $(shell nproc 2>/dev/null || echo 1)
 OUTPUT := $(CURDIR)/output
 
 BINUTILS_SRCDIR = BINUTILS_SRCDIR_not_set
@@ -68,8 +69,7 @@ MAKE +=  ac_cv_have_decl_basename=no
 MAKE +=  ac_cv_func_basename=no
 MAKE += MAKEINFO=false
 
-FULL_BINUTILS_CONFIG = \
-	--disable-separate-code \
+FULL_BINUTILS_CONFIG = --disable-separate-code \
 	$(COMMON_CONFIG) $(BINUTILS_CONFIG) $(TOOLCHAIN_CONFIG) \
 	--disable-werror \
 	--target=$(TARGET) --prefix= \
@@ -93,23 +93,18 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 	--enable-initfini-array \
 	--enable-libstdcxx-time=rt
 
-FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
-	--prefix= --host=$(TARGET)
+FULL_MUSL_CONFIG  = --prefix= --host=$(TARGET) $(MUSL_CONFIG)
+FULL_ZLIB_CONFIG  = --prefix= --host=$(TARGET) --disable-crcvx
+FULL_PCRE2_CONFIG = --prefix= --host=$(TARGET)
 
-FULL_ZLIB_CONFIG = --static --disable-crcvx \
-	--prefix= --host=$(TARGET)
-
-FULL_PCRE2_CONFIG = --disable-shared \
-	--prefix= --host=$(TARGET)
-
-NINJIA := ninjia
+NINJIA := ninjia -j$(NCPU)
 MESON  := $(OUTPUT)/bin/meson.pyz
 
-FULL_GLIB_CONFIG = --static --disable-shared \
-	--prefix= --host=$(TARGET) \
-  --with-sysroot=$(SYSROOT) \
-  --buildtype=release --default-library=static \
-  -Dgio=disabled -Dtests=false -DHAVE_DECL_BASENAME=1
+FULL_GLIB_CONFIG = --prefix= --host=$(TARGET)    \
+  --with-sysroot=$(SYSROOT) --buildtype=release   \
+  -Ddocumentation=false -Dintrospection=disabled   \
+  -Dgio=disabled -Dtests=false -Dman-pages=disabled \
+  -Dselinux=disabled -Dxattr=false -DHAVE_DECL_BASENAME=0
 
 # --cross-file=cross_musl.txt \
 
@@ -155,9 +150,8 @@ endif
 # Activate colors
 CFLAGS += -fdiagnostics-color=always
 CXXFLAGS += -fdiagnostics-color=always
-FULL_GLIB_CONFIG += --color=always
 
-ifeq ($(TARGET),)
+ifeq ($(TARGET),) ##############################################################
 
 all:
 	@echo TARGET must be set.
@@ -165,7 +159,10 @@ all:
 
 install: all
 
-else
+else ###########################################################################
+
+.PHONY: all musl toolchain extra-libs glib install-glib clean
+.PHONY: install-musl install-toolchain install-meson install-libs
 
 all: musl toolchain extra-libs
 
@@ -190,17 +187,16 @@ zlib: obj_zlib/.lc_built
 pcre2: obj_pcre2/.lc_built
 
 src_meson/meson.pyz: src_meson
-	cd $(MESON_SRCDIR) && python3 packaging/create_zipapp.py \
+	cd src_meson && python3 packaging/create_zipapp.py \
 	  --outfile meson.pyz --interpreter '/usr/bin/env python3' .
 
 install-meson: src_meson/meson.pyz
-	mkdir -p $(OUTPUT)/bin/
-	cp -aflL $(MESON_SRCDIR)/meson.pyz $(OUTPUT)/bin/
+	mkdir -p $(dir $(MESON))
+	cp -aflL $(MESON_SRCDIR)/meson.pyz $(MESON)
 
-glib: install-meson obj_glib/.lc_built install-glib
+glib: install-meson install-glib
 
-.PHONY: all musl toolchain extra-libs glib clean
-.PHONY: install-musl install-toolchain install-meson install-libs
+# source targets ///////////////////////////////////////////////////////////////
 
 src_binutils: | $(BINUTILS_SRCDIR)
 	ln -sf $(BINUTILS_SRCDIR) $@
@@ -265,6 +261,8 @@ src_gcc: src_gcc_base
 	$(if $(MPFR_SRCDIR),cd $@.tmp && ln -sf ../src_mpfr mpfr)
 	$(if $(ISL_SRCDIR),cd $@.tmp && ln -sf ../src_isl isl)
 	mv $@.tmp $@
+
+# object targets ///////////////////////////////////////////////////////////////
 
 obj_%:
 	mkdir -p $@
@@ -338,11 +336,14 @@ obj_glib/.lc_configured: | obj_glib src_glib obj_sysroot/.lc_headers
 	touch $@
 
 obj_glib/.lc_built: obj_glib/.lc_configured
-	$(NINJIA) -C obj_glib && touch $@
+	$(NINJIA) -C obj_glib
+	touch $@
 
 obj_gcc/.lc_built: | obj_gcc/.lc_configured obj_gcc/gcc/.lc_built
 	cd obj_gcc && $(MAKE) MAKE="$(MAKE) $(LIBTOOL_ARG)"
 	touch $@
+
+# install targets //////////////////////////////////////////////////////////////
 
 install-musl: | obj_musl/.lc_built
 	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
@@ -368,7 +369,6 @@ install-pcre2: | obj_pcre2/.lc_built
 
 install-glib: install-meson | obj_glib/.lc_built
 	$(NINJIA) -C obj_glib DESTDIR=$(DESTDIR)$(OUTPUT) install
-	touch $@
 
 ifneq ($(LINUX_SRCDIR),)
 TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))
@@ -388,11 +388,11 @@ obj_kernel_headers/.lc_built: | src_kernel_headers
 	touch $@
 install-kernel-headers: | obj_kernel_headers/.lc_built
 	mkdir -p $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
-	cp -R obj_kernel_headers/staged/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
+	cp -arlLf obj_kernel_headers/staged/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
 endif
 endif
 
-endif
+endif ##########################################################################
 
 clean:
 	rm -rf src_* obj_*

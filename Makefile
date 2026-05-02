@@ -349,7 +349,6 @@ install: $(KIMG) $(CPIOTMP)/.done qemu/output/.done
 	@$(call print_start,"","")
 	cp -alLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
-	@cd $(VDIR) && du -k $(QBIN) | tr '\t' ' '
 	@echo
 
 glib:

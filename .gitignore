@@ -24,6 +24,7 @@ virt/bzImage
 virt/initramfs.cpio.gz
 virt/qemu-system-x86_64
 virt/linuxboot_dma.bin
+virt/bios-microvm.bin
 virt/efi-virtio.rom
 virt/bios-256k.bin
 virt/kvmvapic.bin

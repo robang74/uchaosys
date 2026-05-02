@@ -25,7 +25,7 @@ while true; do
     find . -mindepth 1 -printf "%P\n" | sort | cpio -o -H newc \
       --reproducible --owner 0:0 | tee ../cpio.cpio | $zcmd -9nc > ../$cpiofl
     cd - >/dev/null
-    du -ks $cpiofl | sed -e "s/\t/ KB /" -e "s/^/ /"
+    printf "\n%5d KB $cpiofl\n" $(du -ks $cpiofl | cut -f1) 
     test -d $vrtdir && mv -f $cpiofl $vrtdir
   else
     echo

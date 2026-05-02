@@ -45,12 +45,11 @@ MUSL_REPO = https://git.musl-libc.org/git/musl
 LINUX_SITE = https://cdn.kernel.org/pub/linux/kernel
 LINUX_HEADERS_SITE = https://ftp.barfooze.de/pub/sabotage/tarballs
 
-GLIB_SITE = https://download.gnome.org/sources/glib/$(shell echo $(GLIB_VER) | cut -d. -f1,2)
+GLIB_VTAG = $(shell echo $(GLIB_VER) | cut -d. -f1,2)
+GLIB_SITE = https://download.gnome.org/sources/glib/$(GLIB_VTAG)
 
 DL_CMD = wget -c -O
 SHA1_CMD = sha1sum -c
-
-COWPATCH = $(CURDIR)/cowpatch.sh
 
 HOST = $(if $(NATIVE),$(TARGET))
 OUTPUT = $(CURDIR)/output$(if $(HOST),-$(HOST))
@@ -58,7 +57,14 @@ BUILD_DIR = build/$(if $(HOST),$(HOST),local)/$(TARGET)
 
 REL_TOP = ../../..
 
+COWPATCH = $(CURDIR)/cowpatch.sh
+
 -include config.mak
+
+ARCH         ?= x86_64
+export ARCH  := $(ARCH)
+
+################################################################################
 
 SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) musl-$(MUSL_VER) \
 	$(if $(GMP_VER),gmp-$(GMP_VER)) \
@@ -112,30 +118,35 @@ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-headers-*)): SITE 
 $(SOURCES):
 	mkdir -p $@
 
+CONFIG_URL := https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)
+
+define download
+	echo "download: $2"
+	mkdir -p $1.tmp
+	cd $1.tmp && $(DL_CMD) $(notdir $1) $2
+	cd $1.tmp && touch $(notdir $1)
+	cd $1.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $1).sha1
+	mv $1.tmp/$(notdir $1) $1
+	rm -rf $1.tmp
+endef
+
+define print_start
+	echo ">>> MUSL  >>> $1: $2"
+endef
+
 $(SOURCES)/config.sub: | $(SOURCES)
-	echo "MUSL >>> $@: $^"
-	mkdir -p $@.tmp
-	cd $@.tmp && $(DL_CMD) $(notdir $@) "https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=$(CONFIG_SUB_REV)"
-	cd $@.tmp && touch $(notdir $@)
-	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).$(CONFIG_SUB_REV).sha1
-	mv $@.tmp/$(notdir $@) $@
-	rm -rf $@.tmp
+	@$(call print_start,$@,$^)
+	test -r $@    || rm -f $@.ok
+	test -r $@.ok || $(call download,$@,"$(CONFIG_URL)")
+	touch   $@.ok
 
-$(SOURCES)/%.ok: hashes/%.sha1 | $(SOURCES)
-	echo "MUSL >>> $@: $^"
-	mkdir -p $@.tmp
-	cd $@.tmp && $(DL_CMD) $(notdir $@) $(SITE)/$(notdir $@)
-	cd $@.tmp && touch $(notdir $@)
-	cd $@.tmp && $(SHA1_CMD) $(CURDIR)/hashes/$(notdir $@).sha1
-	mv $@.tmp/$(notdir $@) $@
-	rm -rf $@.tmp
-	touch $@.ok
-
-$(SOURCES)/%: $(SOURCES)/%.ok
+$(SOURCES)/%: hashes/%.sha1 | $(SOURCES)
+	@$(call print_start,$@,$^)
+	test -r $@    || rm -f $@.ok
+	test -r $@.ok || $(call download,$@,$(SITE)/$(notdir $@))
+	touch   $@.ok
 
 endif ##########################################################################
-
-
 # Rules for extracting and patching sources, or checking them out from git.
 
 define extract_tar
@@ -146,7 +157,7 @@ define extract_tar
 endef
 
 musl-git-%:
-	echo "MUSL >>> $@: $^"
+	@$(call print_start,$@,$^)
 	rm -rf $@.tmp
 	git clone -b $(patsubst musl-git-%,%,$@) $(MUSL_REPO) $@.tmp
 	cd $@.tmp && git fsck
@@ -162,7 +173,7 @@ musl-git-%:
 	$(call extract_tar,$@,xJf,$<)
 
 %: %.orig
-	echo "MUSL >>> $@: $^"
+	@$(call print_start,$@,$^)
 	case "$@" in */*) exit 1 ;; esac
 	rm -rf $@.tmp ; mkdir $@.tmp; cd $@.tmp && $(COWPATCH) -I ../$<
 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
@@ -185,15 +196,15 @@ all:
 else
 
 $(BUILD_DIR):
-	echo "MUSL >>> $@: $^"
+	@$(call print_start,$@,$^)
 	mkdir -p $@
 
 $(BUILD_DIR)/Makefile: | $(BUILD_DIR)
-	echo "MUSL >>> $@: $^"
+	@$(call print_start,$@,$^)
 	ln -sf $(REL_TOP)/litecross/Makefile $@
 
 $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
-	echo "MUSL >>> $@: $^"
+	@$(call print_start,$@,$^)
 	printf >$@ '%s\n' \
 	"TARGET = $(TARGET)" \
 	"HOST = $(HOST)" \
@@ -212,14 +223,18 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	"-include $(REL_TOP)/config.mak"
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
+	@$(call print_start,$@,$^)
 	cd $(BUILD_DIR) && $(MAKE) $@
 
 glib:
+	@$(call print_start,$@,$^)
 	cd $(BUILD_DIR) && $(MAKE) $@
 
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
+	@$(call print_start,$@,$^)
 	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@
 
 endif
 
 .SECONDARY:
+

@@ -41,7 +41,7 @@ OPTS         := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX)
 OPTS         += CCPREFIX=$(CCPREFIX) KERNVER=$(KERNVER)
 OPTS         += EXTRA_CFLAGS="$(EXTRA_CFLAGS)" PATH=$(PATH)
 GZCMD_REPO   := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
-GZCMD_PATH   := refs/heads/main
+GZCMD_PATH   := gzcmd.sh-v0.1.8
 
 KDIR_FILES   := $(addprefix $(KDIR)/, vmlinux bzImage System.map)
 VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))

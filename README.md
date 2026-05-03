@@ -44,7 +44,7 @@ The data reported below are indicative and specific for the reference tagged ver
 Reference processor **i5-8365**, toolchain metrics:
 
 - `system building total time:  970 s  (16m 10s)`&hairsp;¹
-- `dev/build environment size: 5479 MB (5.35 GB)`
+- `dev/build environment size: 5562 MB (5.43 GB)`
 - `repository .zip copy  size:  524 KB (pdf+img)`
 
 Reference architecture **x86_64**, system footprint:
@@ -119,7 +119,7 @@ cd uchaosys
 time make sources
 #    real	 2m42.075s
 time make buildall status
-#    real	19m13.068s  <-- everything since v0.6.9
+#    real	22m35.016s  <-- everything since v0.6.9
 
 # to run uChaoSys on u/qemu
 make runqemu
@@ -166,11 +166,11 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 Since v0.6.5 this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary ([v0.6.7](https://github.com/robang74/uchaosys/releases/tag/v0.6.7): 7264&nbsp;KB, -3% minz w/lto) which uses a subset of ROMs (360&nbsp;KB, tgz: 219&nbsp;KB).
 
-> FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4),
-> GZIP: 2651466 (2589 Kb, 35 %), GZSH: v0.1.6
+> FILE: 'qemu-system-x86_64.gz.sh', HEAD: 982 (1024),
+> GZIP: 2651098 (2589 Kb, 35 %), GZSH: v0.1.8
 
-> FILE: 'RNG_test.gz.sh', HEAD: 1384 (4),
-> GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
+> FILE: 'RNG_test.gz.sh', HEAD: 972 (1024),
+> GZIP: 921418 (900 Kb, 39 %), GZSH: v0.1.8
 
 It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.97&nbsp;MB).
 

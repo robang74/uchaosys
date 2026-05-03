@@ -58,9 +58,9 @@ Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
 - `total time for being ready to user: 0.064 s `**!!!**
-- `total available memory in userland: 18856 KB`
-    - `host: 32768, zram: -4714, cpio:  -664 KB`
-    - `mlnx: 23544, used: -2408, buff: -1492 KB`
+- `total available memory in userland: 18860 KB`
+    - `host: 32768, zram: -4715, cpio:  -672 KB`
+    - `mlnx: 23528, used: -2384, buff: -1500 KB`
 
 It is interesting to note how the memory is allocated&hairsp;.<br>
 

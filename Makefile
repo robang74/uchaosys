@@ -247,13 +247,13 @@ bzImage:
 bbox/.config: $(BBOXCFG)
 	cp -alLf $(BBOXCFG) bbox/.config ||:
 
-bbox/.conf: | bbox/.config
+bbox/.conf: bbox/.config
 	@$(call print_start,"","")
 	yes "" |  $(MAKE) $(OPTS) -j1 -C bbox oldconfig
 	@$(call print_stop)
 	touch $@
 
-bbox/busybox.elf: | bbox/.conf $(KDIR)/.hdrs
+bbox/busybox.elf: bbox/.conf | $(KDIR)/.hdrs
 	rm -f $@
 	@$(call print_start,"","")
 	$(MAKELNX) -C bbox busybox

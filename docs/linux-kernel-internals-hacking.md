@@ -13,6 +13,12 @@ This page explains the topic reporting a few posts of mine on Linkedin, presente
 5. [post #5](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7433168633356283904-MxpG) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! (P.2) - &nbsp;(March 2026)
 6. [post #6](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7433168633356283904-MxpG) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! (P.3) - &nbsp;(March 2026)
 
+### Introduction notes
+
+1. Single source of entropy was a necessity for testing uChaos without the doubt that the results would have been produced thanks to another source of entropy within the kernel. The most straightforward way to grant this "isolation" from pollution is remove all the other sources from the .config. beforehands.
+
+2. Some constraints are given just for testing extreme conditions and related failure, while in the production KVM passthrough and complementary sources of entropy are given almost for granted while other constraints are related to education-consultancy material approach like hacking the kernel internals instead of patching the sources.
+
 ---
 
 ![kernel-hack-screenshot](linux-kernel-internals-hacking.png)

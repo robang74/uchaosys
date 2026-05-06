@@ -7,8 +7,9 @@
 This page explains the topic reporting a few posts of mine on Linkedin, presented by a thematic logical order rather than by pubblication chronology:
 
 1. [post #1](https://www.linkedin.com/posts/robertofoglietta_uchaos-v056-kernel-hacked-despite-backport-share-7438605908743479296-i1ej) - uCHAOS v0.5.6: KERNEL HACKED DESPITE BACKPORT FIX &nbsp;(April 2026)
-2. [post #3](https://www.linkedin.com/posts/robertofoglietta_kernel-address-randomisation-the-hack-share-7457708512408928258-I6hD) - KERNEL ADDRESS RANDOMISATION, THE HACK & THE PATCH - &nbsp;(May 2026)
-3. [post #2](https://www.linkedin.com/posts/robertofoglietta_uchaos-v057-guess-the-sequence-if-you-share-7438867791648210944-7XAF) - uCHAOS v0.5.7: GUESS THE SEQUENCE, IF YOU CAN - &nbsp;(April 2026)
+2. [post #2](https://www.linkedin.com/posts/robertofoglietta_kernel-address-randomisation-the-hack-share-7457708512408928258-I6hD) - KERNEL ADDRESS RANDOMISATION, THE HACK & THE PATCH - &nbsp;(May 2026)
+3. [post #3](https://www.linkedin.com/posts/robertofoglietta_uchaos-v057-guess-the-sequence-if-you-share-7438867791648210944-7XAF) - uCHAOS v0.5.7: GUESS THE SEQUENCE, IF YOU CAN - &nbsp;(April 2026)
+4. [post #4](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7432739785695383552-8ImI) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! - &nbsp;(March 2026)
 
 ---
 
@@ -100,3 +101,29 @@ length= 32 gigabytes (2^35 bytes), time= 3818 seconds
  ```
 
 PractRand's `RNG_test` is a 3rd-party tool designed for finding patterns in supposedly random data. This tool isn't able to distinguish deterministic thus predictable randomness from a true stochastics random noise. Moreover, it is more keen to flag as suspicious a pink-noise from a real thermal source (or alike) rather than a pseudorandom flux whitened by a cryptographic hashing. Which is the main reason because uchaos uses Murmur3, instead.
+
+---
+
+### Counter example: crimpling randomness
+
+We cannot create chaos but can we improve randomness? This question is very subtle because "true randomness" is the absence of ANY structure even if there are forms of watermarks that we can consider "weak" because they are so "delicate" to disappear with trivial operations which is the same for the steganography.
+
+So, in trying to falsificate that uChaos.c output can be associated with true randomness, the best we can do is to seek for structures. And in fact, a weak watermark has been identified at 4GB but with a trivial operation -- like mixing 4 source 1:2:3:4 or discarding the 8th hash of a 8-serie -- it can easily pass 16GB without triggering even the weakest doubt about its randomness.
+
+This is a VERY good result, especially considering that uChaos provide the output starting with a fixed input and the 16GB has been produced by repetitively running uChaos on the same input. Because some algorithms like Park-Miller do not repeat for a HUGE number of steps but from the same seed they replicate the same sequence and the distribution of the number is not randomly homogeneous.
+
+Guess what? Passing each random number through a Park-Miller (PK-ML) hash, the result is a PK-ML distribution. In essence, what I am expecting is that uChaos with PK-ML filter applied at the end are going to fail the test before 16GB because PK-ML is expected to be identified at 2GB. Here, its application is more than a single hashing but two 32bit hashes. The test is ongoing and we will see.
+
+Instead a different algorithm like murmur3 (rewritten in 64bit version) which is an avalanche based bit-mixer may have some better chance to destroy the uChaos single source output production. We will see.
+
+However, I consider a VERY meaningful result that PractRand would be able to catch the PK-ML hash structure in output even if it is applied in 32+32 way (which is supposedly quicker and easier to catch). And that is the reason because both functions have been written in 32bit in the first place.
+
+1. the uChaos + PK-ML hashing fails as expected, improving randomness isn't an easy trick. Even with good "entropy" sources. It easier to do worse. By stdin32, it fails even quickly.
+
+2. uChaos + PK-ML + murmur4 64bit: there is no chance that mm3 can recover the output after being crippled into a PK-ML grid. The randomness is lost and the recovery attemps is worsening the situation by failing 4x time faster at 64bit (2^28-->2^26).
+
+3. uChaos + mm3: it passes smoothly 2^34 (16GB) test, showing that mm3 isn't the troubling one. Instead mm3 can blend away the fragile watermark that was affecting the last 3 or 5 bits. Something a trivial operation was doing but a trusted mixer grants.
+
+4. uChaos + a 32+1 bit avalanche mix: a similar operation from mm3, adding avalanche in the original code but impacting on 64bits instead of the LSByte, is enough to let uChaos pass the 16GB test w/ zero flag.
+
+Conclusion, in short: there is no way to trick randomness for better but worse. And masquerading defects by cryptographics isn't "*better*" either.

@@ -153,7 +153,13 @@ Unless someone invents a macroscopic Maxwell's devil that can defeat the law of 
 
 There are some processes that are inherently one-way only which implies a not-predictability (to some degree) and in practice we observe totally random low-significative bits. We **observe** (which is common in quantistics), because otherwise once recorded totally precise conditions we might invert (in theory) the process.
 
+#### SPECULATING A BIT
+
 This is also the reason why people started to talk about the "holographic" universe. At the same moment we realise that there is an equivalent Eisenberg's Indetermination Theorem about "observability in terms of precision", we have to consider that it is something tricky like a hologram.
+
+If it produce a pure white noise without any "uncommon" or a rare "mildly suspect" within 10^-6 then it is not a stochastic generators of entropy, or the whitening function is so strong that it masquerade this statistical fluctuation that every REAL source of stochastic noise have. Nope, white noise is not "natural" is an ideal figure that select out every REAL entropy generators and attempts to replace defective but theoretical pure randomness generator which because such idealistic figure can exploit on a mass scale by parallel computing because "pure" white noise never have glitch that phase out the or marks the output.
+
+In physics this phenomenon is known as "lock-in" and it fails not when the noise is loud but when the noise has glitches that sync-in and thus disrupt the "signal" whatever is the S/N at stake. Stochastic noise, isn't just white noise (or pink noise) is a disruptor of predictability on small and large scale, because it's a noise with a fractal structure. Wait, what? Has it a structure? Sure, it has a structure which is infinitely, deeply unpredictable.
 
 #### ENTROPY AND CHAOS
 

@@ -96,4 +96,5 @@ rng=RNG_stdin64, seed=unknown
 length= 32 gigabytes (2^35 bytes), time= 3818 seconds
  no anomalies in 296 test result(s)
  ```
- 
+
+ PractRand's `RNG_test` is a 3rd-party tool designed for find patterns in supposedly random data.

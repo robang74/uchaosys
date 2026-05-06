@@ -9,8 +9,9 @@ This page explains the topic reporting a few posts of mine on Linkedin, presente
 1. [post #1](https://www.linkedin.com/posts/robertofoglietta_uchaos-v056-kernel-hacked-despite-backport-share-7438605908743479296-i1ej) - uCHAOS v0.5.6: KERNEL HACKED DESPITE BACKPORT FIX &nbsp;(April 2026)
 2. [post #2](https://www.linkedin.com/posts/robertofoglietta_kernel-address-randomisation-the-hack-share-7457708512408928258-I6hD) - KERNEL ADDRESS RANDOMISATION, THE HACK & THE PATCH - &nbsp;(May 2026)
 3. [post #3](https://www.linkedin.com/posts/robertofoglietta_uchaos-v057-guess-the-sequence-if-you-share-7438867791648210944-7XAF) - uCHAOS v0.5.7: GUESS THE SEQUENCE, IF YOU CAN - &nbsp;(April 2026)
-4. [post #4](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7432739785695383552-8ImI) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! - &nbsp;(March 2026)
+4. [post #4](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-3-share-7433181876204408832-5o8h) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! (P.1) - &nbsp;(March 2026)
 5. [post #5](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7433168633356283904-MxpG) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! (P.2) - &nbsp;(March 2026)
+6. [post #6](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7433168633356283904-MxpG) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! (P.3) - &nbsp;(March 2026)
 
 ---
 
@@ -166,3 +167,29 @@ Saying that time is analog when a gettime() provides a 64 bit value sounds weird
 Guess what? A modern CPU is a complex material system near the limits of quantum physics designed to be strictly locked-in to the quartz clock in a very absurdly precision way. Paradoxically, this is a fundamental characteristic that a system should have to flip/flop and skew in a true random way.
 
 Ultimately, this is the challenge behind uChaos: how many bits are affected by real-world noise when gettime() returns? Enough to recreate a stochastics system thus amplifying entropy and generating randomness quickly or not at all. Every passed test and every failure conditions happen by initial expectations. And finding in practice the limits of a theory/framework is the best way to trust in it, because we already established in which range it works and it doesn't. That uncertainty is gone.
+
+---
+
+### Randomness and security
+
+First of all, it is worth to note that early initialisation of the Linux kernel CRNG is essential to provide a secure system and it is not possible unless a reliable source of entropy is available. Where reliable it doesn't restrict to "hardware" involved but also "how much we can/want trust on it". This second part is completely another story because we go out of pure academic disquisition and move in a hostile, by definition, territory where certainty as suppositions are more dangerous than reasonable sane donuts.
+
+About this:
+
+> The danger is only when the adversary has side-channel access to the original jitter or can influence the scheduler.
+
+Yes and no. Yes in the most general case, no in specific cases where:
+
+1. proper jittering is taken into consideration, where "jitter" here means 2nd derivative of time, because it is too sensible to micro-variation any side-attack can cope with unless in god-mode but again, get that mode isn't feasible, and where "proper" means that the jittering contains enough entropy;
+
+2. even leveraging the 1st degree derivate to check the limit of an attack (or check if a very predictable VM can be too flat for providing entropy) there are some specific if/then/else conditions that are inherently unpredictable (stochastic design) because they still rely on very fine-grained limits and those limits are inheterly dynamics.
+
+Functionally, it is like having two 1st degree derivatives which are not totally independent but correlated by 60 bits over 64. Which is exactly the idea behind Lorenz irreversibility.
+
+Technically speaking a VM can be tampered in such a way to provide always predictable time -- it is absurd but for emulation we might use the CPU instruction counter instead of nanoseconds.
+
+When applications ask for time in nanoseconds, they get the number of instructions the CPU executed since boot. Nice, and uchaos has options on the command line like -d7 (or -p1) that set the line on what can be accepted and rejected.
+
+Therefore, a very crimped VM would let uchaos long to run or even completely fail but this isn't worse than accepting "garbage injection" instead of entropy, pretending everything is fine.
+
+The main point here is that the entropy engine in the kernel is based on CPU entropy; this doesn't work with VM unless they allow a transparent CPU access, but a man-in-the-middle attack can happen even if it is extremely hard to fake in a plausible way. This is the "worse" about cryptographic whitening: masquerading the failure does solve the problem but makes it silent, thus worse.

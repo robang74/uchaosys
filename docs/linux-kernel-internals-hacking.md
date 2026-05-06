@@ -88,6 +88,8 @@ From the “Entropy Poisoning from the Hypervisor” PoV, uchaos_dev does exactl
 
 #### PRACTICAL EXPERIMENTAL EXAMPLE
 
+The mission of uChaos isn't to generate random numbers but to leverage and amplify the stochastics real hardware (or the passthrough by KVM) jittering to provide a good and fast source of randomness. Deliberately keeping strictly stick to its mission, it achieves to be an order of magnitude faster than jittering-based RNG, despite being an order of magnitude slower than Intel hardware RNG units (unsurprisingly).
+
 Starting an automatic endless test against `/dev/uchaos` seeded by 8-zeros.
 
 ```sh
@@ -97,4 +99,4 @@ length= 32 gigabytes (2^35 bytes), time= 3818 seconds
  no anomalies in 296 test result(s)
  ```
 
- PractRand's `RNG_test` is a 3rd-party tool designed for find patterns in supposedly random data.
+PractRand's `RNG_test` is a 3rd-party tool designed for finding patterns in supposedly random data. This tool isn't able to distinguish deterministic thus predictable randomness from a true stochastics random noise. Moreover, it is more keen to flag as suspicious a pink-noise from a real thermal source (or alike) rather than a pseudorandom flux whitened by a cryptographic hashing. Which is the main reason because uchaos uses Murmur3, instead.

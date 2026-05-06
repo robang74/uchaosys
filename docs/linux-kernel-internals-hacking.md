@@ -10,6 +10,7 @@ This page explains the topic reporting a few posts of mine on Linkedin, presente
 2. [post #2](https://www.linkedin.com/posts/robertofoglietta_kernel-address-randomisation-the-hack-share-7457708512408928258-I6hD) - KERNEL ADDRESS RANDOMISATION, THE HACK & THE PATCH - &nbsp;(May 2026)
 3. [post #3](https://www.linkedin.com/posts/robertofoglietta_uchaos-v057-guess-the-sequence-if-you-share-7438867791648210944-7XAF) - uCHAOS v0.5.7: GUESS THE SEQUENCE, IF YOU CAN - &nbsp;(April 2026)
 4. [post #4](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7432739785695383552-8ImI) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! - &nbsp;(March 2026)
+5. [post #5](https://www.linkedin.com/posts/robertofoglietta_can-we-improve-randomness-not-really-this-activity-7433168633356283904-MxpG) - CAN WE IMPROVE RANDOMNESS? NOT REALLY! (P.2) - &nbsp;(March 2026)
 
 ---
 
@@ -127,3 +128,33 @@ However, I consider a VERY meaningful result that PractRand would be able to cat
 4. uChaos + a 32+1 bit avalanche mix: a similar operation from mm3, adding avalanche in the original code but impacting on 64bits instead of the LSByte, is enough to let uChaos pass the 16GB test w/ zero flag.
 
 Conclusion, in short: there is no way to trick randomness for better but worse. And masquerading defects by cryptographics isn't "*better*" either.
+
+---
+
+### Counter example: crimpling is one-way only
+
+We can add a grid-bias to white noise but not remove it. However the idea that randomness can be improved is hard to defeat and not completely wrong, as long as we have a clear different definitions of these two concepts: entropy and randomness.
+
+> We can improve randomness by a lot.
+> E.g. use a cryptographic PRNG, such as low bits
+> of secure-hash of (seed appended to index).
+
+This answer is technically correct and in different ways we are saying the same thing: once we have good randomness we can multiply it (pseudo-RNG). But ONLY applying "good" algos and the Parker-Miller LCG (Linear congruential generator) isn't.
+
+This is about give "true entropy" in input and expect "better randomness" in output but "true entropy" in this specific context is a sequence of numbers (data, so what is the difference?) that are unpredictable, usually because they have no structure (auto-correlation).
+
+The words "usually" and "auto" here are fundamental. Because no structure means no auto-correlation means unpredictability (and this explains the dogma of "true entropy") but unpredictability doesn't imply no structure or no auto-correlation. The structure can unknownable (e.g. Lorenz strange attractor) and auto-correlation can have a period (or a brute-force attack cost) too long to be discoverable in practice.
+
+The word "in practice" is a lot relative. Tomorrow's (or yesterday's undisclosed) quantum computer  would be able to make "in practice" discoverable. Which is the reason for post-quantum cryptography. In both cases, the chaotic behaviour of the Lorenz strange attractor isn't "in practice" reversible (thus discoverable) by quantum computing.
+
+Unless someone invents a macroscopic Maxwell's devil that can defeat the law of thermodynamics. However, Maxwell proposed the analogy of a microscopic devil that allows hot particles to reach one side and cold the others but no viceversa. The absurd is not Maxwell's devil "di per se" but the idea of having such a mechanism that does it systematically on a large scale because it would be the same to charge a battery (aka creating potential energy) from nothing.
+
+There are some processes that are inherently one-way only which implies a not-predictability (to some degree) and in practice we observe totally random low-significative bits. We **observe** (which is common in quantistics), because otherwise once recorded totally precise conditions we might invert (in theory) the process.
+
+This is also the reason why people started to talk about the "holographic" universe. At the same moment we realise that there is an equivalent Eisenberg's Indetermination Theorem about "observability in terms of precision", we have to consider that it is something tricky like a hologram.
+
+Finally, uChaos proves (aim to) that **scheduler jitter** is true entropy, breaking the dogma for which "true entropy" can be found only in "material stuff" like a CPU while entropy (whatever is the definition) is more related to information (jittering) than heat or mass.
+
+Which is the fundamental distinction, because when a real CPU / RAM material piece of hardware is necessary to have entropy then someone can have hard times in separate physics from information. The keyword for clearing this separation is **jitter** and noticing that the CPU / RAM are digital, while the jitter (time) is analog.
+
+An analog signal brings in entropy and entropy can generate chaos or much reasonably underline chaos generates "noise" that an analog signal can convey and we observe as "entropy" and by entropy we can generate "true randomness" and by stochastics let emerge the chaos.

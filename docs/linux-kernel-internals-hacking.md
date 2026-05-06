@@ -16,8 +16,9 @@ This page explains the topic reporting a few posts of mine on Linkedin, presente
 ---
 
 ![kernel-hack-screenshot](linux-kernel-internals-hacking.png)
+![kernel-hack-screenshot](show-me-your-code-expose-the-hack.png)
 
-- Image source: `docs/`[`linux-kernel-internals-hacking.png`](linux-kernel-internals-hacking.png)
+- Images: `docs/`[`linux-kernel-internals-hacking.png`](linux-kernel-internals-hacking.png) &nbsp; `docs/`[`linux-kernel-internals-hacking.png`](show-me-your-code-expose-the-hack.png)
 
 ---
 

@@ -153,8 +153,14 @@ There are some processes that are inherently one-way only which implies a not-pr
 
 This is also the reason why people started to talk about the "holographic" universe. At the same moment we realise that there is an equivalent Eisenberg's Indetermination Theorem about "observability in terms of precision", we have to consider that it is something tricky like a hologram.
 
+#### ENTROPY AND CHAOS
+
 Finally, uChaos proves (aim to) that **scheduler jitter** is true entropy, breaking the dogma for which "true entropy" can be found only in "material stuff" like a CPU while entropy (whatever is the definition) is more related to information (jittering) than heat or mass.
 
-Which is the fundamental distinction, because when a real CPU / RAM material piece of hardware is necessary to have entropy then someone can have hard times in separate physics from information. The keyword for clearing this separation is **jitter** and noticing that the CPU / RAM are digital, while the jitter (time) is analog.
+Which is the fundamental distinction, because when a real CPU / RAM material piece of hardware is necessary to have entropy then someone can have hard times in separating physics from information. The keyword for clearing this separation is **jitter** and noticing that the CPU / RAM are digital, while the jitter (time) is analog.
 
 An analog signal brings in entropy and entropy can generate chaos or much reasonably underline chaos generates "noise" that an analog signal can convey and we observe as "entropy" and by entropy we can generate "true randomness" and by stochastics let emerge the chaos.
+
+Saying that time is analog when a gettime() provides a 64 bit value sounds weird, but also a digital thermometer provides an integer. The fundamental aspect is **how much** the lower bits are affected by noise and turbulence. Paradoxically a single-bit precision thermometer that fluctuates `0/1` in a very tiny interval around 100°C is a good entropy source for a boiling water pot. Even better if it is locked-in a triple-point transition phase. Because more constant is the temperature of the mass by the laws of physics more frequently it will switch its `0/1` state in a tiny interval.
+
+Ultimately, this is the challenge behind uChaos: how many bits are affected by real-world noise when gettime() returns? Enough to recreate a stochastics system thus amplifying entropy and generating randomness quickly or not at all. Every passed test and every failure conditions happen by initial expectations. And finding in practice the limits of a theory/framework is the best way to trust in it, because we already established in which range it works and it doesn't. That uncertainty is gone.

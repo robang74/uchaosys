@@ -2,11 +2,14 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.0.5"
+ #define VERSION "v0.0.6"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
  *   cc uchaos_seq.c $CFLAGS -o ucseq && ./ucseq
+ *   ./ucseq $((1<<30)) | dd bs=1M | ../prnd/RNG_test stdin64
+ *   px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
+ *   px 4 "./ucseq $((1<<30))" | dd bs=1M | ../prnd/RNG_test stdin64
  */
 
 #include <stdio.h>
@@ -220,7 +223,7 @@ int main(int argc, char *argv[]) {
   for(n = 0; n < (argn?:4); n++) {
     uint32_t m = 0;
 
-    r = (e >> 32) ^ ((e << 32) >> 32);
+    r = (e >> 32) ^ (e & 0xffffffff);
     write4(r);
     print1(
       "\n  entr. pool: 0x%08x --> b#%032b\n",

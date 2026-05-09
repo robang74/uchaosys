@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.0.3"
+ #define VERSION "v0.0.4"
  /*
  * Compile and run with:
  *     cc -s -g0 -O1 uchaos_seq.c -o ucseq && ./ucseq
@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sched.h>
+
+#include "getnanos.h"
 
 #define PAGEORDR    12
 #define PAGESIZE    (2 << PAGEORDR)
@@ -74,8 +77,17 @@ do {
 
 int main(void) {
   int i, n;
+  uint64_t e, t = get_nanos();
   uint8_t bytes[256], count[256], nbits[256];
   uint8_t goods[128], table[256], nb[4], c;
+
+  fprintf(stderr,
+    "\n//  Executing %s in %s\n",
+    __FILE__, VERSION);
+  putchar('\n');
+
+  sched_yield();
+  e = get_nanos();
 
   // select the good ones
   for (int i = 0; i < 256; i++) {
@@ -87,6 +99,9 @@ int main(void) {
     bytes[i] = 0;
   }
 
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
+
   // count the good ones
   *(uint32_t *)nb = 0;
   for (int i = 0; i < 256; i++) {
@@ -95,15 +110,19 @@ int main(void) {
       n++;
   }
 
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
+
   // check their counting
-  printf("\n  Executing %s in %s\n\n",
-    __FILE__, VERSION);
   printf("  tot: %3d/124\n", n);
   printf("   3b: %3d/124\n", nb[0]);
   printf("   4b: %3d/124\n", nb[1]);
   printf("   5b: %3d/124\n", nb[2]);
-  printf("\n");
+  putchar('\n');
   if(n != 124) return(1);
+
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
 
   // store the good ones
   n = 1;
@@ -114,6 +133,9 @@ int main(void) {
       if(n & 0x1F) continue;
       goods[n++] = 0;
   }
+
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
 
   // print the good ones
   for (int i = 0; i < 4; i++)
@@ -129,6 +151,9 @@ int main(void) {
     if(!(++i & 3)) putchar('\n');
   }
 
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
+
   // create their table
   memset(table, 0, sizeof(table));
   for(int m = 3; m < 6; m++) {
@@ -139,12 +164,18 @@ int main(void) {
     }
   }
 
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
+
   // spacing their table
   for(i = 8; i < 56; i += 8) {
     n = 128 - i;
     memcpy(&table[n], &table[n-8], 8);
     memset(&table[n-8], 0, 8);
   }
+
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
 
   // print their table
   for(int m = 3; m < 6; m++) {
@@ -158,6 +189,9 @@ int main(void) {
     }
     putchar('\n');
   }
+
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
   
   // checking the spacing
   n = 0;
@@ -166,6 +200,17 @@ int main(void) {
       printf("%s %03d", n++?",":"  err:", i);
   if(n) putchar('\n');
 
-  putchar('\n');
+  sched_yield();
+  e = t ^ (e * (t = get_nanos()));
+  
+  fprintf(stderr,
+    "\n//  time spent: %7lu nS --> %.03lf mS",
+      t, (double)t/1000000);
+  e = (e >> 32) ^ ((e << 32) >> 32);
+  fprintf(stderr,
+    "\n//  entr. pool: 0x%08lx --> b#%032b\n\n",
+      e, e);
+  
+  //putchar('\n');
   return 0;
 }

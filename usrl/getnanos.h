@@ -3,6 +3,11 @@
  *
  */
 
+#ifndef GET_NANOS_H
+#define GET_NANOS_H
+
+#include <time.h>
+
 #define get_nanos() ({ uint64_t _t=_get_nanos(); \
                       asm volatile("" : "+g"(_t)); _t; })
 
@@ -18,3 +23,5 @@ static inline volatile uint64_t _get_nanos(void) {
     }
     return ((uint64_t)ts.tv_sec * BLN + ts.tv_nsec) - start;
 }
+
+#endif //GET_NANOS_H

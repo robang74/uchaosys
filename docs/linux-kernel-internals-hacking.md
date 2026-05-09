@@ -217,7 +217,7 @@ The main point here is that the entropy engine in the kernel is based on CPU ent
 
 #### Are certifications secure?
 
-Certified cryptographic algorithms rely on publicly known constants—fixed 32-bit or 64-bit integers used in multiplications and state transitions. For example, uChaos uses the following:
+Certified cryptographic algorithms rely on publicly known constants which are fixed 32-bit or 64-bit integers used in multiplications and state transitions. For example, uChaos uses the following:
 
 ```c
 #define HASHSEED 14695981039346656037ULL // FNV-1a
@@ -228,22 +228,22 @@ Certified cryptographic algorithms rely on publicly known constants—fixed 32-b
 #define murmul4    HASHSEED
 ```
 
-Because these values are standardized and documented, CPU microcode (the proprietary binary firmware controlled by the silicon manufacturer) can recognize them instantly during execution. 
+Because these values are standardized and documented, CPU microcode (the proprietary binary firmware controlled by the silicon manufacturer) can recognize them instantly during execution.
 
 An attacker targeting the CPU microcode supply-chain could possibly trigger hidden side-operations whenever these certified constants appear, creating selective backdoors that are invisible to the user and have negligible performance cost.
 
 These vulnerabilities would not be universal, but selectively available to state-level actors. In practice, whoever controls the silicon and the firmware controls the security boundary ex-ante. An algorithm certified as "secure" by a government agency may therefore mean nothing more than secure because "defeatable by that agency".
 
-uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constant, thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit reads, 1023), choosen by random and possible changed or relocated at the will of who compile the kernel, this makes the attempt to catch them less viable and much more expensive.
+uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constants. Thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit reads, 1023), choosen by random and possible changed or relocated at the will of who compiles the kernel. This makes harder any attempt to catch uChaos by filtreing few "magic" numbers, and potentially not feaseable at all.
 
 #### Why uChaos is superior
 
 Also algortims that are peculiar in their implementation like ChaCha20 or Blake2s can be tracked down by a malicios CPU microcode. The more an algoritm is strict and peculiar, the more is easier to intercept.
 
-Instead uChaos, in its initialization uses ordinary `memcpy` operations to random memory addresses—indistinguishable from millions of other kernel memory accesses, while the entropy comes not from the data values but from the **timing** of those accesses, specifically the inevitable long-tail DRAM latencies that bypass CPU inspection when DMA is involved.
+Instead uChaos, in its initialization uses ordinary `memcpy` operations to random memory addresses which are indistinguishable from millions of other kernel memory accesses, while the entropy comes not from the data values but from the **timing** of those accesses, specifically the inevitable long-tail DRAM latencies. Accesses that bypass CPU inspection when DMA is involved.
 
-The algorithm itself consists only of generic 64-bit XOR and rotate operations, ending in a trivial integer hash. Even the hash constants can be drawn from a pool of hundreds of arbitrary values stored in a single 4 KB memory page, making tracking impractical.
+The algorithm itself consists only of generic 64-bit XOR and ROTate operations, ending in a not-criptographic integer hash. Even the hash constants can be drawn from a pool of hundreds of arbitrary values stored in a single 4 KB memory page, making tracking impractical.
 
-But the decisive defense is `cpu_relax()`. This instruction is executed millions of times per second by every non-blocking kernel thread. Selectively intercepting and poisoning only the `cpu_relax()` calls inside uChaos is effectively impossible; intercepting all of them would cripple system performance. 
+But the decisive defense is `cpu_relax()`. This instruction is executed millions of times per second by every non-blocking kernel thread. Selectively intercepting and poisoning only the `cpu_relax()` calls inside uChaos is effectively impossible, and intercepting all of them would cripple system performance.
 
-An entropy algorithm that derives its unpredictability primarily from **doing nothing**, just waiting, is a "monster" that is nearly impossible to filter or tamper with in a real-world system. As the 0°K test demonstrates, uChaos *can* be fully defeated, but only by rendering the machine useless. In the wild, the cost of control exceeds the value of the system itself.
+An entropy algorithm that derives its unpredictability primarily from **doing nothing**, just waiting, is a "monster" that is nearly impossible to filter or tamper with in a real-world system. As the 0°K test demonstrates, uChaos can be fully defeated, but only by making the machine useless. In the wild, the cost of controlling uChaos exceeds the value of the system itself.

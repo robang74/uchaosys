@@ -59,7 +59,7 @@ Also in this context the bare-minimum principle is ruling: the uchaos continues 
 
 For sake of clarity: /dev/uchaos is 1/3 less efficient (so /dev/random is 50% more efficient in terms of I/O per icount tick) because uchaos, as a producer of raw entropy, relies on cpu_relax(), whereas /dev/random performs ‘collection and computation’ with no waiting, as it certainly operates on a request-based (to give) or queuing (to take) basis. Despite cpu_relax() does not generate instructions, it allows another kernel thread to temporarily take over, and that thread advances the ticks counter, which in the -icount virtual machine is the 1:1 basis for the time passing.
 
----
+<br>
 
 ### Kernel address randomisation, the hack
 
@@ -85,7 +85,7 @@ Therefore, I do not need to check for the kernel version because that gap is lik
 
 Moreover, hacking the kernel isn't necessary when we can patch the sources and rebuild the bzImage. It is a totally functional academic-performative hack instead of patch! 😎
 
----
+<br>
 
 ### Chaos exists befirehands, or none at all
 
@@ -119,7 +119,7 @@ length= 32 gigabytes (2^35 bytes), time= 3818 seconds
 
 PractRand's `RNG_test` is a 3rd-party tool designed for finding patterns in supposedly random data. This tool isn't able to distinguish deterministic thus predictable randomness from a true stochastics random noise. Moreover, it is more keen to flag as suspicious a pink-noise from a real thermal source (or alike) rather than a pseudorandom flux whitened by a cryptographic hashing. Which is the main reason because uchaos uses Murmur3, instead.
 
----
+<br>
 
 ### Counter example: crimpling randomness
 
@@ -145,7 +145,7 @@ However, I consider a VERY meaningful result that PractRand would be able to cat
 
 Conclusion, in short: there is no way to trick randomness for better but worse. And masquerading defects by cryptographics isn't "*better*" either.
 
----
+<br>
 
 ### Counter example: crimpling is one-way only
 
@@ -189,7 +189,7 @@ Guess what? A modern CPU is a complex material system near the limits of quantum
 
 Ultimately, this is the challenge behind uChaos: how many bits are affected by real-world noise when gettime() returns? Enough to recreate a stochastics system thus amplifying entropy and generating randomness quickly or not at all. Every passed test and every failure conditions happen by initial expectations. And finding in practice the limits of a theory/framework is the best way to trust in it, because we already established in which range it works and it doesn't. That uncertainty is gone.
 
----
+<br>
 
 ### Randomness and security
 
@@ -214,3 +214,36 @@ When applications ask for time in nanoseconds, they get the number of instructio
 Therefore, a very crimped VM would let uchaos long to run or even completely fail but this isn't worse than accepting "garbage injection" instead of entropy, pretending everything is fine.
 
 The main point here is that the entropy engine in the kernel is based on CPU entropy; this doesn't work with VM unless they allow a transparent CPU access, but a man-in-the-middle attack can happen even if it is extremely hard to fake in a plausible way. This is the "worse" about cryptographic whitening: masquerading the failure does solve the problem but makes it silent, thus worse.
+
+#### Are certifications secure?
+
+Certified cryptographic algorithms rely on publicly known constants—fixed 32-bit or 64-bit integers used in multiplications and state transitions. For example, uChaos uses the following:
+
+```c
+#define HASHSEED 14695981039346656037ULL // FNV-1a
+//                 0xCBF29CE484222325ULL // FNV-1a
+#define murmul1    0xff51afd7ed558ccdULL
+#define murmul2    0xc4ceb9fe1a85ec53ULL
+#define murmul3    0x9E3779B9045d9f3bULL
+#define murmul4    HASHSEED
+```
+
+Because these values are standardized and documented, CPU microcode (the proprietary binary firmware controlled by the silicon manufacturer) can recognize them instantly during execution. 
+
+An attacker targeting the CPU microcode supply-chain could possibly trigger hidden side-operations whenever these certified constants appear, creating selective backdoors that are invisible to the user and have negligible performance cost.
+
+These vulnerabilities would not be universal, but selectively available to state-level actors. In practice, whoever controls the silicon and the firmware controls the security boundary ex-ante. An algorithm certified as "secure" by a government agency may therefore mean nothing more than secure because "defeatable by that agency".
+
+uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constant, thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit reads, 1023), choosen by random and possible changed or relocated at the will of who compile the kernel, this makes the attempt to catch them less viable and much more expensive.
+
+#### Why uChaos is superior
+
+Also algortims that are peculiar in their implementation like ChaCha20 or Blake2s can be tracked down by a malicios CPU microcode. The more an algoritm is strict and peculiar, the more is easier to intercept.
+
+Instead uChaos, in its initialization uses ordinary `memcpy` operations to random memory addresses—indistinguishable from millions of other kernel memory accesses, while the entropy comes not from the data values but from the **timing** of those accesses, specifically the inevitable long-tail DRAM latencies that bypass CPU inspection when DMA is involved.
+
+The algorithm itself consists only of generic 64-bit XOR and rotate operations, ending in a trivial integer hash. Even the hash constants can be drawn from a pool of hundreds of arbitrary values stored in a single 4 KB memory page, making tracking impractical.
+
+But the decisive defense is `cpu_relax()`. This instruction is executed millions of times per second by every non-blocking kernel thread. Selectively intercepting and poisoning only the `cpu_relax()` calls inside uChaos is effectively impossible; intercepting all of them would cripple system performance. 
+
+An entropy algorithm that derives its unpredictability primarily from **doing nothing**, just waiting, is a "monster" that is nearly impossible to filter or tamper with in a real-world system. As the 0°K test demonstrates, uChaos *can* be fully defeated, but only by rendering the machine useless. In the wild, the cost of control exceeds the value of the system itself.

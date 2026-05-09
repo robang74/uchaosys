@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.0.2"
+ #define VERSION "v0.0.3"
  /*
  * Compile and run with:
  *     cc -s -g0 -O1 uchaos_seq.c -o ucseq && ./ucseq
@@ -73,7 +73,7 @@ do {
 #endif
 
 int main(void) {
-  int i, n, m;
+  int i, n;
   uint8_t bytes[256], count[256], nbits[256];
   uint8_t goods[128], table[256], nb[4], c;
 
@@ -131,7 +131,7 @@ int main(void) {
 
   // create their table
   memset(table, 0, sizeof(table));
-  for(m = 3; m < 6; m++) {
+  for(int m = 3; m < 6; m++) {
     n = (m-3) << 6;
     for (int i = 0; i < 128; i++) {
       if((c = goods[i]) && nbits[c] == m)
@@ -139,17 +139,32 @@ int main(void) {
     }
   }
 
+  // spacing their table
+  for(i = 8; i < 56; i += 8) {
+    n = 128 - i;
+    memcpy(&table[n], &table[n-8], 8);
+    memset(&table[n-8], 0, 8);
+  }
+
   // print their table
-  for(m = 3; m < 6; m++) {
+  for(int m = 3; m < 6; m++) {
+    int k = 0;
     n = (m-3) << 6;
     for (int i = 0; i < 64; i++) {
-      if(!(i & 3)) putchar('\n');
-      if(!(c = table[n+i])) break;
+      if(!(c = table[n+i])) continue;
+      if(!(k++ & 3)) putchar('\n');
       printf("  %03d: b#%08b %d | ",
         n+i, c, nbits[c]);
     }
     putchar('\n');
   }
+  
+  // checking the spacing
+  n = 0;
+  for(i = 0; i < 64; i++)
+    if(!table[64+i] && !table[64+((~i)&63)])
+      printf("%s %03d", n++?",":"  err:", i);
+  if(n) putchar('\n');
 
   putchar('\n');
   return 0;

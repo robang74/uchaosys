@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.0.7"
+ #define VERSION "v0.0.8"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
@@ -10,6 +10,8 @@
  *   ./ucseq $((1<<30)) | dd bs=1M | ../prnd/RNG_test stdin64
  *   px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
  *   px 4 "./ucseq $((1<<30))" | dd bs=1M | ../prnd/RNG_test stdin64
+ *   gx() { px $1 "./ucseq $((1<<30))" & px $1 "./uckaos $((1<<19))"; }
+ *   gx 4 | dd bs=1M | ../prnd/RNG_test stdin64
  */
 
 #include <stdio.h>
@@ -24,6 +26,14 @@
 #define PAGEORDR    12
 #define PAGESIZE    (2 << PAGEORDR)
 #define PAGEFULL(x) (x >> PAGEORDR)
+#define BLOCKSZE    512
+#define WRITESZE    BLOCKSZE
+
+#define MEMSRC      (1<<0) // unavoidable
+#define WRTSRC      (1<<1)
+#define CPUSRC      (1<<2)
+
+#define ENTRSRCS    (MEMSRC | WRTSRC /*| CPUSRC*/)
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
@@ -53,7 +63,8 @@ static inline uint32_t rotl32(uint32_t x, uint8_t n) {
 
 static inline uint64_t nanornd(uint64_t e) {
   uint64_t t;
-  sched_yield();
+  if(ENTRSRCS & CPUSRC)
+    sched_yield();
   t = get_nanos();
   return t ^ (e * t);
 }
@@ -64,7 +75,7 @@ static inline uint64_t nanornd(uint64_t e) {
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 
 int main(int argc, char *argv[]) {
-  uint8_t mpage[PAGESIZE];
+  uint8_t mpage[WRITESZE];
   uint64_t e = get_nanos();
   uint32_t i, n, r, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[256], count[256], nbits[256];
@@ -191,8 +202,9 @@ int main(int argc, char *argv[]) {
     r = (e >> 32) ^ (e & 0xffffffff);
     if(argn) {
       *p++ = r;
-      if((uint8_t *)p == mpage + PAGESIZE) {
-        ssize_t wn = write(1, mpage, PAGESIZE);
+      if((uint8_t *)p == mpage + WRITESZE) {
+        ssize_t wn = write(1, mpage, WRITESZE);
+        if(ENTRSRCS & WRTSRC) e = nanornd(e);
         p = (uint32_t *)mpage;
       }
     }

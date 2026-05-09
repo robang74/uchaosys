@@ -1,5 +1,16 @@
+/*
+ * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
+ * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
+ */
+ #define VERSION "v0.0.2"
+ /*
+ * Compile and run with:
+ *     cc -s -g0 -O1 uchaos_seq.c -o ucseq && ./ucseq
+ */
+
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #define PAGEORDR    12
 #define PAGESIZE    (2 << PAGEORDR)
@@ -62,8 +73,9 @@ do {
 #endif
 
 int main(void) {
-  int n = 0;
-  uint8_t c, bytes[256], count[256], nbits[256], goods[128];
+  int i, n, m;
+  uint8_t bytes[256], count[256], nbits[256];
+  uint8_t goods[128], table[256], nb[4], c;
 
   // select the good ones
   for (int i = 0; i < 256; i++) {
@@ -76,18 +88,26 @@ int main(void) {
   }
 
   // count the good ones
+  *(uint32_t *)nb = 0;
   for (int i = 0; i < 256; i++) {
       if(!(c = bytes[i])) continue;
+      nb[nbits[c]-3]++;
       n++;
   }
 
   // check their counting
-  fprintf(stderr, "\n  tot: %d/124\n\n", n);
+  printf("\n  Executing %s in %s\n\n",
+    __FILE__, VERSION);
+  printf("  tot: %3d/124\n", n);
+  printf("   3b: %3d/124\n", nb[0]);
+  printf("   4b: %3d/124\n", nb[1]);
+  printf("   5b: %3d/124\n", nb[2]);
+  printf("\n");
   if(n != 124) return(1);
 
   // store the good ones
   n = 1;
-  goods[0] = 0;
+  memset(goods, 0, sizeof(goods));
   for (int i = 0; i < 256; i++) {
       if(!(c = bytes[i])) continue;
       goods[n++] = c;
@@ -99,7 +119,7 @@ int main(void) {
   for (int i = 0; i < 4; i++)
     printf("  idx:  hex, bits%3s| ","");
   putchar('\n');
-  for (int i = 0; i < 128; ) {
+  for (int i = 0; i < 128; i) {
     c = goods[i];
     printf("  %03d: 0x%02x, %s%2d%-4s| ",
          i, c,
@@ -108,7 +128,29 @@ int main(void) {
             c  ? " " : ")");
     if(!(++i & 3)) putchar('\n');
   }
-  putchar('\n');
 
+  // create their table
+  memset(table, 0, sizeof(table));
+  for(m = 3; m < 6; m++) {
+    n = (m-3) << 6;
+    for (int i = 0; i < 128; i++) {
+      if((c = goods[i]) && nbits[c] == m)
+        table[n++] = c;
+    }
+  }
+
+  // print their table
+  for(m = 3; m < 6; m++) {
+    n = (m-3) << 6;
+    for (int i = 0; i < 64; i++) {
+      if(!(i & 3)) putchar('\n');
+      if(!(c = table[n+i])) break;
+      printf("  %03d: b#%08b %d | ",
+        n+i, c, nbits[c]);
+    }
+    putchar('\n');
+  }
+
+  putchar('\n');
   return 0;
 }

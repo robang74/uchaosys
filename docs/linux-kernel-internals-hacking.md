@@ -115,7 +115,7 @@ UCTEST=4 QZERO=0 QWARM=0 QMSZE=1G sh start.sh "" bzImage.515x
 rng=RNG_stdin64, seed=unknown
 length= 32 gigabytes (2^35 bytes), time= 3818 seconds
  no anomalies in 296 test result(s)
- ```
+```
 
 PractRand's `RNG_test` is a 3rd-party tool designed for finding patterns in supposedly random data. This tool isn't able to distinguish deterministic thus predictable randomness from a true stochastics random noise. Moreover, it is more keen to flag as suspicious a pink-noise from a real thermal source (or alike) rather than a pseudorandom flux whitened by a cryptographic hashing. Which is the main reason because uchaos uses Murmur3, instead.
 
@@ -234,16 +234,17 @@ An attacker targeting the CPU microcode supply-chain could possibly trigger hidd
 
 These vulnerabilities would not be universal, but selectively available to state-level actors. In practice, whoever controls the silicon and the firmware controls the security boundary ex-ante. An algorithm certified as "secure" by a government agency may therefore mean nothing more than secure because "defeatable by that agency".
 
-uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constants. Thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit reads, 1023), choosen by random and possible changed or relocated at the will of who compiles the kernel. This makes harder any attempt to catch uChaos by filtreing few "magic" numbers, and potentially not feaseable at all.
+uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constants. Thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit-reads, 512 + w/offset 511), choosen by random and possibly changed or relocated at the will of who compiles the kernel. This makes harder any attempt to catch uChaos by filtreing few "magic" numbers, and potentially not feaseable at all.
 
-#### Why uChaos is superior
+#### Why uChaos design is superior
 
-Also algortims that are peculiar in their implementation like ChaCha20 or Blake2s can be tracked down by a malicios CPU microcode. The more an algoritm is strict and peculiar, the more is easier to intercept.
+Also algorithms that are peculiar in their implementation like ChaCha20 or Blake2s can be tracked down by a malicious CPU microcode. The more an algorithm is strict and peculiar, the easier to intercept. Actually uChaos uses "magic" constants for peer-reviewing / acceptance but it isn't a constraint for uChaos.
 
 Instead uChaos, in its initialization uses ordinary `memcpy` operations to random memory addresses which are indistinguishable from millions of other kernel memory accesses, while the entropy comes not from the data values but from the **timing** of those accesses, specifically the inevitable long-tail DRAM latencies. Accesses that bypass CPU inspection when DMA is involved.
 
-The algorithm itself consists only of generic 64-bit XOR and ROTate operations, ending in a not-criptographic integer hash. Even the hash constants can be drawn from a pool of hundreds of arbitrary values stored in a single 4 KB memory page, making tracking impractical.
+The algorithm itself consists only of generic 64-bit XOR and ROTate operations, ending in a not-cryptographic integer hash. Moreover the hash constants can be drawn from a pool of hundreds of arbitrary values stored in a single 4 KB memory page, making tracking impractical.
 
 But the decisive defense is `cpu_relax()`. This instruction is executed millions of times per second by every non-blocking kernel thread. Selectively intercepting and poisoning only the `cpu_relax()` calls inside uChaos is effectively impossible, and intercepting all of them would cripple system performance.
 
 An entropy algorithm that derives its unpredictability primarily from **doing nothing**, just waiting, is a "monster" that is nearly impossible to filter or tamper with in a real-world system. As the 0°K test demonstrates, uChaos can be fully defeated, but only by making the machine useless. In the wild, the cost of controlling uChaos exceeds the value of the system itself.
+

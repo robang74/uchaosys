@@ -127,9 +127,9 @@ make runqemu
 make qemutest
 
 # function for generation rate test
-p8() { parallel -j8 "kdev/uckaos 16384" ::: {1..8}; }
+px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
 # to test speed and DRAM tail slayer jittering
-p8 | dd bs=1M of=/dev/null
+px 8 "kdev/uckaos 16384"  | dd bs=1M of=/dev/null
 #> Init mts 4096B access x7 times: 56 < 615.3 > 2966 nS
 #> Init mts 4096B access x7 times: 51 < 558.6 > 2728 nS
 #> Init mts 4096B access x7 times: 55 < 631.6 > 3083 nS
@@ -139,9 +139,9 @@ p8 | dd bs=1M of=/dev/null
 #> Init mts 4096B access x7 times: 93 < 930.1 > 4382 nS
 #> Init mts 4096B access x7 times: 81 < 882.9 > 4241 nS
 #> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 13.4836 s, 79.6 MB/s
-p4() { parallel -j4 "kdev/uckaos 32768" ::: {1..4}; }
+px 4 "kdev/uckaos 32768"  | dd bs=1M of=/dev/null
 #> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 11.6083 s, 92.5 MB/s
-kdev/uckaos $[128*1024] | dd bs=1M of=/dev/null
+px 1 "kdev/uckaos 131072" | dd bs=1M of=/dev/null
 #> 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 43.1761 s, 24.9 MB/s
 
 # QA w/ RNG_test using PractRand version 0.96

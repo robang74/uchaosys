@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.0.6"
+ #define VERSION "v0.0.7"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
@@ -46,42 +46,6 @@ static inline uint8_t chkbits(uint8_t x) {
   return x;
 }
 
-#if 0
-
-int k, z = 0;
-uint8_t *p = start_addr;
-
-uint8_t byte[256], count[256];
-for (int i = 0; i < 256; i++) {
-  byte[i] = chkbits(i);
-  count[i] = 0;
-}
-
-do {
-  uint8_t b, b1 = 0, b2 = 0, b3 = 0;
-
-  memcpy(ibuf, p, PAGESIZE);
-  k = 0;
-  do {
-    b = byte[ibuf[k++]];
-    if(!b || (count[b] >> 4)
-    || !(b^b1) || !(b^b2) || !(b^b3))
-      continue;
-    obuf[z++] = b;
-    count[b]++;
-    b3 = b2;
-    b2 = b1;
-    b1 = b;
-    if (PAGEFULL(z))
-      break;
-  } while (!PAGEFULL(k));
-
-  p += PAGESIZE;
-} while (!PAGEFULL(z));
-
-#endif
-
-
 static inline uint32_t rotl32(uint32_t x, uint8_t n) {
   n &= 31; return (x << n) | (x >> (32-n));
 }
@@ -100,8 +64,9 @@ static inline uint64_t nanornd(uint64_t e) {
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 
 int main(int argc, char *argv[]) {
+  uint8_t mpage[PAGESIZE];
   uint64_t e = get_nanos();
-  uint32_t i, n, r, argn = 0;
+  uint32_t i, n, r, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[256], count[256], nbits[256];
   uint8_t goods[128], table[256], nb[4], c;
 
@@ -224,7 +189,13 @@ int main(int argc, char *argv[]) {
     uint32_t m = 0;
 
     r = (e >> 32) ^ (e & 0xffffffff);
-    write4(r);
+    if(argn) {
+      *p++ = r;
+      if((uint8_t *)p == mpage + PAGESIZE) {
+        ssize_t wn = write(1, mpage, PAGESIZE);
+        p = (uint32_t *)mpage;
+      }
+    }
     print1(
       "\n  entr. pool: 0x%08x --> b#%032b\n",
         r, r);
@@ -253,6 +224,8 @@ int main(int argc, char *argv[]) {
     print1(" --> 0x%08x\n", m);
     e = nanornd((~e) ^ rotl5(r));
   }
+  if(argn && (uint8_t *)p != mpage)
+    r = write(1, mpage, ((uint8_t *)p)-mpage);
 
   e = get_nanos();
   print2(

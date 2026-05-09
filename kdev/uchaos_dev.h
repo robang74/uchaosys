@@ -48,9 +48,24 @@
 #define ABy ((ABN>>2)-1)  //  7 or 15
 #define ABz ((ABN>>3)-1)  //  3 or  7
 
+#define EBUF_ITEMS 4
+#define HASHSIZE (ABN >> 3)
+#define MAX_INPUT_SIZE (1024 << 3)
+#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+#define HASHSEED 14695981039346656037ULL // FNV-1a
+//                 0xCBF29CE484222325ULL // FNV-1a
+#define murmul1    0xff51afd7ed558ccdULL
+#define murmul2    0xc4ceb9fe1a85ec53ULL
+#define murmul3    0x9E3779B9045d9f3bULL
+#define murmul4    HASHSEED
+#define rot1       47
+#define rot2       17
+#define rot3       13
+#define rot4        5
+
 #define dtskew(x) (!x || (x)>>28) // 2^29 is the biggest 2^n before 1E9
 #define ONESEC msecs_to_jiffies(1 << 10)
-#define getprmx16(w) (5 + (((w) & ABy) << 1))
+#define getprmx16(w) (rot4 + (((w) & ABy) << 1))
 
 #define abs_t(t, x)    ({ t _x = (x);             (t)((_x < 0) ? -_x : _x); })
 #ifndef min_t
@@ -61,18 +76,6 @@
 #endif
 #define align_t(t, x)  ({ uintptr_t _m = sizeof(t) -1; \
                                   (typeof(x))(((uintptr_t)(x) + _m) & ~_m); })
-
-#define murmul1 0xff51afd7ed558ccdULL
-#define murmul2 0xc4ceb9fe1a85ec53ULL
-#define rot1    47
-#define rot2    17
-#define rot3    13
-
-#define EBUF_ITEMS 4
-#define HASHSIZE (ABN >> 3)
-#define MAX_INPUT_SIZE (1024 << 3)
-#define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
-#define HASHSEED 14695981039346656037ULL
 
 typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 
@@ -134,9 +137,9 @@ static inline archul_t rotlbit(archul_t n, u8 c) {
 #else
   __attribute__((always_inline))
   static inline archul_t knuthmx(archul_t iw) {
-      register archul_t w = iw;
-      w  = rotlbit(w, getprmx16(w));
-      w *= (w & 1) ? 0x9E3779B9 : 0x045d9f3b;
+      register archul_t w = iw, m = murmul3 ;
+      w ^= rotlbit(w,  getprmx16(w)) + rot3 ;
+      w *= rotlbit(m,  w ^ rot4)     ;
       w ^= rotlbit(w, (w & 2) ? rot1 : rot2);
       return w;
   }

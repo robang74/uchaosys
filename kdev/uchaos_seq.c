@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.8"
+ #define VERSION "v0.1.9"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -116,6 +116,7 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 }
 #define rotl5(x) rotl32(x, 5)
 
+#if 1
 __attribute__((always_inline)) static inline
 uint64_t get_30ns2(uint64_t mc, uint32_t dt) {
     uint32_t ct;
@@ -142,6 +143,50 @@ nanorndm( uint64_t e,
   e = (t&2) ? e : ~e  ; // !1
   return t ^ (e * t)  ; // et
 }
+#else //////////////////////////////////////////////////////////////////////////
+// RAF: this fuction is used only here, and its prototype
+// consistency isn't relevant: returns 64 for the caller.
+__attribute__((always_inline)) static inline
+uint64_t get_30ns2(void) {
+  static __thread
+  uint32_t register t = 0 ;
+  struct timespec   ts    ;
+  uint32_t register ct, dt;
+
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  // RAF: 2^30 -1BLN = 74M, but +2 bits & setdata()
+  // cannot influence anymore the nanornd() 0-init
+  ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
+  dt = ct - t;                     // this dif can skew
+   t = ct;                         // save the previous
+  #if 0
+  ct = ct ^ ((dt & 0xffff) << 14); // always below 2^30 (a)
+  #else
+  ct = ct + ((dt & 0xffff) << 10); // 2^(16+14)-1 = 67M (b)
+  #endif
+  // when using time as multiplier, it is nice to
+  // fill-up the range uncovered by 2^30 and 1BLN.
+  // LSB drive stochastics, who can control them?
+  // a) LSB from clock_gettime(): easy to tamper!
+  // b) static __thread t: memory write poisoning
+  // both leave unchanged the two MSB at 2^30 31.
+  return ct;
+}
+
+#define SEEDZ 0xec19
+static inline uint64_t
+nanorndm( uint64_t e,
+          uint64_t m) {
+  static volatile
+  uint64_t __thread  t;
+  if(ENTRSRCS & CPUSRC)
+    sched_yield()     ;
+  t = get_30ns2(m, t) ; // mt
+  if(!e) e = SEEDZ + t; // !0
+  e = (t&2) ? e : ~e  ; // !1
+  return t ^ (e * t)  ; // et
+}
+#endif /////////////////////////////////////////////////////////////////////////
 
 #define nano1rnd(e)    nanorndm(e, 0)
 

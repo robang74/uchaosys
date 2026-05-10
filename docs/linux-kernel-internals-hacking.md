@@ -75,7 +75,7 @@ It makes no sense adding randomisation of the address when isolation is achieved
 
 This 2-prompts chat with Kimi provides some information about this topic:
 
-- https://lnkd.in/dwT24AgB
+- https://www.kimi.com/share/19dfc5e3-3b52-849d-8000-0000e544ba1e
 
 Using an AI for retrieving information, it is fine and when a seasoned professional is involved, it can also share that information because he knows that it is fine. In fact, the answer is YES uchaos_dev.ko can work the same also when the kernel boots from a (true) random address because the module knows the offset (the address gap) between an internal static always present function like _printk() and the target function to call.
 
@@ -95,8 +95,7 @@ Under this perspective uChaos does the opposite: hypersensitive to nanosecond va
 
 Wrong to say that uChaos emulates a Lorentz strange attractor. It works considering the whole system as a chaotic system. Therefore, chaos is over there even before uChaos 1st instruction runs. From this awareness, the user arguments (or their default values) instruct uChaos to work on the edge where determinism is fading into chaos and thus real entropy is abundant. Not pure white noise, but stochastic events that fork randomness into an unpredictable sequence of branches. uChaos is the endpoint of ONE of too many to guess the line of Universe.
 
-- https://lnkd.in/djZW9CGq (paper, 2015, MIT)
-- https://lnkd.in/dfKqc-W2 (v0.5.7 presentation)
+- [courses.csail.mit.edu/6.857/2015/files/alt-barto-fasano-king.pdf](https://courses.csail.mit.edu/6.857/2015/files/alt-barto-fasano-king.pdf) &nbsp;(paper, 2015, MIT)
 
 From the “Entropy Poisoning from the Hypervisor” PoV, uchaos_dev does exactly the same when calling an internal not exported function of the Linux crng and init that system with 8 bytes of "its stuff". Then it exports the /dev/uchaos that can be seed by 8 zeros. At that point the side channel is created /dev/uchaos and the /dev/random is the victim. The main point and challenge: by all these facilities I provided you can you guess something?
 
@@ -234,11 +233,15 @@ An attacker targeting the CPU microcode supply-chain could possibly trigger hidd
 
 These vulnerabilities would not be universal, but selectively available to state-level actors. In practice, whoever controls the silicon and the firmware controls the security boundary ex-ante. An algorithm certified as "secure" by a government agency may therefore mean nothing more than secure because "defeatable by that agency".
 
+- [Dual Elliptic Curve Deterministic Random Bit Generator](https://en.wikipedia.org/wiki/Dual_EC_DRBG) &nbsp;(May 1997 &mdash; June 2015)
+
 uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constants. Thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit-reads, 512 + w/offset 511), choosen by random and possibly changed or relocated at the will of who compiles the kernel. This makes harder any attempt to catch uChaos by filtreing few "magic" numbers, and potentially not feaseable at all.
 
 #### Why uChaos design is superior
 
 Also algorithms that are peculiar in their implementation like ChaCha20 or Blake2s can be tracked down by a malicious CPU microcode. The more an algorithm is strict and peculiar, the easier to intercept. Actually uChaos uses "magic" constants for peer-reviewing / acceptance but it isn't a constraint for uChaos.
+
+- [x86/CPU/AMD: Clear RDRAND CPUID bit on AMD family 15h/16h](https://lore.kernel.org/all/776cb5c2d33e7fd0d2893904724c0e52b394f24a.1565817448.git.thomas.lendacky@amd.com/T/#u) &nbsp;(2019-08-14, patch)
 
 Instead uChaos, in its initialization uses ordinary `memcpy` operations to random memory addresses which are indistinguishable from millions of other kernel memory accesses, while the entropy comes not from the data values but from the **timing** of those accesses, specifically the inevitable long-tail DRAM latencies. Accesses that bypass CPU inspection when DMA is involved.
 

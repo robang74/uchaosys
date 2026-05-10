@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.7"
+ #define VERSION "v0.1.8"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -117,7 +117,7 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 #define rotl5(x) rotl32(x, 5)
 
 __attribute__((always_inline)) static inline
-uint64_t get_30ns2(uint32_t dt, uint64_t mc) {
+uint64_t get_30ns2(uint64_t mc, uint32_t dt) {
     uint32_t ct;
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -137,10 +137,10 @@ nanorndm( uint64_t e,
   uint64_t __thread  t;
   if(ENTRSRCS & CPUSRC)
     sched_yield()     ;
-  t = get_30ns2(t, m) ;
-  if(!e) e = SEEDZ + t;
-  e = (t&1) ? e : ~e  ;
-  return t ^ (e * t)  ;
+  t = get_30ns2(m, t) ; // mt
+  if(!e) e = SEEDZ + t; // !0
+  e = (t&2) ? e : ~e  ; // !1
+  return t ^ (e * t)  ; // et
 }
 
 #define nano1rnd(e)    nanorndm(e, 0)

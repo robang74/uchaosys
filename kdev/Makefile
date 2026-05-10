@@ -43,15 +43,20 @@ ccflags-y += -D_STATIC_PRINTK=$(PRINTK)
 ccflags-y += $(CFLAGS) $(EXTRA_CFLAGS)
 ldflags-y += $(LDFLAGS)"
 
+################################################################################
+.PHONY: all dist sign clean veryclean deepclean distclean
+
 $(KDIR)/.conf:
 	$(MAKE) -C $(KDIR) olddefconfig
 	touch $@
 
-default: uchaos_dev.h uckaos.c uckaos umkaos $(KDIR)/.conf
+all: uckaos umkaos $(KDIR)/.conf
+	@ls -al $^
+	@echo
 	@echo ">>> _CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
 	$(MAKE) $(OPTS) -C $(KDIR) M=$(PWD) modules_prepare modules
 
-dist: default
+dist: all
 	@echo "Stripping debug symbols from uchaos_dev.ko..."
 	strip --strip-debug $(KO_FILE)
 	@echo "Compressing with gzip -9 ... "
@@ -61,7 +66,7 @@ dist: default
 	@printf "Final size: "
 	@du -b uckaos | tr '\t' ' '
 
-sign: default
+sign: all
 	@echo "Signing the kernel module requires root priviledges"
 	sudo /usr/src/linux-headers-$(KERNVER)/scripts/sign-file sha256 /var/lib/shim-signed/mok/MOK.priv /var/lib/shim-signed/mok/MOK.der $(KO_FILE) && modinfo $(KO_FILE)
 	@echo ""
@@ -76,9 +81,13 @@ uckaos: uckaos.c uchaos_dev.h
 	$(OPTS) $(CC) -O3 $@.c -I../usrl -o $@ -s
 
 umkaos: uchaos_seq.c
-	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s -Wno-format-extra-args
+	$(OPTS) $(CC) -O3 $^ -I../usrl -o $@ -s -Wno-format-extra-args
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 	rm -f $(KO_FILE).gz uckaos umkaos
+
+veryclean: clean
+deepclean: veryclean
+distclean: deepclean
 

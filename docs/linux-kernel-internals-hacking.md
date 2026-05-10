@@ -1,4 +1,4 @@
-## Linux kernel hacking
+## Linux kernel hacking, chaos and security
 
 **`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
 
@@ -49,7 +49,7 @@ Both the sources showed the same quality of randomness during tests. The referen
 - https://lnkd.in/dTKDYzzT (kernel config)
 - https://lnkd.in/ddpg7h8N (Makefile)
 
-#### UPDATE (CODE CLARIFICATION)
+#### CODE CLARIFICATION
 
 Direct Feed Mechanism: The module does not rely on standard registration interfaces (which are often unstable on kernel 5.15.x), but injects raw entropy via add_device_randomness() and immediately validates the bits through a direct call to credit_entropy_bits(). This ensures that the kernel pool is instantly ‘seeded’ at init without relying on external handlers.
 
@@ -87,7 +87,7 @@ Moreover, hacking the kernel isn't necessary when we can patch the sources and r
 
 <br>
 
-### Chaos exists befirehands, or none at all
+## Chaos exists beforehands, or none at all
 
 Can we simulate a Lorentz attractor by running a deterministic software on a deterministic machine? No, those are just pictures that provide a vague idea of that math concept. Yes, that's because the machine has an intrinsic chaotic nature but it usually does not emerge because engineers did their best to keep the hardware (and software) within conditions in which determinism and predictability appear to be absolute.
 
@@ -166,6 +166,8 @@ Unless someone invents a macroscopic Maxwell's devil that can defeat the law of 
 
 There are some processes that are inherently one-way only which implies a not-predictability (to some degree) and in practice we observe totally random low-significative bits. We **observe** (which is common in quantistics), because otherwise once recorded totally precise conditions we might invert (in theory) the process.
 
+<br>
+
 #### SPECULATING A BIT
 
 This is also the reason why people started to talk about the "holographic" universe. At the same moment we realise that there is an equivalent Eisenberg's Indetermination Theorem about "observability in terms of precision", we have to consider that it is something tricky like a hologram.
@@ -190,7 +192,7 @@ Ultimately, this is the challenge behind uChaos: how many bits are affected by r
 
 <br>
 
-### Randomness and security
+## Randomness and security
 
 First of all, it is worth to note that early initialisation of the Linux kernel CRNG is essential to provide a secure system and it is not possible unless a reliable source of entropy is available. Where reliable it doesn't restrict to "hardware" involved but also "how much we can/want trust on it". This second part is completely another story because we go out of pure academic disquisition and move in a hostile, by definition, territory where certainty as suppositions are more dangerous than reasonable sane donuts.
 
@@ -214,7 +216,9 @@ Therefore, a very crimped VM would let uchaos long to run or even completely fai
 
 The main point here is that the entropy engine in the kernel is based on CPU entropy; this doesn't work with VM unless they allow a transparent CPU access, but a man-in-the-middle attack can happen even if it is extremely hard to fake in a plausible way. This is the "worse" about cryptographic whitening: masquerading the failure does solve the problem but makes it silent, thus worse.
 
-#### Are certifications secure?
+<br>
+
+### Are certifications secure?
 
 Certified cryptographic algorithms rely on publicly known constants which are fixed 32-bit or 64-bit integers used in multiplications and state transitions. For example, uChaos uses the following:
 
@@ -237,7 +241,9 @@ These vulnerabilities would not be universal, but selectively available to state
 
 uChaos doesn't use strict cryptographic algorithms but bit-mixer and whitening well-known hashes which are less sensitive to the multiplication constants. Thus in a 4Kb (a kernel memory page) can be stored 1024 of them (with 32bit-aligned 64bit-reads, 512 + w/offset 511), choosen by random and possibly changed or relocated at the will of who compiles the kernel. This makes harder any attempt to catch uChaos by filtreing few "magic" numbers, and potentially not feaseable at all.
 
-#### Why uChaos design is superior
+<br>
+
+### Why uChaos design is superior
 
 Also algorithms that are peculiar in their implementation like ChaCha20 or Blake2s can be tracked down by a malicious CPU microcode. The more an algorithm is strict and peculiar, the easier to intercept. Actually uChaos uses "magic" constants for peer-reviewing / acceptance but it isn't a constraint for uChaos.
 
@@ -251,3 +257,14 @@ But the decisive defense is `cpu_relax()`. This instruction is executed millions
 
 An entropy algorithm that derives its unpredictability primarily from **doing nothing**, just waiting, is a "monster" that is nearly impossible to filter or tamper with in a real-world system. As the 0°K test demonstrates, uChaos can be fully defeated, but only by making the machine useless. In the wild, the cost of controlling uChaos exceeds the value of the system itself.
 
+<br>
+
+### Can we do even better?
+
+Accepting the paradigm that chaos exists beforehands and entropy is analog chaos leaking into digital systems, the straightforward consequence is to dump the use of any fixed multiplicative constant because they can be easily tracked down and implements stochastics branching or flip-flopping that are not easily exposed by any `get_time_ns()` LSB tampering attack.
+
+- [kdev/uchaos_seq.c](../kdev/uchaos_seq.c) &nbsp;(working example, developing in progress)
+
+In fact there are two kind of attacks against those are trying to generates randomness from nanoseconds timings. One is about `setdate()` and `settime()` that alter the UNIX time expressed in seconds since EPOCH (1st Jan 1970) but also can interfere/skew the values under 1s because WHEN they get happen. The other is about LSB as described above. 
+
+While filtering the multiplicative constants is the fastest, leas performance impacting and the most generic way to precisely tampering timings/random when it is worth the most. Which means that under normal conditions the tampering isn't visible because isn't working at all, thus doesn't generate systemic drift or skews or others evidence.

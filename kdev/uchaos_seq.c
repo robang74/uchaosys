@@ -2,15 +2,24 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.4"
+ #define VERSION "v0.1.5"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
  *   cc uchaos_seq.c $CFLAGS -o ucseq && ./ucseq
- *   ./ucseq $((1<<30)) | dd bs=1M | ../prnd/RNG_test stdin64
+ *
+ *******************************************************************************
+ *
  *   px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
- *   px 4 "./ucseq $((1<<30))" | dd bs=1M | ../prnd/RNG_test stdin64
- *   gx() { px $1 "./ucseq $((1<<30))" & px $1 "./uckaos $((1<<19))"; }
+ * gx() { px $1 "./ucseq 30" & px $1 "./uckaos $((1<<19))"; }
+ *
+ * Speed test:
+ *    px 8 "./umkaos 26" | dd bs=1M of=/dev/null
+ *
+ * Random test:
+ *    px 4 "./umkaos 34" | dd bs=1M | ../prnd/RNG_test stdin64
+ *
+ * Mixed test:
  *   gx 4 | dd bs=1M | ../prnd/RNG_test stdin64
  */
 
@@ -92,12 +101,23 @@ nanornd(uint64_t e)   {
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
   __attribute__((aligned(8))) volatile uint64_t e = get_nanos();
-  uint32_t i, n, r, argn = 0, *p = (uint32_t *)mpage;
+  uint32_t i, n, r, ncycl = 1, argn = 4, *p = (uint32_t *)mpage;
   uint8_t bytes[256], count[256], nbits[256];
   uint8_t goods[128], table[256], nb[4], c;
 
-  if(argc & 2)
+  // for-loop is optimised for 32bit
+  if(argc & 2) {
     argn = atol(argv[1]);
+    if(argn < 2) argn = 4;
+    if(argn < 64) {
+      if(argn > 32) {
+        ncycl = 1ULL << (argn-31);
+        argn  = 1ULL << 31;
+      } else {
+        argn  = 1ULL << argn;
+      }
+    }
+  }
 
   print2(
     "\n//> Executing %s in %s\n",
@@ -211,46 +231,48 @@ int main(int argc, char *argv[]) {
 
   e = nanornd(e);
 
-  for(n = 0; n < (argn?:4); n++) {
-    uint32_t m = 0;
+  // for-loop is optimised for 32bit
+  for(int k = 0; k < ncycl; k++)
+    for(n = 0; n < argn; n++) {
+      uint32_t m = 0;
 
-    r = (e >> 32) ^ (e & 0xffffffff);
-    if(argn) {
-      *p++ = r;
-      if((uint8_t *)p == mpage + WRITESZE) {
-        ssize_t wn = write(1, mpage, WRITESZE);
-        if(ENTRSRCS & WRTSRC) e = nanornd(e);
-        p = (uint32_t *)mpage;
+      r = (e >> 32) ^ (e & 0xffffffff);
+      if(argn) {
+        *p++ = r;
+        if((uint8_t *)p == mpage + WRITESZE) {
+          ssize_t wn = write(1, mpage, WRITESZE);
+          if(ENTRSRCS & WRTSRC) e = nanornd(e);
+          p = (uint32_t *)mpage;
+        }
       }
+      print1(
+        "\n  entr. pool: 0x%08x --> b#%032b\n",
+          r, r);
+      print1("  const. #%d", n);
+
+      i = (r = rotl5(r)) & 31;
+      c = table[1 + i];
+      print1(": %03d", c);
+      m = c << 24;
+
+      i = (r = rotl5(r)) & 63;
+      c = table[64 + i] ?: table[64 + ((~i)&63)];
+      print1(", %03d", c);
+      m |= c << 16;
+
+      i = (r = rotl5(r)) & 31;
+      c = table[129 + i];
+      print1(", %03d", c);
+      m |= c << 8;
+
+      i = (r = rotl5(r)) & 63;
+      c = table[64 + i] ?: table[64 + ((~i)&63)];
+      print1(", %03d", c);
+      m |= c << 0;
+
+      print1(" --> 0x%08x\n", m);
+      e = nanornd((~e) ^ rotl5(r));
     }
-    print1(
-      "\n  entr. pool: 0x%08x --> b#%032b\n",
-        r, r);
-    print1("  const. #%d", n);
-
-    i = (r = rotl5(r)) & 31;
-    c = table[1 + i];
-    print1(": %03d", c);
-    m = c << 24;
-
-    i = (r = rotl5(r)) & 63;
-    c = table[64 + i] ?: table[64 + ((~i)&63)];
-    print1(", %03d", c);
-    m |= c << 16;
-
-    i = (r = rotl5(r)) & 31;
-    c = table[129 + i];
-    print1(", %03d", c);
-    m |= c << 8;
-
-    i = (r = rotl5(r)) & 63;
-    c = table[64 + i] ?: table[64 + ((~i)&63)];
-    print1(", %03d", c);
-    m |= c << 0;
-
-    print1(" --> 0x%08x\n", m);
-    e = nanornd((~e) ^ rotl5(r));
-  }
   if(argn && (uint8_t *)p != mpage)
     r = write(1, mpage, ((uint8_t *)p)-mpage);
 

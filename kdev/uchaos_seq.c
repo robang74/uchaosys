@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.1"
+ #define VERSION "v0.2.2"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -212,13 +212,39 @@ register uint64_t e,
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
+#define bit32str(x)    ""
+
+static uint8_t table[256];
+
+__attribute__((always_inline)) static inline
+uint32_t cont32make(uint32_t r) {
+  uint32_t m, c, i;
+
+  i = (r = rotl5(r)) & 31;
+  c = table[1 + i];
+  m = c << 24;
+
+  i = (r = rotl5(r)) & 63;
+  c = table[64 + i] ?: table[64 + ((~i)&63)];
+  m |= c << 16;
+
+  i = (r = rotl5(r)) & 31;
+  c = table[129 + i];
+  m |= c << 8;
+
+  i = (r = rotl5(r)) & 63;
+  c = table[64 + i] ?: table[64 + ((~i)&63)];
+  m |= c << 0;
+
+  return m;
+}
 
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
   __attribute__((aligned(8))) volatile uint64_t e = get_nanos();
   uint32_t i, n, r, ncycl = 1, argn = 4, *p = (uint32_t *)mpage;
-  uint8_t bytes[256], count[256], nbits[256];
-  uint8_t goods[128], table[256], nb[4], c;
+  uint8_t bytes[256], nbits[256];
+  uint8_t goods[128], nb[4], c;
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -245,7 +271,6 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < 256; i++) {
     bytes[i] = chkbits(i);
     nbits[i] = cntbits(i);
-    count[i] = 0;
     if((c = nbits[i]) > 2 && c < 6)
       continue;
     bytes[i] = 0;
@@ -352,11 +377,13 @@ int main(int argc, char *argv[]) {
 #endif
 
   // for-loop is optimised for 32bit
-  for(int k = 0; k < ncycl; k++)
+  for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < argn; n++) {
-      uint32_t m = 0;
+      uint32_t m;
 
-      r = (e >> 32) ^ (e & LSB32);
+      r = (e & LSB32) ^ (e >> 32);
+      e = (~e) ^ rotl5(r);
+
       if(argn) {
         *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
@@ -368,34 +395,15 @@ int main(int argc, char *argv[]) {
           p = (uint32_t *)mpage;
         }
       }
-      print1(
-        "\n  entr. pool: 0x%08x --> b#%032b\n",
-          r, r);
-      print1("  const. #%d", n);
 
-      i = (r = rotl5(r)) & 31;
-      c = table[1 + i];
-      print1(": %03d", c);
-      m = c << 24;
+      m = cont32make(r);
+      print1("\n  entr. pool: 0x%08x --> b#%s\n"
+              " const. #%02d: 0x%08x --> b#%s\n",
+              r, bit32str(r), n, m, bit32str(m));
 
-      i = (r = rotl5(r)) & 63;
-      c = table[64 + i] ?: table[64 + ((~i)&63)];
-      print1(", %03d", c);
-      m |= c << 16;
-
-      i = (r = rotl5(r)) & 31;
-      c = table[129 + i];
-      print1(", %03d", c);
-      m |= c << 8;
-
-      i = (r = rotl5(r)) & 63;
-      c = table[64 + i] ?: table[64 + ((~i)&63)];
-      print1(", %03d", c);
-      m |= c << 0;
-
-      print1(" --> 0x%08x\n", m);
-      e = nano2rnd((~e) ^ rotl5(r), m);
+      e = nano2rnd(e, m);
     }
+  }
   if(argn && (uint8_t *)p != mpage)
     r = write(1, mpage, ((uint8_t *)p)-mpage);
 
@@ -407,3 +415,4 @@ int main(int argc, char *argv[]) {
   newln1();
   return 0;
 }
+

@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.1"
+ #define VERSION "v0.1.2"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
@@ -64,10 +64,10 @@ static inline uint32_t rotl32(uint32_t x, uint8_t n) {
 #define SEEDZ 0xec19
 
 static inline uint64_t nanornd(uint64_t e) {
-  uint64_t t;
+  static uint64_t t =0;
   if(ENTRSRCS & CPUSRC)
     sched_yield()     ;
-  t = get_nanos()     ;
+  t = get_nanos()  - t;
   if(!e) e = SEEDZ + t;
   e = (t&1) ? e : ~e  ;
   return t ^ (e * t)  ;

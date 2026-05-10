@@ -29,24 +29,13 @@
  * px 8 "./umkaos $((1<<30))" | dd bs=1M of=/dev/null
  * px n:8
  * ^C
- * 0+3146525 records in
- * 0+3146525 records out
- * 3806811648 bytes (3.8 GB, 3.5 GiB) copied, 4.57474 s, 832 MB/s
- *
- * sleep 2 && killall umkaos & px 8 "./umkaos $[1<<30]" | dd bs=1M of=/dev/null
- * [1] 1883731
- * px n:8
- * 0+1373077 records in
- * 0+1373077 records out
- * 1583013376 bytes (1.6 GB, 1.5 GiB) copied, 1.99722 s, 793 MB/s
+ * 3806811648 bytes (3.8 GB, 3.5 GiB) copied, 4.57474 s, 832 MB/s !! 4/3 bc wo/m
  *
  * px 8 "./umkaos 26" | dd bs=1M of=/dev/null
  * px n:8
- * 0+1916325 records in
- * 0+1916325 records out
- * 2147483648 bytes (2.1 GB, 2.0 GiB) copied, 2.72707 s, 787 MB/s
+ * 2147483648 bytes (2.1 GB, 2.0 GiB) copied, 3.51551 s, 611 MB/s !! 4/4 cpu w/m
  *
- * px 4 "./umkaos 34" | dd bs=1M | ../prnd/RNG_test stdin64
+ * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64
  * px n:4
  * RNG_test using PractRand version 0.96
  * RNG = RNG_stdin64, seed = unknown
@@ -62,6 +51,17 @@
  *
  * length= 256 gigabytes (2^38 bytes), time= 3935 seconds
  *   no anomalies in 332 test result(s)
+ *
+ * px 4 "./umkaos 20" | ent
+ * px n:4
+ * Entropy = 7.999989 bits per byte.
+ *
+ * Chi square distribution for 16777216 samples is 256.94, and randomly
+ * would exceed this value 45.41 percent of the times.
+ *
+ * Arithmetic mean value of data bytes is 127.5339 (127.5 = random).
+ * Monte Carlo value for Pi is 3.140727315 (error 0.03 percent).
+ * Serial correlation coefficient is -0.000024 (totally uncorrelated = 0.0).
  *
  **************************************************************************** */
 
@@ -181,6 +181,9 @@ uint64_t get_30ns2(void)  {
 }
 #define GTNS2 get_30ns2()
 
+// RAF: here m is a "comb" 32bit multiplier constant made
+// of bytes with 3 to 5 bits of the same kind and a good
+// bit alternance, in which "111" or "000" are forbidden.
 static inline uint64_t
 nanorndm(uint64_t m,
 register uint64_t e)  {
@@ -192,8 +195,8 @@ register uint64_t e)  {
   return t ^ (e * t)  ; // et
 }
 
-#define nano1rnd(e)    nanorndm(0, e)
-#define nano2rnd(e,m)  nanorndm(m, e)
+#define nano1rnd(e)    nanorndm(0, e) // used during warming phase to collect e
+#define nano2rnd(e,m)  nanorndm(m, e) // used during generation / consume cycle
 
 #endif /////////////////////////////////////////////////////////////////////////
 

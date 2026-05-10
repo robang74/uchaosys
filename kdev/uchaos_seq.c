@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.0"
+ #define VERSION "v0.2.1"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -80,12 +80,6 @@
 #define BLOCKSZE    512
 #define WRITESZE    BLOCKSZE
 
-#define MEMSRC      (1<<0) // unavoidable
-#define WRTSRC      (1<<1)
-#define CPUSRC      (1<<2)
-
-#define ENTRSRCS    (MEMSRC | WRTSRC /*| CPUSRC */)
-
 #define LSB32       0xffffffff
 #define SEEDZ       0xec19
 
@@ -118,6 +112,12 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 #define rotl5(x) rotl32(x, 5)
 
 #if 0 //////////////////////////////////////////////////////////////////////////
+
+#define MEMSRC      (1<<0) // unavoidable
+#define WRTSRC      (1<<1)
+#define CPUSRC      (1<<2)
+#define ENSRCS      (MEMSRC | WRTSRC | CPUSRC)
+static uint8_t      ENTRSRCS = ENSRCS;
 
 __attribute__((always_inline)) static inline
 uint64_t get_30ns2(uint64_t mc, uint32_t dt) {
@@ -179,24 +179,32 @@ uint64_t get_30ns2(void)  {
   // 1: a feature than a bug; 2: jitter needs dt.
   return ct;
 }
-#define GTNS2 get_30ns2()
+#define tns2() get_30ns2()
+#define   sched_yield_ns() ({/*sched_yield();*/ get_30ns2(); })
 
-// RAF: here m is a "comb" 32bit multiplier constant made
-// of bytes with 3 to 5 bits of the same kind and a good
-// bit alternance, in which "111" or "000" are forbidden.
-static inline uint64_t
-nanorndm(uint64_t m,
-register uint64_t e)  {
+__attribute__((always_inline))
+static inline
+uint64_t nano1rnd(
+register uint64_t e)  { // used during "e" warming phase
   uint64_t register  t;
-  if(ENTRSRCS & CPUSRC)
-       sched_yield()  ;
-  t = (m<<32) | GTNS2 ; // mt
+  t = sched_yield_ns(); // jt
   e = (t&2) ? e : ~e  ; // >1
   return t ^ (e * t)  ; // et
 }
 
-#define nano1rnd(e)    nanorndm(0, e) // used during warming phase to collect e
-#define nano2rnd(e,m)  nanorndm(m, e) // used during generation / consume cycle
+// RAF: here m is a "comb" 32bit multiplier constant made
+// of bytes with 3 to 5 bits of the same kind and a good
+// bit alternance, in which "111" or "000" are forbidden.
+__attribute__((always_inline))
+static inline
+uint64_t nano2rnd(
+register uint64_t e,
+         uint64_t m)  { // used during gen/consume cycle
+  uint64_t register  t;
+  t = (m<<32) | tns2(); // mt
+  e = (t&2) ? e : ~e  ; // >1
+  return t ^ (e * t)  ; // et
+}
 
 #endif /////////////////////////////////////////////////////////////////////////
 
@@ -338,6 +346,11 @@ int main(int argc, char *argv[]) {
 
   e = nano1rnd(e);
 
+#ifdef ENSRCS
+  // stop collecting CPU jitters
+  ENTRSRCS = (MEMSRC | WRTSRC);
+#endif
+
   // for-loop is optimised for 32bit
   for(int k = 0; k < ncycl; k++)
     for(n = 0; n < argn; n++) {
@@ -348,7 +361,10 @@ int main(int argc, char *argv[]) {
         *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
-          if(ENTRSRCS & WRTSRC) e = nano1rnd(e);
+#ifdef ENSRCS
+          if(ENTRSRCS & WRTSRC)
+#endif
+          e = nano1rnd(e);
           p = (uint32_t *)mpage;
         }
       }

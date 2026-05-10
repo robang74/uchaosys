@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.6"
+ #define VERSION "v0.1.7"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -46,7 +46,6 @@
  * 0+1916325 records out
  * 2147483648 bytes (2.1 GB, 2.0 GiB) copied, 2.72707 s, 787 MB/s
  *
- *
  * px 4 "./umkaos 34" | dd bs=1M | ../prnd/RNG_test stdin64
  * px n:4
  * RNG_test using PractRand version 0.96
@@ -87,6 +86,8 @@
 
 #define ENTRSRCS    (MEMSRC | WRTSRC /*| CPUSRC */)
 
+#define LSB32       0xffffffff
+
 #define bit(y,x) (((x) >> (y)) & 1)
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
@@ -94,8 +95,8 @@
   ((x >> 3) & 1) + ((x >> 4) & 1) + ((x >> 5) & 1) \
   + ((x >> 6) & 1) + ((x >> 7) & 1); })
 
-__attribute__((always_inline))
-static inline uint8_t chkbits(uint8_t x) {
+__attribute__((always_inline)) static inline
+uint8_t chkbits(uint8_t x) {
   int i = 1, n = 1;
   uint8_t a, b = bit(0,x);
   for(i; i < 8; i++) {
@@ -108,38 +109,47 @@ static inline uint8_t chkbits(uint8_t x) {
   return x;
 }
 
-__attribute__((always_inline))
-static inline uint32_t rotl32(uint32_t x, uint8_t n) {
-  n &= 31; return (x << n) | (x >> (32-n));
+__attribute__((always_inline)) static inline
+uint32_t rotl32(uint32_t x, uint8_t n) {
+  n &= 31;
+  return (x << n) | (x >> (32-n));
 }
 #define rotl5(x) rotl32(x, 5)
 
-__attribute__((always_inline))
-static inline uint64_t get_30ns2(void) {
+__attribute__((always_inline)) static inline
+uint64_t get_30ns2(uint32_t dt, uint64_t mc) {
+    uint32_t ct;
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ((ts.tv_sec & 3) << 30) | ts.tv_nsec;
-    // RAF: 2^3 - 1BLN ~ 74M, but +2 bits & setdata()
+    ct = (((ts.tv_sec & 3) << 30) | ts.tv_nsec);
+    dt = (ct - dt) << 16 ; // 16 bits from the past
+    mc = (mc << 32) | ct ; // comb multiplier ahead
+    return mc ^ (dt >> 2); // past don't mix tv_sec
+    // RAF: 2^3 -1BLN = 74M, but +2 bits & setdata()
     // cannot influence anymore the nanornd() 0-init
 }
 
 #define SEEDZ 0xec19
 static inline uint64_t
-nanornd(uint64_t e)   {
+nanorndm( uint64_t e,
+          uint64_t m) {
   static volatile
   uint64_t __thread  t;
   if(ENTRSRCS & CPUSRC)
     sched_yield()     ;
-  t = get_30ns2()  - t;
+  t = get_30ns2(t, m) ;
   if(!e) e = SEEDZ + t;
   e = (t&1) ? e : ~e  ;
   return t ^ (e * t)  ;
 }
 
+#define nano1rnd(e)    nanorndm(e, 0)
+
 #define newln1()       if(!argn) { putchar('\n'); }
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
+
 
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
@@ -167,7 +177,7 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln1();
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // select the good ones
   for (int i = 0; i < 256; i++) {
@@ -179,7 +189,7 @@ int main(int argc, char *argv[]) {
     bytes[i] = 0;
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // count the good ones
   *(uint32_t *)nb = 0;
@@ -189,7 +199,7 @@ int main(int argc, char *argv[]) {
       n++;
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // check their counting
   print1("  tot: %3d/124\n", n);
@@ -199,7 +209,7 @@ int main(int argc, char *argv[]) {
   newln1();
   if(n != 124) return(1);
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // store the good ones
   n = 1;
@@ -211,7 +221,7 @@ int main(int argc, char *argv[]) {
       goods[n++] = 0;
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // print the good ones
   for (i = 0; i < 4; i++)
@@ -227,7 +237,7 @@ int main(int argc, char *argv[]) {
     if(!(++i & 3)) newln1();
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // create their table
   memset(table, 0, sizeof(table));
@@ -239,7 +249,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // spacing their table
   for(i = 8; i < 56; i += 8) {
@@ -248,7 +258,7 @@ int main(int argc, char *argv[]) {
     memset(&table[n-8], 0, 8);
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // print their table
   for(int m = 3; m < 6; m++) {
@@ -263,7 +273,7 @@ int main(int argc, char *argv[]) {
     newln1();
   }
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // checking the spacing
   n = 0;
@@ -272,19 +282,19 @@ int main(int argc, char *argv[]) {
       print1("%s %03d", n++?",":"  err:", i);
   if(n) newln1();
 
-  e = nanornd(e);
+  e = nano1rnd(e);
 
   // for-loop is optimised for 32bit
   for(int k = 0; k < ncycl; k++)
     for(n = 0; n < argn; n++) {
       uint32_t m = 0;
 
-      r = (e >> 32) ^ (e & 0xffffffff);
+      r = (e >> 32) ^ (e & LSB32);
       if(argn) {
         *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
-          if(ENTRSRCS & WRTSRC) e = nanornd(e);
+          if(ENTRSRCS & WRTSRC) e = nano1rnd(e);
           p = (uint32_t *)mpage;
         }
       }
@@ -314,7 +324,7 @@ int main(int argc, char *argv[]) {
       m |= c << 0;
 
       print1(" --> 0x%08x\n", m);
-      e = nanornd((~e) ^ rotl5(r));
+      e = nanorndm((~e) ^ rotl5(r), m);
     }
   if(argn && (uint8_t *)p != mpage)
     r = write(1, mpage, ((uint8_t *)p)-mpage);

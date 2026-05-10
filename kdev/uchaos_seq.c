@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.9"
+ #define VERSION "v0.2.0"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -87,6 +87,7 @@
 #define ENTRSRCS    (MEMSRC | WRTSRC /*| CPUSRC */)
 
 #define LSB32       0xffffffff
+#define SEEDZ       0xec19
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
@@ -116,7 +117,8 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 }
 #define rotl5(x) rotl32(x, 5)
 
-#if 1
+#if 0 //////////////////////////////////////////////////////////////////////////
+
 __attribute__((always_inline)) static inline
 uint64_t get_30ns2(uint64_t mc, uint32_t dt) {
     uint32_t ct;
@@ -130,12 +132,11 @@ uint64_t get_30ns2(uint64_t mc, uint32_t dt) {
     // cannot influence anymore the nanornd() 0-init
 }
 
-#define SEEDZ 0xec19
 static inline uint64_t
-nanorndm( uint64_t e,
-          uint64_t m) {
-  static volatile
-  uint64_t __thread  t;
+nanorndm(  uint64_t e,
+           uint64_t m){
+  static
+  __thread uint64_t t ;
   if(ENTRSRCS & CPUSRC)
     sched_yield()     ;
   t = get_30ns2(m, t) ; // mt
@@ -143,22 +144,27 @@ nanorndm( uint64_t e,
   e = (t&2) ? e : ~e  ; // !1
   return t ^ (e * t)  ; // et
 }
+
+#define nano1rnd(e)    nanorndm(e, 0)
+#define nano2rnd(e,m)  nanorndm(e, m)
+
 #else //////////////////////////////////////////////////////////////////////////
+
 // RAF: this fuction is used only here, and its prototype
 // consistency isn't relevant: returns 64 for the caller.
 __attribute__((always_inline)) static inline
-uint64_t get_30ns2(void) {
-  static __thread
-  uint32_t register t = 0 ;
+uint64_t get_30ns2(void)  {
+  static
+  uint32_t __thread t = 0 ;
   struct timespec   ts    ;
   uint32_t register ct, dt;
 
   clock_gettime(CLOCK_MONOTONIC, &ts);
   // RAF: 2^30 -1BLN = 74M, but +2 bits & setdata()
-  // cannot influence anymore the nanornd() 0-init
+  // cannot influence anymore the nanornd() 0-init.
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
-  dt = ct - t;                     // this dif can skew
-   t = ct;                         // save the previous
+  dt = ct - t;                     // this dif can skew (1)
+   t = ct;                         // save the previous (2)
   #if 0
   ct = ct ^ ((dt & 0xffff) << 14); // always below 2^30 (a)
   #else
@@ -170,31 +176,31 @@ uint64_t get_30ns2(void) {
   // a) LSB from clock_gettime(): easy to tamper!
   // b) static __thread t: memory write poisoning
   // both leave unchanged the two MSB at 2^30 31.
+  // 1: a feature than a bug; 2: jitter needs dt.
   return ct;
 }
+#define GTNS2 get_30ns2()
 
-#define SEEDZ 0xec19
 static inline uint64_t
-nanorndm( uint64_t e,
-          uint64_t m) {
-  static volatile
-  uint64_t __thread  t;
+nanorndm(uint64_t m,
+register uint64_t e)  {
+  uint64_t register  t;
   if(ENTRSRCS & CPUSRC)
-    sched_yield()     ;
-  t = get_30ns2(m, t) ; // mt
-  if(!e) e = SEEDZ + t; // !0
-  e = (t&2) ? e : ~e  ; // !1
+       sched_yield()  ;
+  t = (m<<32) | GTNS2 ; // mt
+  e = (t&2) ? e : ~e  ; // >1
   return t ^ (e * t)  ; // et
 }
-#endif /////////////////////////////////////////////////////////////////////////
 
-#define nano1rnd(e)    nanorndm(e, 0)
+#define nano1rnd(e)    nanorndm(0, e)
+#define nano2rnd(e,m)  nanorndm(m, e)
+
+#endif /////////////////////////////////////////////////////////////////////////
 
 #define newln1()       if(!argn) { putchar('\n'); }
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
-
 
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
@@ -369,7 +375,7 @@ int main(int argc, char *argv[]) {
       m |= c << 0;
 
       print1(" --> 0x%08x\n", m);
-      e = nanorndm((~e) ^ rotl5(r), m);
+      e = nano2rnd((~e) ^ rotl5(r), m);
     }
   if(argn && (uint8_t *)p != mpage)
     r = write(1, mpage, ((uint8_t *)p)-mpage);

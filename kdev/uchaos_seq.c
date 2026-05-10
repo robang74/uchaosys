@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.0.8"
+ #define VERSION "v0.0.9"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
@@ -33,7 +33,7 @@
 #define WRTSRC      (1<<1)
 #define CPUSRC      (1<<2)
 
-#define ENTRSRCS    (MEMSRC | WRTSRC /*| CPUSRC*/)
+#define ENTRSRCS    (MEMSRC | WRTSRC /*| CPUSRC */)
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
@@ -76,7 +76,7 @@ static inline uint64_t nanornd(uint64_t e) {
 
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
-  uint64_t e = get_nanos();
+  volatile uint64_t e = get_nanos();
   uint32_t i, n, r, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[256], count[256], nbits[256];
   uint8_t goods[128], table[256], nb[4], c;
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
 
   // count the good ones
   *(uint32_t *)nb = 0;
-  for (i = 0; i < 256; i++) {
+  for (i = 0, n = 0; i < 256; i++) {
       if(!(c = bytes[i])) continue;
       nb[nbits[c]-3]++;
       n++;

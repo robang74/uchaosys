@@ -50,9 +50,9 @@ Reference processor **i5-8365**, toolchain metrics:
 Reference architecture **x86_64**, system footprint:
 
 - `uncompressed .cpio    size:  672 KB`
-- `initramfs.cpio.gz     size:  416 KB`
+- `initramfs.cpio.gz     size:  436 KB`
 - `linux kernel image    size: 1468 KB`
-- `qemu bootable system  size: 1884 KB (1.84 MB)`&hairsp;²
+- `qemu bootable system  size: 1904 KB (1.86 MB)`&hairsp;²
 
 Running this minimal system, the essential metrics:
 
@@ -172,7 +172,7 @@ Since v0.6.5 this project also provides the option of compiling an experimental 
 > FILE: 'RNG_test.gz.sh', HEAD: 972 (1024),
 > GZIP: 921418 (900 Kb, 39 %), GZSH: v0.1.8
 
-It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.97&nbsp;MB).
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.99&nbsp;MB).
 
 The result above has been achieved in 7-days from the initial commit of this project. Here below after 1mo:
 

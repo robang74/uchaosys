@@ -50,7 +50,7 @@ CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 ARTIFACTS    := prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/ ucfg/pkg-config
 ARTIFACTS    += bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
 ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
-ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/$(KMOD)*
+ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/umkaos kdev/$(KMOD)*
 
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
@@ -58,7 +58,7 @@ MAKELOG      := make.log
 TRGDONE      := gzcmd.gz.sh kdev/uckaos prnd/RNG_test usrl/uchaosbox
 TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD).gz
 TRGDONE      += virt/initramfs.cpio.gz $(KIMG) qemu/output/$(QBIN)
-TRGDONE      += $(MUSLTGZ)
+TRGDONE      += kdev/umkaos $(MUSLTGZ)
 
 define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
@@ -293,7 +293,7 @@ $(KDIR)/System.map: $(KIMG)
 
 kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
 	@$(call print_start,"","")
-	$(MAKELNX) -C kdev dist
+	CC="$(CC) -static -mavx2" $(MAKELNX) -C kdev dist
 	@$(call print_stop)
 	@echo
 	touch $@
@@ -335,7 +335,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	cd $(CPIOTMP) && mkdir -p tmp/ var/log/ lib/modules/ usr/bin/
 	cp -alLf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
 	cp -alLf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
-	cp -alLf usrl/uchaosbox $(CPIOTMP)/usr/bin/
+	cp -alLf usrl/uchaosbox kdev/u?kaos $(CPIOTMP)/usr/bin/
 	chmod +x $(CPIOTMP)/init
 	# Symbolic links
 	ln -sf bin $(CPIOTMP)/usr/sbin

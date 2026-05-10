@@ -47,7 +47,7 @@ $(KDIR)/.conf:
 	$(MAKE) -C $(KDIR) olddefconfig
 	touch $@
 
-default: uchaos_dev.h uckaos.c uckaos $(KDIR)/.conf
+default: uchaos_dev.h uckaos.c uckaos umkaos $(KDIR)/.conf
 	@echo ">>> _CREDIT_INIT_ADDR=$(ADDR) w/ KASLR=$(KASLR),$(PRINTK)"
 	$(MAKE) $(OPTS) -C $(KDIR) M=$(PWD) modules_prepare modules
 
@@ -73,8 +73,12 @@ sign: default
 %.o: %.c %.h
 
 uckaos: uckaos.c uchaos_dev.h
-	$(OPTS) $(CC) -O1 $@.c -I../usrl -o $@ -s
+	$(OPTS) $(CC) -O3 $@.c -I../usrl -o $@ -s
+
+umkaos: uchaos_seq.c
+	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s -Wno-format-extra-args
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	rm -f $(KO_FILE).gz
+	rm -f $(KO_FILE).gz uckaos umkaos
+

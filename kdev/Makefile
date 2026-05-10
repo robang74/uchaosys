@@ -8,7 +8,7 @@ EXTRA_CFLAGS += -g0 -O2 -Wall -fstack-protector
 # not yet supported -ftrivial-auto-var-init=zero
 
 # Automatically create dependencies by c code files
-EXTRA_CFLAGS += -MD 
+EXTRA_CFLAGS += -MD -falign-functions=32
 -include $(sources:.c=.d)
 
 KERNVER ?= $(shell uname -r)

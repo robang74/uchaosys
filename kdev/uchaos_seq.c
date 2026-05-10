@@ -2,10 +2,10 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.2"
+ #define VERSION "v0.1.3"
  /*
  * Compile and run with:
- *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
+ *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
  *   cc uchaos_seq.c $CFLAGS -o ucseq && ./ucseq
  *   ./ucseq $((1<<30)) | dd bs=1M | ../prnd/RNG_test stdin64
  *   px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
@@ -42,13 +42,13 @@
   ((x >> 3) & 1) + ((x >> 4) & 1) + ((x >> 5) & 1) \
   + ((x >> 6) & 1) + ((x >> 7) & 1); })
 
+__attribute__((always_inline))
 static inline uint8_t chkbits(uint8_t x) {
   int i = 1, n = 1;
   uint8_t a, b = bit(0,x);
   for(i; i < 8; i++) {
     if(b != (a = bit(i,x))) {
-      n = 0;
-      b = a;
+      n = 0; b = a;
     } else
     if(++n == 3)
       return 0;
@@ -56,18 +56,28 @@ static inline uint8_t chkbits(uint8_t x) {
   return x;
 }
 
+__attribute__((always_inline))
 static inline uint32_t rotl32(uint32_t x, uint8_t n) {
   n &= 31; return (x << n) | (x >> (32-n));
 }
 #define rotl5(x) rotl32(x, 5)
 
-#define SEEDZ 0xec19
+__attribute__((always_inline))
+static inline uint64_t get_30ns2(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ((ts.tv_sec & 3) << 30) | ts.tv_nsec;
+    // RAF: 2^3 - 1BLN ~ 74M, but +2 bits & setdata()
+    // cannot influence anymore the nanornd() 0-init
+}
 
-static inline uint64_t nanornd(uint64_t e) {
+#define SEEDZ 0xec19
+static inline uint64_t
+nanornd(uint64_t e)   {
   static uint64_t t =0;
   if(ENTRSRCS & CPUSRC)
     sched_yield()     ;
-  t = get_nanos()  - t;
+  t = get_30ns2()  - t;
   if(!e) e = SEEDZ + t;
   e = (t&1) ? e : ~e  ;
   return t ^ (e * t)  ;

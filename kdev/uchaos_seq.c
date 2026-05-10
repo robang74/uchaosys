@@ -2,15 +2,16 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.1.5"
+ #define VERSION "v0.1.6"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
  *   cc uchaos_seq.c $CFLAGS -o ucseq && ./ucseq
  *
  *******************************************************************************
+ * TESTING
  *
- *   px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
+ * px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
  * gx() { px $1 "./ucseq 30" & px $1 "./uckaos $((1<<19))"; }
  *
  * Speed test:
@@ -21,7 +22,49 @@
  *
  * Mixed test:
  *   gx 4 | dd bs=1M | ../prnd/RNG_test stdin64
- */
+ *
+ *******************************************************************************
+ * RESULTS
+ *
+ * px 8 "./umkaos $((1<<30))" | dd bs=1M of=/dev/null
+ * px n:8
+ * ^C
+ * 0+3146525 records in
+ * 0+3146525 records out
+ * 3806811648 bytes (3.8 GB, 3.5 GiB) copied, 4.57474 s, 832 MB/s
+ *
+ * sleep 2 && killall umkaos & px 8 "./umkaos $[1<<30]" | dd bs=1M of=/dev/null
+ * [1] 1883731
+ * px n:8
+ * 0+1373077 records in
+ * 0+1373077 records out
+ * 1583013376 bytes (1.6 GB, 1.5 GiB) copied, 1.99722 s, 793 MB/s
+ *
+ * px 8 "./umkaos 26" | dd bs=1M of=/dev/null
+ * px n:8
+ * 0+1916325 records in
+ * 0+1916325 records out
+ * 2147483648 bytes (2.1 GB, 2.0 GiB) copied, 2.72707 s, 787 MB/s
+ *
+ *
+ * px 4 "./umkaos 34" | dd bs=1M | ../prnd/RNG_test stdin64
+ * px n:4
+ * RNG_test using PractRand version 0.96
+ * RNG = RNG_stdin64, seed = unknown
+ * test set = core, folding = standard (64 bit)
+ *
+ * length= 512 megabytes (2^29 bytes), time= 6.2 seconds
+ *   Test Name                         Raw       Processed     Evaluation
+ *   [Low16/64]BCFN(2+2,13-3U)         R=  +9.0  p =  4.5e-4   unusual
+ *   ...and 212 test result(s) without anomalies
+ *
+ * length= 128 gigabytes (2^37 bytes), time= 2037 seconds
+ *   no anomalies in 320 test result(s)
+ *
+ * length= 256 gigabytes (2^38 bytes), time= 3935 seconds
+ *   no anomalies in 332 test result(s)
+ *
+ **************************************************************************** */
 
 #include <stdio.h>
 #include <stdint.h>

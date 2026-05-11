@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.4"
+ #define VERSION "v0.2.5"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -173,8 +173,8 @@ uint64_t get_30ns2(void)  {
   // 1: a feature than a bug; 2: jitter needs dt.
   return ct;
 }
-#define tns2() get_30ns2()
-#define   sched_yield_ns() ({/*sched_yield();*/ get_30ns2(); })
+#define tns2() get_30ns2() // redefinition can include vvv
+#define   sched_yield_ns() ({ sched_yield(); get_30ns2(); })
 
 __attribute__((always_inline))
 static inline

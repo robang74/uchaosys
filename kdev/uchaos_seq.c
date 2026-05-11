@@ -83,6 +83,14 @@
 #define LSB32       0xffffffff
 #define SEEDZ       0xec19
 
+#if 0
+#define MEMSRC      (1<<0) // unavoidable
+#define WRTSRC      (1<<1)
+#define CPUSRC      (1<<2)
+#define ENSRCS      (MEMSRC | WRTSRC | CPUSRC)
+static uint8_t      ENTRSRCS = ENSRCS;
+#endif
+
 #define bit(y,x) (((x) >> (y)) & 1)
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
@@ -111,44 +119,31 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 }
 #define rotl5(x) rotl32(x, 5)
 
-#if 0 //////////////////////////////////////////////////////////////////////////
-
-#define MEMSRC      (1<<0) // unavoidable
-#define WRTSRC      (1<<1)
-#define CPUSRC      (1<<2)
-#define ENSRCS      (MEMSRC | WRTSRC | CPUSRC)
-static uint8_t      ENTRSRCS = ENSRCS;
+__attribute__((aligned(4)))
+static uint8_t table[256];
 
 __attribute__((always_inline)) static inline
-uint64_t get_30ns2(uint64_t mc, uint32_t dt) {
-    uint32_t ct;
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    ct = (((ts.tv_sec & 3) << 30) | ts.tv_nsec);
-    dt = (ct - dt) << 16 ; // 16 bits from the past
-    mc = (mc << 32) | ct ; // comb multiplier ahead
-    return mc ^ (dt >> 2); // past don't mix tv_sec
-    // RAF: 2^3 -1BLN = 74M, but +2 bits & setdata()
-    // cannot influence anymore the nanornd() 0-init
+uint32_t comb32make(uint32_t r) {
+  uint32_t m, c, i;
+
+  i = (r = rotl5(r)) & 31;
+  c = table[1 + i];
+  m = c << 24;
+
+  i = (r = rotl5(r)) & 63;
+  c = table[64 + i] ?: table[64 + ((~i)&63)];
+  m |= c << 16;
+
+  i = (r = rotl5(r)) & 31;
+  c = table[129 + i];
+  m |= c << 8;
+
+  i = (r = rotl5(r)) & 63;
+  c = table[64 + i] ?: table[64 + ((~i)&63)];
+  m |= c << 0;
+
+  return m;
 }
-
-static inline uint64_t
-nanorndm(  uint64_t e,
-           uint64_t m){
-  static
-  __thread uint64_t t ;
-  if(ENTRSRCS & CPUSRC)
-    sched_yield()     ;
-  t = get_30ns2(m, t) ; // mt
-  if(!e) e = SEEDZ + t; // !0
-  e = (t&2) ? e : ~e  ; // !1
-  return t ^ (e * t)  ; // et
-}
-
-#define nano1rnd(e)    nanorndm(e, 0)
-#define nano2rnd(e,m)  nanorndm(e, m)
-
-#else //////////////////////////////////////////////////////////////////////////
 
 // RAF: this fuction is used only here, and its prototype
 // consistency isn't relevant: returns 64 for the caller.
@@ -206,43 +201,41 @@ register uint64_t e,
   return t ^ (e * t)  ; // et
 }
 
-#endif /////////////////////////////////////////////////////////////////////////
+__attribute__((always_inline))
+static inline
+uint64_t nano3rnd(
+register uint64_t e,
+         uint32_t *m,
+         uint32_t *r) {
+  uint64_t register x ;
+  *r = x = e^(e >> 32);
+   e = (~e) ^ rotl5(x);
+  *m =   comb32make(x);
+   e = nano2rnd(e, *m);
+  return e;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 #define newln1()       if(!argn) { putchar('\n'); }
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
-#define bit32str(x)    ""
 
-static uint8_t table[256];
-
-__attribute__((always_inline)) static inline
-uint32_t cont32make(uint32_t r) {
-  uint32_t m, c, i;
-
-  i = (r = rotl5(r)) & 31;
-  c = table[1 + i];
-  m = c << 24;
-
-  i = (r = rotl5(r)) & 63;
-  c = table[64 + i] ?: table[64 + ((~i)&63)];
-  m |= c << 16;
-
-  i = (r = rotl5(r)) & 31;
-  c = table[129 + i];
-  m |= c << 8;
-
-  i = (r = rotl5(r)) & 63;
-  c = table[64 + i] ?: table[64 + ((~i)&63)];
-  m |= c << 0;
-
-  return m;
+static const char *
+bit64str (uint64_t register v,
+          const unsigned    n) {
+  static char __thread b[65]   ;
+  for (int i = 0; i < n; i++)
+    b[i] = '0' + ((v >> i) & 1);
+  b[n] = 0                     ;
+  return b                     ;
 }
 
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
   __attribute__((aligned(8))) volatile uint64_t e = get_nanos();
-  uint32_t i, n, r, ncycl = 1, argn = 4, *p = (uint32_t *)mpage;
+  uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[256], nbits[256];
   uint8_t goods[128], nb[4], c;
 
@@ -354,8 +347,8 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < 64; i++) {
       if(!(c = table[n+i])) continue;
       if(!(k++ & 3)) newln1();
-      print1("  %03d: b#%08b %d | ",
-        n+i, c, nbits[c]);
+      print1("  %03d: b#%s %d | ",
+        n+i, bit64str(c,8), nbits[c]);
     }
     newln1();
   }
@@ -377,12 +370,12 @@ int main(int argc, char *argv[]) {
 #endif
 
   // for-loop is optimised for 32bit
+  int max = (argn?:4);
   for(int k = 0; k < ncycl; k++) {
-    for(n = 0; n < argn; n++) {
+    for(n = 0; n < max; n++) {
       uint32_t m;
 
-      r = (e & LSB32) ^ (e >> 32);
-      e = (~e) ^ rotl5(r);
+      e = nano3rnd(e, &m, &r);
 
       if(argn) {
         *p++ = r;
@@ -396,12 +389,9 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      m = cont32make(r);
       print1("\n  entr. pool: 0x%08x --> b#%s\n"
-              " const. #%02d: 0x%08x --> b#%s\n",
-              r, bit32str(r), n, m, bit32str(m));
-
-      e = nano2rnd(e, m);
+             " const. n.%02d: 0x%08x --> b#%s\n",
+        r, bit64str(r,32), n, m, bit64str(m,32));
     }
   }
   if(argn && (uint8_t *)p != mpage)
@@ -409,7 +399,7 @@ int main(int argc, char *argv[]) {
 
   e = get_nanos();
   print2(
-    "\n//> Time spent: %7lu nS --> %.03lf mS\n",
+    "\n//> Run time: %7lu nS --> %.03lf mS\n",
       e, (double)e/1000000);
 
   newln1();

@@ -144,7 +144,7 @@ uint32_t comb32make(uint32_t r) {
   return m;
 }
 
-// RAF: this fuction is used only here, and its prototype
+// RAF: this function is used only here, and its prototype
 // consistency isn't relevant: returns 64 for the caller.
 __attribute__((always_inline)) static inline
 uint64_t get_30ns2(void)  {
@@ -155,7 +155,7 @@ uint64_t get_30ns2(void)  {
 
   clock_gettime(CLOCK_MONOTONIC, &ts);
   // RAF: 2^30 -1BLN = 74M, but +2 bits & setdata()
-  // cannot influence anymore the nanornd() 0-init.
+  // cannot influence the nanornd() 0-init anymore.
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
   dt = ct - t;                     // this dif can skew (1)
    t = ct;                         // save the previous (2)
@@ -173,6 +173,9 @@ uint64_t get_30ns2(void)  {
   // 1: a feature than a bug; 2: jitter needs dt.
   return ct;
 }
+// RAF: since the CPU jittering already shown its validity
+// and its performance, keeping it out the generation makes
+// sense in the quest of challenging the RAM access jitter.
 #define tns2() get_30ns2() // redefinition can include vvv
 #define   sched_yield_ns() ({ sched_yield(); get_30ns2(); })
 

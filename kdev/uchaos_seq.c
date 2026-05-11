@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.3"
+ #define VERSION "v0.2.4"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -94,20 +94,19 @@ static uint8_t      ENTRSRCS = ENSRCS;
 #define bit(y,x) (((x) >> (y)) & 1)
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
-  (x&1) + ((x >> 1) & 1) + ((x >> 2) & 1) + \
-  ((x >> 3) & 1) + ((x >> 4) & 1) + ((x >> 5) & 1) \
-  + ((x >> 6) & 1) + ((x >> 7) & 1); })
+( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
++ bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
 
 __attribute__((always_inline)) static inline
 uint8_t chkbits(uint8_t x) {
   int i = 1, n = 1;
-  uint8_t a, b = bit(0,x);
+  uint8_t a, b = bit(0, x);
   for(i; i < 8; i++) {
-    if(b != (a = bit(i,x))) {
+    if(b != (a = bit(i, x))) {
       n = 0; b = a;
-    } else
-    if(++n == 3)
+    } else if(++n == 3) {
       return 0;
+    }
   }
   return x;
 }
@@ -222,14 +221,16 @@ register uint64_t e,
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 
-static const char *
+// RAF: printf() %b isn't supported by early gcc/libc and by musl.
+// This "least effort" funtion displays differntly on big-endian,
+// but it can be a "feature" rather than a bug see the enconding.
+static const volatile char *
 bit64str (uint64_t register v,
           const unsigned    n) {
   static char __thread b[65]   ;
   for (int i = 0; i < n; i++)
-    b[i] = '0' + ((v >> i) & 1);
-  b[n] = 0                     ;
-  return b                     ;
+    b[i] = '0' + bit(n-i-1, v) ;
+  return ({ b[n] = 0; b; })    ;
 }
 
 int main(int argc, char *argv[]) {
@@ -389,9 +390,10 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      print1("\n  entr. pool: 0x%08x --> b#%s\n"
-             " const. n.%02d: 0x%08x --> b#%s\n",
-        r, bit64str(r,32), n, m, bit64str(m,32));
+      print1("\n  entr. pool: 0x%08x --> b#%s\n",
+        r,    bit64str(r, 32));
+      print1(" const. n.%02d: 0x%08x --> b#%s\n",
+        n, m, bit64str(m, 32));
     }
   }
   if(argn && (uint8_t *)p != mpage)

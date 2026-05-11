@@ -6,7 +6,7 @@
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
- *   cc uchaos_seq.c $CFLAGS -o ucseq && ./ucseq
+ *   cc uchaos_seq.c $CFLAGS -mavx2 -o ucseq && ./ucseq
  *
  *******************************************************************************
  * TESTING
@@ -62,6 +62,14 @@
  * Arithmetic mean value of data bytes is 127.5339 (127.5 = random).
  * Monte Carlo value for Pi is 3.140727315 (error 0.03 percent).
  * Serial correlation coefficient is -0.000024 (totally uncorrelated = 0.0).
+ *
+ *******************************************************************************
+ *
+ * CHANGES (in v0.2.6)
+ *
+ * Speed from 610 MB/s to 550 MB/s which is a -10% because endogenous robustness
+ * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64: passed 256 GB with no warnings
+ * px 4 "./umkaos 20" | ent: 7.999989, 257.42, 44.58%, 127.4916, 0.03%,-0.000071
  *
  **************************************************************************** */
 
@@ -191,8 +199,8 @@ uint64_t nano1rnd(
 register uint64_t e)  { // used during "e" warming phase
   uint64_t register  t;
   t = sched_yield_ns(); // jt
-  e = (e&2) ? e : ~e  ; // >1
-  return t ^ (e * ~t) ; // et
+  e = (e&2) ? e : ~e  ; // >1 w/ endogenous bi-forcation
+  return t ^ (e * ~t) ; // et robustness by t-complement
 }
 
 // RAF: here m is a "comb" 32bit multiplier constant made
@@ -205,8 +213,8 @@ register uint64_t e,
          uint64_t m)  { // used during gen/consume cycle
   uint64_t register  t;
   t = (m<<32) | tns2(); // mt
-  e = (e&2) ? e : ~e  ; // >1
-  return t ^ (e * ~t) ; // et
+  e = (e&2) ? e : ~e  ; // >1 w/ endogenous bi-forcation
+  return t ^ (e * ~t) ; // et robustness by t-complement
 }
 
 __attribute__((always_inline))

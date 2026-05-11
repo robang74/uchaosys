@@ -2,10 +2,10 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.2"
+ #define VERSION "v0.2.3"
  /*
  * Compile and run with:
- *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -falign-functions=32 -I../usrl"
+ *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
  *   cc uchaos_seq.c $CFLAGS -o ucseq && ./ucseq
  *
  *******************************************************************************

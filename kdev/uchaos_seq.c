@@ -153,6 +153,12 @@ uint64_t get_30ns2(void)  {
   struct timespec   ts    ;
   uint32_t register ct, dt;
 
+  // RAF: systems with coarser timers than nS but same API
+  // will make this code fail. However, it is better than
+  // it fails rather than trying to address unknown cases.
+  // Especially because nS or uS or mS do not matter apart
+  // from a right shift, as long as there is some entropy
+  // leaking by the LSB timings. Otherwise, deterministic.
   clock_gettime(CLOCK_MONOTONIC, &ts);
   // RAF: 2^30 -1BLN = 74M, but +2 bits & setdata()
   // cannot influence the nanornd() 0-init anymore.

@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.5"
+ #define VERSION "v0.2.6"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -24,7 +24,7 @@
  *   gx 4 | dd bs=1M | ../prnd/RNG_test stdin64
  *
  *******************************************************************************
- * RESULTS
+ * RESULTS (on v0.2.0)
  *
  * px 8 "./umkaos $((1<<30))" | dd bs=1M of=/dev/null
  * px n:8
@@ -166,9 +166,9 @@ uint64_t get_30ns2(void)  {
   dt = ct - t;                     // this dif can skew (1)
    t = ct;                         // save the previous (2)
   #if 0
-  ct = ct ^ ((dt & 0xffff) << 14); // always below 2^30 (a)
+  ct = ct ^ ((dt & 0xffff) << 14); // 2^(16+14)-1 = 67M (a)
   #else
-  ct = ct + ((dt & 0xffff) << 10); // 2^(16+14)-1 = 67M (b)
+  ct = ct + ((dt & 0xffff) << 10); // sum always < 2^30 (b)
   #endif
   // when using time as multiplier, it is nice to
   // fill-up the range uncovered by 2^30 and 1BLN.
@@ -191,8 +191,8 @@ uint64_t nano1rnd(
 register uint64_t e)  { // used during "e" warming phase
   uint64_t register  t;
   t = sched_yield_ns(); // jt
-  e = (t&2) ? e : ~e  ; // >1
-  return t ^ (e * t)  ; // et
+  e = (e&2) ? e : ~e  ; // >1
+  return t ^ (e * ~t) ; // et
 }
 
 // RAF: here m is a "comb" 32bit multiplier constant made
@@ -205,8 +205,8 @@ register uint64_t e,
          uint64_t m)  { // used during gen/consume cycle
   uint64_t register  t;
   t = (m<<32) | tns2(); // mt
-  e = (t&2) ? e : ~e  ; // >1
-  return t ^ (e * t)  ; // et
+  e = (e&2) ? e : ~e  ; // >1
+  return t ^ (e * ~t) ; // et
 }
 
 __attribute__((always_inline))

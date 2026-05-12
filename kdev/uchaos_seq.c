@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.6"
+ #define VERSION "v0.2.7"
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -70,6 +70,10 @@
  * Speed from 610 MB/s to 550 MB/s which is a -10% because endogenous robustness
  * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64: passed 256 GB with no warnings
  * px 4 "./umkaos 20" | ent: 7.999989, 257.42, 44.58%, 127.4916, 0.03%,-0.000071
+ *
+ * CHANGES (in v0.2.7)
+ *
+ * nano0rnd() introduced for code maintenance (1pt), it regains 590 MB/s (-4%)
  *
  **************************************************************************** */
 
@@ -195,12 +199,20 @@ uint64_t get_30ns2(void)  {
 
 __attribute__((always_inline))
 static inline
+uint64_t nano0rnd(
+register uint64_t e,
+register uint64_t t)  {
+  e = (e&2) ? e : ~e  ; // >1 w/ endogenous bi-forcation
+  return t ^ (e * ~t) ; // et robustness by t-complement
+}
+
+__attribute__((always_inline))
+static inline
 uint64_t nano1rnd(
 register uint64_t e)  { // used during "e" warming phase
   uint64_t register  t;
   t = sched_yield_ns(); // jt
-  e = (e&2) ? e : ~e  ; // >1 w/ endogenous bi-forcation
-  return t ^ (e * ~t) ; // et robustness by t-complement
+  return nano0rnd(e,t);
 }
 
 // RAF: here m is a "comb" 32bit multiplier constant made
@@ -213,8 +225,7 @@ register uint64_t e,
          uint64_t m)  { // used during gen/consume cycle
   uint64_t register  t;
   t = (m<<32) | tns2(); // mt
-  e = (e&2) ? e : ~e  ; // >1 w/ endogenous bi-forcation
-  return t ^ (e * ~t) ; // et robustness by t-complement
+  return nano0rnd(e,t);
 }
 
 __attribute__((always_inline))

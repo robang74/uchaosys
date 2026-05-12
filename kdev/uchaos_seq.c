@@ -210,7 +210,7 @@ __attribute__((always_inline))
 static inline
 uint64_t nano1rnd(
 register uint64_t e)  { // used during "e" warming phase
-  uint64_t register  t;
+  uint64_t register t ;
   t = sched_yield_ns(); // jt
   return nano0rnd(e,t);
 }
@@ -223,7 +223,7 @@ static inline
 uint64_t nano2rnd(
 register uint64_t e,
          uint64_t m)  { // used during gen/consume cycle
-  uint64_t register  t;
+  uint64_t register t ;
   t = (m<<32) | tns2(); // mt
   return nano0rnd(e,t);
 }

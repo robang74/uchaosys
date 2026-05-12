@@ -83,8 +83,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sched.h>
-
-#include "getnanos.h"
+#include <time.h>
 
 #define PAGEORDR    12
 #define PAGESIZE    (2 << PAGEORDR)
@@ -244,10 +243,18 @@ register uint64_t e,
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "getnanos.h"
+
 #define newln1()       if(!argn) { putchar('\n'); }
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
+
+#ifdef UCHAOS_SEQ_H
+#else
+__attribute__((aligned(8)))
+static volatile uint64_t e;
+#endif
 
 // RAF: printf() %b isn't supported by early gcc/libc and by musl.
 // This "least effort" funtion displays differntly on big-endian,
@@ -263,10 +270,11 @@ bit64str (uint64_t register v,
 
 int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE];
-  __attribute__((aligned(8))) volatile uint64_t e = get_nanos();
   uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[256], nbits[256];
   uint8_t goods[128], nb[4], c;
+
+  e = get_nanos();
 
   // for-loop is optimised for 32bit
   if(argc & 2) {

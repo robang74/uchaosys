@@ -80,7 +80,7 @@ sign: all
 uckaos: uckaos.c uchaos_dev.h
 	$(OPTS) $(CC) -O3 $@.c -I../usrl -o $@ -s
 
-umkaos: uchaos_seq.c
+umkaos: uchaos_seq.c umkaos.c
 	$(OPTS) $(CC) -O3 $^ -I../usrl -o $@ -s -Wno-format-extra-args
 
 clean:

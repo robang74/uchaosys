@@ -8,11 +8,11 @@
  *
  **************************************************************************** */
 
+#include "getnanos.h"
 #if 0
 #include "uchaos_seq.h"
 #else
 #include "uchaos_seq.c"
-#include "getnanos.h"
 #endif
 
 #define newln1()       if(!argn) { putchar('\n'); }
@@ -172,7 +172,11 @@ int main(int argc, char *argv[]) {
     memset(&table[n-8], 0, 8);
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // print their table
   for(int m = 3; m < 6; m++) {
@@ -215,7 +219,12 @@ int main(int argc, char *argv[]) {
   union {
     uint64_t e;
     uint32_t h[2];
-  } mr; mr.e = e;
+  } mr;
+  #ifdef UCHAOS_SEQ_H
+  mr.e = urnd_e64e();
+  #else
+  mr.e = e;
+  #endif
   #define e mr.e
 #if __BYTE_ORDER == __BIG_ENDIAN
 // RAF: the order is inverted in big-endian systems
@@ -263,7 +272,7 @@ int main(int argc, char *argv[]) {
   t = get_nanos(); // collecting the running time
   print2(
     "\n//> Run time: %7lu nS --> %.03lf mS\n",
-      t, (double)t/1000000);
+      t, (double)t/1E6);
 
   newln1();
   return 0;

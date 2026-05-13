@@ -3,11 +3,7 @@
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
  * Public interface, it hides internal but speed drops by 2/3 because functions.
- */
-#ifndef VERSION
-#define VERSION "v0.2.8"
-#endif
-/*
+ *
  * USAGE:
  *
  * warming-up, xN times: urnd_eclt(); { code block; } urnd_eclt();
@@ -25,6 +21,8 @@
 
 #ifndef UCHAOS_SEQ_H
 #define UCHAOS_SEQ_H
+
+#include "uchaos_seq.c"
 
 __attribute__((aligned(8)))
 static uint64_t __thread _urnd_entr;

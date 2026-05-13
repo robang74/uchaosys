@@ -9,7 +9,7 @@
  **************************************************************************** */
 
 #include "getnanos.h"
-#if 0
+#if 1
 #include "uchaos_seq.h"
 #else
 #include "uchaos_seq.c"
@@ -216,36 +216,26 @@ int main(int argc, char *argv[]) {
   #endif
 
   // for-loop is optimised for 32bit
-  union {
-    uint64_t e;
-    uint32_t h[2];
-  } mr;
+
+  urnd_mr_t mr;
   #ifdef UCHAOS_SEQ_H
   mr.e = urnd_e64e();
   #else
   mr.e = e;
   #endif
-  #define e mr.e
-#if __BYTE_ORDER == __BIG_ENDIAN
-// RAF: the order is inverted in big-endian systems
-  #define m mr.h[1]
-  #define r mr.h[0]
-#else
-  #define m mr.h[0]
-  #define r mr.h[1]
-#endif
+
   int max = (argn?:4);
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
       #ifdef UCHAOS_SEQ_H
-      e = urnd_e64mr();
+      mr.e = urnd_e64mr();
       #else
-      e = nano3rnd(e, &m, &r);
+      mr.e = nano3rnd(e, &urnd_mr32_m(mr), &urnd_mr32_r(mr));
       #endif
 
       if(argn) {
-        *p++ = r;
+        *p++ = urnd_mr32_r(mr);
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
           #ifdef ENSRCS
@@ -254,16 +244,16 @@ int main(int argc, char *argv[]) {
           #ifdef UCHAOS_SEQ_H
           urnd_eclt();
           #else
-          e = nano1rnd(t);
+          mr.e = nano1rnd(mr.e);
           #endif
           p = (uint32_t *)mpage;
         }
       }
 
       print1("\n  entr. pool: 0x%08x --> b#%s\n",
-        r,    bit64str(r, 32));
+           urnd_mr32_r(mr), bit64str(urnd_mr32_r(mr), 32));
       print1(" const. n.%02d: 0x%08x --> b#%s\n",
-        n, m, bit64str(m, 32));
+        n, urnd_mr32_m(mr), bit64str(urnd_mr32_m(mr), 32));
     }
   }
   if(argn && (uint8_t *)p != mpage)

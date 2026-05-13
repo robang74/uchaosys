@@ -24,20 +24,43 @@
 
 #include "uchaos_seq.c"
 
-__attribute__((aligned(8)))
-static uint64_t __thread _urnd_entr;
+typedef union {
+  uint64_t e;
+  uint32_t h[2];
+} __attribute__((aligned(8))) urnd_mr_t;
 
-void urnd_eclt(void) { _urnd_entr = nano1rnd(_urnd_entr); }
+static __thread urnd_mr_t _urnd_entr;
 
-#define _urnd_e32x(mp,rp) { _urnd_entr = nano3rnd(_urnd_entr, mp, rp); }
+#if __BYTE_ORDER == __BIG_ENDIAN
+// RAF: the order is inverted in big-endian systems
+  #define urnd_mr32_m(e) (e).h[1]
+  #define urnd_mr32_r(e) (e).h[0]
+#else
+  #define urnd_mr32_m(e) (e).h[0]
+  #define urnd_mr32_r(e) (e).h[1]
+#endif
+#define _mr_e             _urnd_entr.e
+#define _mr_m urnd_mr32_m(_urnd_entr)
+#define _mr_r urnd_mr32_r(_urnd_entr)
 
+#define urnd_eclt() ({ _mr_e = nano1rnd(_mr_e); })
+
+__attribute__((always_inline)) static inline
+void _urnd_e32x(uint32_t * mp,uint32_t *rp) {
+  _mr_e = nano3rnd(_mr_e, mp, rp);
+}
+
+static inline
 uint32_t urnd_e32r(void) {
+  __attribute__((aligned(4)))
   uint32_t m, r;
   _urnd_e32x(&m, &r);
   return r;
 }
 
+static inline
 uint32_t urnd_e32m(void) {
+  __attribute__((aligned(4)))
   uint32_t m, r;
   _urnd_e32x(&m, &r);
   return m;
@@ -45,7 +68,9 @@ uint32_t urnd_e32m(void) {
 
 #define _u32_ptr(m,n) (&((uint32_t *)&m)[!!n])
 
+static inline
 uint64_t urnd_e64mr(void) {
+  __attribute__((aligned(8)))
   uint64_t mr; // RAF: single 64 bit var design is for x86_64
               // and it should be challenged on big-endian or
              // 32bit archictures against be right and faster
@@ -53,6 +78,6 @@ uint64_t urnd_e64mr(void) {
   return mr;
 }
 
-#define urnd_e64e() ({ _urnd_entr; })
+#define urnd_e64e() ({ _mr_e; })
 
 #endif

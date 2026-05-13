@@ -217,25 +217,20 @@ int main(int argc, char *argv[]) {
 
   // for-loop is optimised for 32bit
 
-  urnd_mr_t mr;
-  #ifdef UCHAOS_SEQ_H
-  mr.e = urnd_e64e();
-  #else
-  mr.e = e;
-  #endif
-
   int max = (argn?:4);
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
       #ifdef UCHAOS_SEQ_H
-      mr.e = urnd_e64mr();
+      urnd_emix();
       #else
-      mr.e = nano3rnd(e, &urnd_mr32_m(mr), &urnd_mr32_r(mr));
+      __attribute__((aligned(4)))
+      uint32_t m, r;
+      e = nano3rnd(e, &m, &r);
       #endif
 
       if(argn) {
-        *p++ = urnd_mr32_r(mr);
+        *p++ = urnd_e32r();
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
           #ifdef ENSRCS
@@ -244,16 +239,16 @@ int main(int argc, char *argv[]) {
           #ifdef UCHAOS_SEQ_H
           urnd_eclt();
           #else
-          mr.e = nano1rnd(mr.e);
+          e = nano1rnd(e);
           #endif
           p = (uint32_t *)mpage;
         }
       }
 
       print1("\n  entr. pool: 0x%08x --> b#%s\n",
-           urnd_mr32_r(mr), bit64str(urnd_mr32_r(mr), 32));
+           urnd_e32r(), bit64str(urnd_e32r(), 32));
       print1(" const. n.%02d: 0x%08x --> b#%s\n",
-        n, urnd_mr32_m(mr), bit64str(urnd_mr32_m(mr), 32));
+        n, urnd_e32m(), bit64str(urnd_e32m(), 32));
     }
   }
   if(argn && (uint8_t *)p != mpage)

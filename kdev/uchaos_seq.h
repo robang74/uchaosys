@@ -22,8 +22,6 @@
 #ifndef UCHAOS_SEQ_H
 #define UCHAOS_SEQ_H
 
-#include "uchaos_seq.c"
-
 typedef union {
   uint64_t e;
   uint32_t h[2];
@@ -43,41 +41,35 @@ static __thread urnd_mr_t _urnd_entr;
 #define _mr_m urnd_mr32_m(_urnd_entr)
 #define _mr_r urnd_mr32_r(_urnd_entr)
 
+#include "uchaos_seq.c" ////////////////////////////////////////////////////////
+
+#define urnd_e32r() ({ _mr_r; })
+#define urnd_e32m() ({ _mr_m; })
+#define urnd_e64e() ({ _mr_e; })
+
 #define urnd_eclt() ({ _mr_e = nano1rnd(_mr_e); })
 
-__attribute__((always_inline)) static inline
-void _urnd_e32x(uint32_t * mp,uint32_t *rp) {
-  _mr_e = nano3rnd(_mr_e, mp, rp);
+#define e _mr_e
+__attribute__((always_inline))
+static inline
+uint64_t nano4rnd(
+register urnd_mr_t mr){
+  uint64_t register x ;
+  x =   e  ^ (e >> 32);
+  e = (~e) ^  rotl5(x);
+  x =    comb32make(x);
+  e =   nano2rnd(e, x);
+  return e;
 }
+#undef e
 
 static inline
-uint32_t urnd_e32r(void) {
-  __attribute__((aligned(4)))
-  uint32_t m, r;
-  _urnd_e32x(&m, &r);
-  return r;
+uint64_t urnd_emix(void) {
+  _mr_e = nano4rnd(_urnd_entr);
+                 // RAF: single 64 bit var design is for x86_64
+                // and it should be challenged on big-endian or
+               // 32bit archictures against be right and faster
+  return _mr_e;
 }
-
-static inline
-uint32_t urnd_e32m(void) {
-  __attribute__((aligned(4)))
-  uint32_t m, r;
-  _urnd_e32x(&m, &r);
-  return m;
-}
-
-#define _u32_ptr(m,n) (&((uint32_t *)&m)[!!n])
-
-static inline
-uint64_t urnd_e64mr(void) {
-  __attribute__((aligned(8)))
-  uint64_t mr; // RAF: single 64 bit var design is for x86_64
-              // and it should be challenged on big-endian or
-             // 32bit archictures against be right and faster
-  _urnd_e32x(_u32_ptr(mr,0), _u32_ptr(mr,1));
-  return mr;
-}
-
-#define urnd_e64e() ({ _mr_e; })
 
 #endif

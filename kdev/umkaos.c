@@ -64,7 +64,11 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln1();
 
-  e = nano1rnd(t);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(t); 
+  #endif
 
   // select the good ones
   for (int i = 0; i < 256; i++) {
@@ -75,7 +79,11 @@ int main(int argc, char *argv[]) {
     bytes[i] = 0;
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // count the good ones
   *(uint32_t *)nb = 0;
@@ -85,7 +93,11 @@ int main(int argc, char *argv[]) {
       n++;
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // check their counting
   print1("  tot: %3d/124\n", n);
@@ -95,7 +107,11 @@ int main(int argc, char *argv[]) {
   newln1();
   if(n != 124) return(1);
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // store the good ones
   n = 1;
@@ -107,7 +123,11 @@ int main(int argc, char *argv[]) {
       goods[n++] = 0;
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // print the good ones
   for (i = 0; i < 4; i++)
@@ -123,7 +143,11 @@ int main(int argc, char *argv[]) {
     if(!(++i & 3)) newln1();
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // create their table
   memset(table, 0, sizeof(table));
@@ -135,7 +159,11 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // spacing their table
   for(i = 8; i < 56; i += 8) {
@@ -159,7 +187,11 @@ int main(int argc, char *argv[]) {
     newln1();
   }
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
   // checking the spacing
   n = 0;
@@ -168,29 +200,53 @@ int main(int argc, char *argv[]) {
       print1("%s %03d", n++?",":"  err:", i);
   if(n) newln1();
 
-  e = nano1rnd(e);
+  #ifdef UCHAOS_SEQ_H
+  urnd_eclt();
+  #else
+  e = nano1rnd(e); 
+  #endif
 
-#ifdef ENSRCS
+  #ifdef ENSRCS
   // stop collecting CPU jitters
   ENTRSRCS = (MEMSRC | WRTSRC);
-#endif
+  #endif
 
   // for-loop is optimised for 32bit
+  union {
+    uint64_t e;
+    uint32_t h[2];
+  } mr; mr.e = e;
+  #define e mr.e
+#if __BYTE_ORDER == __BIG_ENDIAN
+// RAF: the order is inverted in big-endian systems
+  #define m mr.h[1]
+  #define r mr.h[0]
+#else
+  #define m mr.h[0]
+  #define r mr.h[1]
+#endif
   int max = (argn?:4);
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
-      uint32_t m;
 
+      #ifdef UCHAOS_SEQ_H
+      e = urnd_e64mr();
+      #else
       e = nano3rnd(e, &m, &r);
+      #endif
 
       if(argn) {
         *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
-#ifdef ENSRCS
+          #ifdef ENSRCS
           if(ENTRSRCS & WRTSRC)
-#endif
-          e = nano1rnd(e);
+          #endif
+          #ifdef UCHAOS_SEQ_H
+          urnd_eclt();
+          #else
+          e = nano1rnd(t);
+          #endif
           p = (uint32_t *)mpage;
         }
       }
@@ -202,7 +258,7 @@ int main(int argc, char *argv[]) {
     }
   }
   if(argn && (uint8_t *)p != mpage)
-    r = write(1, mpage, ((uint8_t *)p)-mpage);
+    t = write(1, mpage, ((uint8_t *)p)-mpage);
 
   t = get_nanos(); // collecting the running time
   print2(

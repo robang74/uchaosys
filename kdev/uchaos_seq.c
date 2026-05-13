@@ -6,7 +6,7 @@
  /*
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
- *   cc uchaos_seq.c $CFLAGS -mavx2 -o ucseq && ./ucseq
+ *   cc uchaos_seq.c umkaos.c $CFLAGS -mavx2 -o umkaos && ./umkaos
  *
  *******************************************************************************
  * TESTING

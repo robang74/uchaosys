@@ -8,8 +8,12 @@
  *
  **************************************************************************** */
 
+#if 0
+#include "uchaos_seq.h"
+#else
 #include "uchaos_seq.c"
 #include "getnanos.h"
+#endif
 
 #define newln1()       if(!argn) { putchar('\n'); }
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
@@ -35,12 +39,11 @@ bit64str (uint64_t register v,
 }
 
 int main(int argc, char *argv[]) {
+  uint64_t t = get_nanos(); // init the timer, first of all
   uint8_t mpage[WRITESZE];
   uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[256], nbits[256];
   uint8_t goods[128], nb[4], c;
-
-  e = get_nanos();
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -61,7 +64,7 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln1();
 
-  e = nano1rnd(e);
+  e = nano1rnd(t);
 
   // select the good ones
   for (int i = 0; i < 256; i++) {
@@ -201,10 +204,10 @@ int main(int argc, char *argv[]) {
   if(argn && (uint8_t *)p != mpage)
     r = write(1, mpage, ((uint8_t *)p)-mpage);
 
-  e = get_nanos();
+  t = get_nanos(); // collecting the running time
   print2(
     "\n//> Run time: %7lu nS --> %.03lf mS\n",
-      e, (double)e/1000000);
+      t, (double)t/1000000);
 
   newln1();
   return 0;

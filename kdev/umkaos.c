@@ -12,11 +12,12 @@
 #include "getnanos.h"
 
 #ifdef  _USE_SEQ_FUNCS
-#define  USE_SEQ_FUNCS 1
+#pragma message "Using uchaos_seq functions"
 #include "uchaos_seq.h"
 #else
-#define  USE_SEQ_FUNCS 0
 #include "uchaos_seq.c"
+__attribute__((aligned(8)))
+static volatile uint64_t e;
 #endif
 
 #define newln1()       if(!argn) { putchar('\n'); }
@@ -41,12 +42,6 @@ uint8_t chkbits(uint8_t x) {
   }
   return x;
 }
-
-#if USE_SEQ_FUNCS
-#else
-__attribute__((aligned(8)))
-static volatile uint64_t e;
-#endif
 
 // RAF: printf() %b isn't supported by early gcc/libc and by musl.
 // This "least effort" funtion displays differntly on big-endian,

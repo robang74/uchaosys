@@ -2,7 +2,7 @@
  * uchaos_seq.h - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.2.9"
+ #define VERSION "v0.3.0"
  /*
  * Public interface, it hides internal but speed drops by 2/3 because functions.
  *
@@ -44,19 +44,26 @@
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
-typedef union {
-  uint64_t e;
-  uint32_t h[2];
-} __attribute__((aligned(8))) urnd_mr_t;
-
 #ifdef UCHAOS_SEQ_C
-__thread urnd_mr_t _urnd_entr;
 __attribute__((aligned(4)))
 __thread uint8_t table[TABLESZE];
 #else
-extern __thread urnd_mr_t _urnd_entr;
-extern __thread uint8_t table[];
+extern
+__thread uint8_t table[];
 #endif
+
+#ifdef _USE_SEQ_FUNCS //////////////////////////////////////////////////////////
+#define USE_SEQ_FUNCS 1
+typedef union {
+  uint64_t e;
+  uint32_t h[2];
+} __attribute__((aligned(8))) volatile urnd_mr_t;
+
+extern
+__thread urnd_mr_t _urnd_entr;
+
+uint64_t urnd_emix(void);
+void urnd_eclt(void);
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 // RAF: the order is inverted in big-endian systems
@@ -74,9 +81,8 @@ extern __thread uint8_t table[];
 #define urnd_e32m() ({ _mr_m; })
 #define urnd_e64e() ({ _mr_e; })
 
-#ifndef UCHAOS_SEQ_C
-void urnd_eclt(void);
-uint64_t urnd_emix(void);
+#else //////////////////////////////////////////////////////////////////////////
+#define USE_SEQ_FUNCS 0
 #endif
 
 #endif // UCHAOS_SEQ_H

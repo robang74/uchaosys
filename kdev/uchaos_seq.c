@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
- #define VERSION "v0.2.9" // version definition moved in uchaos_seq.h
+ #define VERSION "v0.3.0" // version definition moved in uchaos_seq.h
  *
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -206,6 +206,11 @@ register uint64_t e,
   return e;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+#ifdef _USE_SEQ_FUNCS
+
+__thread urnd_mr_t _urnd_entr;
+
 __attribute__((always_inline))
 static inline
 uint64_t nano4rnd(
@@ -218,8 +223,6 @@ register uint64_t e)  {
   return e;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 void urnd_eclt(void) { _mr_e = nano1rnd(_mr_e); }
 
 uint64_t urnd_emix(void) {
@@ -230,6 +233,7 @@ uint64_t urnd_emix(void) {
   return _mr_e;
 }
 
+#endif
 /* /////////////////////////////////////////////////////////////////////////////
  *
  * The stuff that was here, has been moved in umkaos.c

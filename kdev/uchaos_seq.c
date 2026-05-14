@@ -1,9 +1,9 @@
 /*
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
- */
- #define VERSION "v0.2.8"
- /*
+ *
+ #define VERSION "v0.2.9" // version definition moved in uchaos_seq.h
+ *
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
  *   cc uchaos_seq.c umkaos.c $CFLAGS -mavx2 -o umkaos && ./umkaos
@@ -77,50 +77,10 @@
  *
  **************************************************************************** */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sched.h>
-#include <time.h>
+#ifndef UCHAOS_SEQ_C
+#define UCHAOS_SEQ_C
 
-#define PAGEORDR    12
-#define PAGESIZE    (2 << PAGEORDR)
-#define PAGEFULL(x) (x >> PAGEORDR)
-#define BLOCKSZE    512
-#define WRITESZE    BLOCKSZE
-
-#define LSB32       0xffffffff
-#define SEEDZ       0xec19
-
-#if 0
-#define MEMSRC      (1<<0) // unavoidable
-#define WRTSRC      (1<<1)
-#define CPUSRC      (1<<2)
-#define ENSRCS      (MEMSRC | WRTSRC | CPUSRC)
-static uint8_t      ENTRSRCS = ENSRCS;
-#endif
-
-#define bit(y,x) (((x) >> (y)) & 1)
-
-#define cntbits(_x) ({ uint8_t x = (_x); \
-( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
-+ bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
-
-__attribute__((always_inline)) static inline
-uint8_t chkbits(uint8_t x) {
-  int i = 1, n = 1;
-  uint8_t a, b = bit(0, x);
-  for(i; i < 8; i++) {
-    if(b != (a = bit(i, x))) {
-      n = 0; b = a;
-    } else if(++n == 3) {
-      return 0;
-    }
-  }
-  return x;
-}
+#include "uchaos_seq.h"
 
 __attribute__((always_inline)) static inline
 uint32_t rotl32(uint32_t x, uint8_t n) {
@@ -129,12 +89,9 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 }
 #define rotl5(x) rotl32(x, 5)
 
-__attribute__((aligned(4)))
-static uint8_t table[256];
-
 __attribute__((always_inline)) static inline
 uint32_t comb32make(uint32_t r) {
-  uint32_t m, c, i;
+  register uint32_t m, c, i;
 
   i = (r = rotl5(r)) & 31;
   c = table[1 + i];
@@ -155,10 +112,13 @@ uint32_t comb32make(uint32_t r) {
   return m;
 }
 
+#define get_30ns2() ({ uint64_t _t=_get_30ns2(); \
+                      asm volatile("" : "+g"(_t)); _t; })
+
 // RAF: this function is used only here, and its prototype
 // consistency isn't relevant: returns 64 for the caller.
 __attribute__((always_inline)) static inline
-uint64_t get_30ns2(void)  {
+uint64_t _get_30ns2(void)  {
   static
   uint32_t __thread t = 0 ;
   struct timespec   ts    ;
@@ -174,19 +134,24 @@ uint64_t get_30ns2(void)  {
   // RAF: 2^30 -1BLN = 74M, but +2 bits & setdata()
   // cannot influence the nanornd() 0-init anymore.
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
-  dt = ct - t;                     // this dif can skew (1)
-   t = ct;                         // save the previous (2)
-  #if 0
-  ct = ct ^ ((dt & 0xffff) << 14); // 2^(16+14)-1 = 67M (a)
+  dt =  ct - t            ; // this dif can skew (1)
+   t =  ct                ; // save the previous (2)
+  #if 0                     
+  dt = (dt & 0xffff) << 10; // it closes the gap
+  ct += dt                ; // sum always < 2^30 (a)
+                            // and scrambles LSB
+  ct ^= dt << 4           ; // 2^(16+14)-1 = 67M (b)
   #else
-  ct = ct + ((dt & 0xffff) << 10); // sum always < 2^30 (b)
+  dt = (dt & 0xffff) << 14; // it closes the gap
+  ct = (dt ^ ct) + dt     ; // and adds scramble (c) 
   #endif
   // when using time as multiplier, it is nice to
   // fill-up the range uncovered by 2^30 and 1BLN.
   // LSB drive stochastics, who can control them?
-  // a) LSB from clock_gettime(): easy to tamper!
-  // b) static __thread t: memory write poisoning
+  // a) static __thread t: memory write poisoning
+  // b) LSB from clock_gettime(): easy to tamper!
   // both leave unchanged the two MSB at 2^30 31.
+  // c) same concept but it avoids MSB poisoning.
   // 1: a feature than a bug; 2: jitter needs dt.
   return ct;
 }
@@ -241,9 +206,35 @@ register uint64_t e,
   return e;
 }
 
+__attribute__((always_inline))
+static inline
+uint64_t nano4rnd(
+register uint64_t e)  {
+  uint64_t register x ;
+  x =   e  ^ (e >> 32);
+  e = (~e) ^  rotl5(x);
+  x =    comb32make(x);
+  e =   nano2rnd(e, x);
+  return e;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void urnd_eclt(void) { _mr_e = nano1rnd(_mr_e); }
+
+uint64_t urnd_emix(void) {
+  _mr_e = nano4rnd(_mr_e);
+                 // RAF: single 64 bit var design is for x86_64
+                // and it should be challenged on big-endian or
+               // 32bit archictures against be right and faster
+  return _mr_e;
+}
+
 /* /////////////////////////////////////////////////////////////////////////////
  *
  * The stuff that was here, has been moved in umkaos.c
  *
  * /////////////////////////////////////////////////////////////////////////////
  */
+
+#endif // UCHAOS_SEQ_C

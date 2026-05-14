@@ -2,16 +2,20 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
- * Compile and run with:
+ * Compile with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
- *   cc uchaos_seq.c umkaos.c $CFLAGS -mavx2 -o umkaos && ./umkaos
+ *   cc uchaos_seq.c -D_USE_SEQ_FUNCS umkaos.c $CFLAGS -o umkaos
+ *   cc umkaos.c $CFLAGS -mavx2 -o umkaos && ./umkaos
  *
  **************************************************************************** */
 
 #include "getnanos.h"
-#if 1
+
+#ifdef  _USE_SEQ_FUNCS
+#define  USE_SEQ_FUNCS 1
 #include "uchaos_seq.h"
 #else
+#define  USE_SEQ_FUNCS 0
 #include "uchaos_seq.c"
 #endif
 
@@ -20,7 +24,25 @@
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 
-#ifdef UCHAOS_SEQ_H
+#define cntbits(_x) ({ uint8_t x = (_x); \
+( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
++ bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
+
+__attribute__((always_inline)) static inline
+uint8_t chkbits(uint8_t x) {
+  int i = 1, n = 1;
+  uint8_t a, b = bit(0, x);
+  for(i; i < 8; i++) {
+    if(b != (a = bit(i, x))) {
+      n = 0; b = a;
+    } else if(++n == 3) {
+      return 0;
+    }
+  }
+  return x;
+}
+
+#if USE_SEQ_FUNCS
 #else
 __attribute__((aligned(8)))
 static volatile uint64_t e;
@@ -42,7 +64,7 @@ int main(int argc, char *argv[]) {
   uint64_t t = get_nanos(); // init the timer, first of all
   uint8_t mpage[WRITESZE];
   uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
-  uint8_t bytes[256], nbits[256];
+  uint8_t bytes[TABLESZE], nbits[TABLESZE];
   uint8_t goods[128], nb[4], c;
 
   // for-loop is optimised for 32bit
@@ -64,14 +86,14 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln1();
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(t); 
   #endif
 
   // select the good ones
-  for (int i = 0; i < 256; i++) {
+  for (int i = 0; i < TABLESZE; i++) {
     bytes[i] = chkbits(i);
     nbits[i] = cntbits(i);
     if((c = nbits[i]) > 2 && c < 6)
@@ -79,7 +101,7 @@ int main(int argc, char *argv[]) {
     bytes[i] = 0;
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -87,13 +109,13 @@ int main(int argc, char *argv[]) {
 
   // count the good ones
   *(uint32_t *)nb = 0;
-  for (i = 0, n = 0; i < 256; i++) {
+  for (i = 0, n = 0; i < TABLESZE; i++) {
       if(!(c = bytes[i])) continue;
       nb[nbits[c]-3]++;
       n++;
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -107,7 +129,7 @@ int main(int argc, char *argv[]) {
   newln1();
   if(n != 124) return(1);
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -116,14 +138,14 @@ int main(int argc, char *argv[]) {
   // store the good ones
   n = 1;
   memset(goods, 0, sizeof(goods));
-  for (i = 0; i < 256; i++) {
+  for (i = 0; i < TABLESZE; i++) {
       if(!(c = bytes[i])) continue;
       goods[n++] = c;
       if(n & 0x1F) continue;
       goods[n++] = 0;
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -143,14 +165,14 @@ int main(int argc, char *argv[]) {
     if(!(++i & 3)) newln1();
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
   #endif
 
   // create their table
-  memset(table, 0, sizeof(table));
+  memset(table, 0, TABLESZE);
   for(int m = 3; m < 6; m++) {
     n = (m-3) << 6;
     for (i = 0; i < 128; i++) {
@@ -159,7 +181,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -172,7 +194,7 @@ int main(int argc, char *argv[]) {
     memset(&table[n-8], 0, 8);
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -191,7 +213,7 @@ int main(int argc, char *argv[]) {
     newln1();
   }
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -204,7 +226,7 @@ int main(int argc, char *argv[]) {
       print1("%s %03d", n++?",":"  err:", i);
   if(n) newln1();
 
-  #ifdef UCHAOS_SEQ_H
+  #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
   e = nano1rnd(e); 
@@ -221,7 +243,9 @@ int main(int argc, char *argv[]) {
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
-      #ifdef UCHAOS_SEQ_H
+      #if USE_SEQ_FUNCS
+      #define r urnd_e32r()
+      #define m urnd_e32m()
       urnd_emix();
       #else
       __attribute__((aligned(4)))
@@ -230,13 +254,13 @@ int main(int argc, char *argv[]) {
       #endif
 
       if(argn) {
-        *p++ = urnd_e32r();
+        *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
           #ifdef ENSRCS
           if(ENTRSRCS & WRTSRC)
           #endif
-          #ifdef UCHAOS_SEQ_H
+          #if USE_SEQ_FUNCS
           urnd_eclt();
           #else
           e = nano1rnd(e);
@@ -246,9 +270,9 @@ int main(int argc, char *argv[]) {
       }
 
       print1("\n  entr. pool: 0x%08x --> b#%s\n",
-           urnd_e32r(), bit64str(urnd_e32r(), 32));
+           r, bit64str(r, 32));
       print1(" const. n.%02d: 0x%08x --> b#%s\n",
-        n, urnd_e32m(), bit64str(urnd_e32m(), 32));
+        n, m, bit64str(m, 32));
     }
   }
   if(argn && (uint8_t *)p != mpage)

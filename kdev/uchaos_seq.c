@@ -15,13 +15,13 @@
  * gx() { px $1 "./ucseq 30" & px $1 "./uckaos $((1<<19))"; }
  *
  * Speed test:
- *    px 8 "./umkaos 26" | dd bs=1M of=/dev/null
+ *   px 8 "./umkaos 26" | dd bs=1M of=/dev/null
  *
  * Random test:
- *    px 4 "./umkaos 34" | dd bs=1M | ../prnd/RNG_test stdin64
+ *   px 4 "./umkaos 34" | ../prnd/RNG_test stdin64
  *
  * Mixed test:
- *   gx 4 | dd bs=1M | ../prnd/RNG_test stdin64
+ *   gx 4 | ../prnd/RNG_test stdin64
  *
  *******************************************************************************
  * RESULTS (on v0.2.0)
@@ -74,6 +74,10 @@
  * CHANGES (in v0.2.7)
  *
  * nano0rnd() introduced for code maintenance (1pt), it regains 590 MB/s (-4%)
+ *
+ * CHANGES (in v0.3.0)
+ *
+ * get_30ns2() fills the gap, adds scramble and mem::barrier.   576 MB/s (-6%)
  *
  **************************************************************************** */
 

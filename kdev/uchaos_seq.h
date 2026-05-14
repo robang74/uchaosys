@@ -10,15 +10,15 @@
  *
  * warming-up, xN times: urnd_eclt(); { code block; } urnd_eclt();
  *                       ^^^--- cpu yeld/relax jitter does enough
- * generation, loop: r = urnd_e32r(); { some_thing; } urnd_eclt();
+ * generation, loop: e = urnd_emix(); { some_thing; } urnd_eclt();
  *                                    ^^^--- optional part ---^^^
- * bits-comb 64 bit: mr = urnd_e64mr(); 32bit comb + 32bit entropy
+ * bits-comb 64 bit: mr.e = {m, r} is 32bit comb + 32bit entropy
  *
  * linking requires: uchaos_seq.o (or compiling with the uchaos_seq.c)
  *
  * STATUS:
  *
- * This .h is barely tested, provided just for generic API example
+ * This .h provides just a generic API canvas
  */
 
 #ifndef UCHAOS_SEQ_H

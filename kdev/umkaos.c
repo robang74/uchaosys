@@ -3,9 +3,15 @@
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
  * Compile with:
- *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
- *   cc uchaos_seq.c -D_USE_SEQ_FUNCS umkaos.c $CFLAGS -o umkaos
- *   cc umkaos.c $CFLAGS -mavx2 -o umkaos && ./umkaos
+ *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
+ *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
+ *   cc $CFLAGS -D_USE_SEQ_FUNCS uchaos_seq.c umkaos.c -o umkaos
+ *   cc $CFLAGS umkaos.c -o umkaos && ./umkaos
+ *
+ * Functions tests:
+ *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
+ *  px 8 "./umkaos 25" | dd bs=1M of=/dev/null --> 1GB @ 576 MB/s (same)
+ *  px 4 "./umkaos 34" | ../prnd/RNG_test stdin64 --> 256GB passed (same)
  *
  **************************************************************************** */
 

@@ -116,14 +116,18 @@ uint32_t comb32make(uint32_t r) {
   return m;
 }
 
-/* RAF: barrier here prevents caching skew and potentially pathological
- * concentration by arbitrary cache reordering. However, these phenomena
- * aren't systematic but random. Hence, they constitute welcoming deviations
- * from predictability. While pathological issue can easily skip using a variable
- * defined volatile which is involved in the hot-loop, like urnd_mr_t, the union
- * typedef defined in the .h -- However, from the PoV of those are in need to
- * review the code and certify the results. These "deviations" are an "issue"
- * to justify rather than a feature like a stochastic Easter egg surprise.
+/* RAF: barrier here prevents caching skew and potentially
+ * pathological concentration by arbitrary cache reordering.
+ * However, these phenomena aren't systematic but random.
+ * Hence, they constitute welcoming deviations from triviality.
+ * While pathological issues can easily skip using a variable
+ * defined volatile which is involved in the hot-loop, like
+ * urnd_mr_t, the union typedef defined in the .h -- However,
+ * from the PoV of those are in need to review the code and
+ * certify its functioning. These "deviations" are an "issue"
+ * to justify rather than a feature like a stochastic Easter
+ * egg surprise. Finally, it is worth noting that simplicity
+ * is not trivial, it is the ultimate sophistication, instead.
  */
 #define get_30ns2() ({ uint64_t _t=_get_30ns2(); \
                       asm volatile("" : "+g"(_t)); _t; })

@@ -7,14 +7,16 @@
 #ifndef UCHAOS_DEV_H
 #define UCHAOS_DEV_H
 
-/* RAF: barrier here prevents caching skew and potentially pathological
- * concentration by arbitrary cache reordering. However, these phenomena
- * aren't systematic but random. Hence, they constitute welcoming deviations
- * from predictability. While pathological issue can easily skip using a variable
- * defined volatile which is involved in the hot-loop, like the i,j indexes.
- * However, from the PoV of those are in need to review the code and certify
- * the results. These "deviations" are an "issue" to justify rather than
- * a feature like a stochastic Easter egg surprise.
+/* RAF: barrier here prevents caching skew and potentially
+ * pathological concentration by arbitrary cache reordering.
+ * However, these phenomena aren't systematic but random.
+ * Hence, they constitute welcoming stochastic deviations.
+ * While pathological issues can easily skip using a variable
+ * defined volatile which is involved in the hot-loop, like
+ * the indexes i,j that we can find in djb2tum() -- However,
+ * from the PoV of those are in need to review the code and
+ * certify its functioning. These "deviations" are an "issue"
+ * to justify rather than a wishful feature.
  */
 #ifdef __KERNEL__
   #if defined(_USE_RAW_CYCLES) || !defined(MODULE)

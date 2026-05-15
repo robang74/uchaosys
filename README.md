@@ -96,7 +96,8 @@ In this specific system configuration kernel is compiled in such a way that uCha
 
 It is worth to underline that this choice is not suggested as per a standard case use of uChaos but it is necessary for testing uChaos/crng duo excluding every possible internal source of interference: if it doesn't fail, it isn't because other sources of entropy are supplying.
 
-- [A Paradigm Shift: from Entropy Collection to Chaos Conduction](docs/uchaos-the-entropy-paradigm-shift.md) (2026-03-19)
+- [A Paradigm Shift: from Entropy Collection to Chaos Conduction](docs/uchaos-the-entropy-paradigm-shift.md) &nbsp;(2026-03-19)
+- [A Paradigm Shift: are ramdomness and certifications secure?](docs/linux-kernel-internals-hacking.md#randomness-and-security) &nbsp;(2026-05-06)
 
 It is essential to underline that uChaos at the time of this text first writing (v0.6) was a 7½-weeks long project developed by a single person (started on 2026-01-26) while the randomness in kernel space is a decades long team collaboration project. Hence, the same results in the same conditions, whatever confirmed, isn't something trivial to achieve.
 

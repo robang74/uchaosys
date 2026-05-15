@@ -1,4 +1,13 @@
-## A Paradigm Shift: from Entropy Collection to Chaos Conduction
+
+## A Paradigm Shift
+
+**`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
+
+- &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
+
+---
+
+### From Entropy Collection to Chaos Conduction
 
 Contemporary random number generation operates within an *extractive* paradigm. Entropy is conceptualized as a scarce resource—harvested from physical sources (thermal noise, timing jitter, quantum effects), stored in pools, conditioned through cryptographic whitening (ChaCha20, SHA-256), and carefully metered to consumers. The Linux CRNG, NIST SP 800-90 standards, and hardware RNGs all share this architecture: **entropy as substance to be accumulated, preserved, and transformed**. Security derives from the volume of collected entropy and the cryptographic strength of the masking functions. The system pretends to randomness through algorithmic sophistication.
 
@@ -37,8 +46,3 @@ Last but not least, this essential technical briefing provides practical grounds
 Two series of graphs chosen from a paper (2013) and a tech blog (2025), and chosen in a conservative way, shows that in the most constrained system the latency is varying by 10&nbsp;us at least. Which is 13 bits, divided by two because it is a pink noise, divided by two because it is spiky, divided by two because it is intrinsically quantised, it remains 10 bits.
 
 The uChaos engine injects the whole pack, relies basically on the least significant 8 bits, and leverages the 3+2 LSB difference between two consecutive latencies (jitter) for stochastics branching. The whole pack is for maximising performance in better-than-worst-scenarios, and the `1/f`-pink components require a whitening function as finaliser.
-
----
-
-`(c)` 2026, Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;
-

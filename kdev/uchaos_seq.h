@@ -52,6 +52,13 @@ extern
 __thread uint8_t table[];
 #endif
 
+__attribute__((always_inline)) static inline
+uint32_t rotl32(uint32_t x, uint8_t n) {
+  n &= 31;
+  return (x << n) | (x >> (32-n));
+}
+#define rotl5(x) rotl32(x, 5)
+
 #ifdef _USE_SEQ_FUNCS //////////////////////////////////////////////////////////
 #define USE_SEQ_FUNCS 1
 typedef union {
@@ -62,6 +69,7 @@ typedef union {
 extern
 __thread urnd_mr_t _urnd_entr;
 
+uint32_t urnd_comb(register uint32_t r);
 uint64_t urnd_emix(void);
 void urnd_eclt(void);
 

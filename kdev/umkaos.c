@@ -30,6 +30,7 @@ static volatile uint64_t e;
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
+#define newln2()       if(!argn) { print2("\n"); }
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
 ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(t); 
+  e = nano1rnd(t);
   #endif
 
   // select the good ones
@@ -105,7 +106,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // count the good ones
@@ -119,7 +120,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // check their counting
@@ -133,7 +134,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // store the good ones
@@ -149,7 +150,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // print the good ones
@@ -169,7 +170,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // create their table
@@ -185,7 +186,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // spacing their table
@@ -198,7 +199,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // print their table
@@ -217,7 +218,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   // checking the spacing
@@ -230,7 +231,7 @@ int main(int argc, char *argv[]) {
   #if USE_SEQ_FUNCS
   urnd_eclt();
   #else
-  e = nano1rnd(e); 
+  e = nano1rnd(e);
   #endif
 
   #ifdef ENSRCS
@@ -239,8 +240,8 @@ int main(int argc, char *argv[]) {
   #endif
 
   // for-loop is optimised for 32bit
-
   int max = (argn?:4);
+  uint32_t rndr[4], rndm[4];
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
@@ -270,13 +271,32 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      print1("\n  entr. pool: 0x%08x --> b#%s\n",
-           r, bit64str(r, 32));
-      print1(" const. n.%02d: 0x%08x --> b#%s\n",
-        n, m, bit64str(m, 32));
+      if(!argn) {
+        rndr[n] = r;
+        print1("\n  entr. pool: 0x%08x --> b#%s\n",
+             rndr[n], bit64str(rndr[n], 32));
+        rndm[n] = m;
+        print1(" const. n.%02d: 0x%08x --> b#%s\n",
+          n, rndm[n], bit64str(rndm[n], 32));
+      }
     }
   }
-  if(argn && (uint8_t *)p != mpage)
+  #undef m
+  #undef r
+  print2("\nstatic const uint32_t mltp[] = { \n")
+  #define prt2(s,m) print2("%s0x%08x, ", s, m);
+  if(!argn) while (n--) {
+    uint32_t m = rndm[n], r = rndr[n];
+    prt2("  ", m);
+    for(int k = 1; k & 7; k++) {
+      r = rotl32(r, 20);
+      m = urnd_comb(r);
+      prt2("", m);
+    }
+    newln2();
+  }
+  print2("};\n")
+  if( argn && (uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);
 
   t = get_nanos(); // collecting the running time
@@ -284,7 +304,7 @@ int main(int argc, char *argv[]) {
     "\n//> Run time: %7lu nS --> %.03lf mS\n",
       t, (double)t/1E6);
 
-  newln1();
+  newln2();
   return 0;
 }
 

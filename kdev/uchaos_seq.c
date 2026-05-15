@@ -87,14 +87,7 @@
 #include "uchaos_seq.h"
 
 __attribute__((always_inline)) static inline
-uint32_t rotl32(uint32_t x, uint8_t n) {
-  n &= 31;
-  return (x << n) | (x >> (32-n));
-}
-#define rotl5(x) rotl32(x, 5)
-
-__attribute__((always_inline)) static inline
-uint32_t comb32make(uint32_t r) {
+uint32_t comb32make(register uint32_t r) {
   register uint32_t m, c, i;
 
   i = (r = rotl5(r)) & 31;
@@ -114,6 +107,19 @@ uint32_t comb32make(uint32_t r) {
   m |= c << 0;
 
   return m;
+}
+
+// m0:   0   5  10  15 -->  +0
+// m1:  20  25  30  35 -->  20  25  30  +3
+// m2:  40  45  50  55 -->  +8
+// m3:  60  65  70  75 -->      +1  +6
+// m4:  80  85  90  95 -->          -4  -1
+// m5: 100 105 110 115 -->  +4  +9
+// m6: 120 125 130 135 -->  -8  -3  +2  +7
+// m7: 140 145 150 155 --> +12
+//   : 160             -->  +0  repetition
+uint32_t urnd_comb(register uint32_t r) {
+  return comb32make(r);
 }
 
 /* RAF: barrier here prevents caching skew and potentially
@@ -153,14 +159,14 @@ uint64_t _get_30ns2(void)  {
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
   dt =  ct - t            ; // this dif can skew (1)
    t =  ct                ; // save the previous (2)
-  #if 0                     
+  #if 0                   
   dt = (dt & 0xffff) << 10; // it closes the gap
   ct += dt                ; // sum always < 2^30 (a)
                             // and scrambles LSB
   ct ^= dt << 4           ; // 2^(16+14)-1 = 67M (b)
   #else
   dt = (dt & 0xffff) << 14; // it closes the gap
-  ct = (dt ^ ct) + dt     ; // and adds scramble (c) 
+  ct = (dt ^ ct) + dt     ; // and adds scramble (c)
   #endif
   // when using time as multiplier, it is nice to
   // fill-up the range uncovered by 2^30 and 1BLN.

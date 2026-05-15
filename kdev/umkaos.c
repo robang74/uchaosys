@@ -281,6 +281,11 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
+  //r32:   0|        8|       16|       24|       32|
+  //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
+  //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
   #undef m
   #undef r
   print2("\nstatic const uint32_t mltp[] = { \n")

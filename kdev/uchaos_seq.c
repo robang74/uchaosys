@@ -86,6 +86,7 @@
 
 #include "uchaos_seq.h"
 
+//
 __attribute__((always_inline)) static inline
 uint32_t comb32make(register uint32_t r) {
   register uint32_t m, c, i;
@@ -108,16 +109,16 @@ uint32_t comb32make(register uint32_t r) {
 
   return m;
 }
-
-// m0:   0   5  10  15 -->  +0
-// m1:  20  25  30  35 -->  20  25  30  +3
-// m2:  40  45  50  55 -->  +8
-// m3:  60  65  70  75 -->      +1  +6
-// m4:  80  85  90  95 -->          -4  -1
-// m5: 100 105 110 115 -->  +4  +9
-// m6: 120 125 130 135 -->  -8  -3  +2  +7
-// m7: 140 145 150 155 --> +12
-//   : 160             -->  +0  repetition
+//RAF: 3bit, 4bit, 5bit, 4bit
+// m0:    0     5    10    15 -->  +0
+// m1:   20    25    30    35 -->  20  25  30  +3
+// m2:   40    45    50    55 -->  +8
+// m3:   60    65    70    75 -->      +1  +6
+// m4:   80    85    90    95 -->          -4  -1
+// m5:  100   105   110   115 -->  +4  +9
+// m6:  120   125   130   135 -->  -8  -3  +2  +7
+// m7:  140   145   150   155 --> +12
+//   :  160                   -->  +0  repetition
 uint32_t urnd_comb(register uint32_t r) {
   return comb32make(r);
 }

@@ -243,6 +243,10 @@ int main(int argc, char *argv[]) {
   ENTRSRCS = (MEMSRC | WRTSRC);
   #endif
 
+  // RAF: fill the whole table, r&63 always
+  for(i = 0; i < TABLESZE; i += 128)
+    memcpy(table + i + 34, table + i, 64-34);
+
   // for-loop is optimised for 32bit
   int max = (argn?:4);
   uint32_t rndr[4], rndm[4];
@@ -308,6 +312,7 @@ int main(int argc, char *argv[]) {
   print2("};")
   newln2();
 
+#if 0
   if(!argn) {
     print1("\nr&63 (dec):\n");
     memset(mpage, 0, sizeof(mpage));
@@ -344,6 +349,7 @@ int main(int argc, char *argv[]) {
     print2("};")
     newln2();
   }
+#endif
 
   if( argn && (uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);

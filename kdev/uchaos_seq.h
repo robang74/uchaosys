@@ -2,7 +2,7 @@
  * uchaos_seq.h - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.3.0"
+ #define VERSION "v0.3.1"
  /*
  * Public interface, it hides internal but speed drops by 2/3 because functions.
  *

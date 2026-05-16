@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
   }
   print2("};")
   newln2();
-
+#if 0
   if(!argn) {
     print1("\nr&63 (dec):\n");
     memset(mpage, 0, sizeof(mpage));
@@ -344,7 +344,7 @@ int main(int argc, char *argv[]) {
     print2("};")
     newln2();
   }
-
+#endif
   if( argn && (uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);
 

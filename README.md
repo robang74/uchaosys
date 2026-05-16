@@ -197,11 +197,11 @@ virt/qemu-system-x86_64 -m 32 -kernel bzImage -initrd initramfs.cpio.gz \
 
 ### musl-cross-make
 
-The current build is based on `musl-cross-make` and it isn’t for the faint-hearted, precisely because you have to manually manage dependencies, cross-compilation patches, unpacking tarballs and merging filesystems. These are shortcomings but this approach is also the only way for someone to be sure of what goes into it, why and how.
+The current build is based on `musl-cross-make` and it isn’t for the faint-hearted, precisely because you have to manually manage dependencies, cross-compilation patches, unpacking tarballs and merging filesystems. This introduces significant overhead in development, but this approach is also the only way to be aware of what goes into it, why and how.
 
 Instead, more advanced tools like Yocto make choices (reasonable and even better or more stable/tested) and they hide those choices or conceal the details, which in certain contexts are by no means negligible. They are negligible for the users, but not for the author who chooses to think outside the box and therefore have a pressing need to know details.
 
-Hence, the first step to take immediately after the exploration phase, would be adopting `Buildroot` which is a `Makefile` creator, which is way more transparent than Yocto. At that point, the Buildroot output would be Makefile-comparable with the previous hands-made version. The transition will be easier once having started with `musl-cross-make` and the relevant details have been clarified.
+Hence, the first step to take immediately after the exploration phase, would be adopting `Buildroot` which is a `Makefile` creator, which is considerably more transparent than Yocto. At that point, the Buildroot output would be Makefile-comparable with the previous hand-made version. The transition will be easier once having started with `musl-cross-make` and the relevant details have been clarified.
 
 <br>
 

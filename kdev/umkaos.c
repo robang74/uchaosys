@@ -38,11 +38,11 @@ static volatile uint64_t e;
 
 __attribute__((always_inline)) static inline
 uint8_t chkbits(uint8_t x) {
-  int i = 1, n = 1;
+  int i = 1, n = 1; // RAF: n=0 too many xxx
   uint8_t a, b = bit(0, x);
   for(i; i < 8; i++) {
     if(b != (a = bit(i, x))) {
-      n = 0; b = a;
+      n = 0; b = a; // RAF: n=1 too few goods
     } else if(++n == 3) {
       return 0;
     }
@@ -125,6 +125,7 @@ int main(int argc, char *argv[]) {
 
   // check their counting
   newln1();
+  print1("goods[]:\n");
   print1("  tot: %3d/124\n", n);
   print1("   3b: %3d/124\n", nb[0]);
   print1("   4b: %3d/124\n", nb[1]);
@@ -143,7 +144,7 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < TABLESZE; i++) {
       if(!(c = bytes[i])) continue;
       goods[n++] = c;
-      if(n & 0x1F) continue;
+      if(n & 0x9F) continue;
       goods[n++] = 0;
   }
 
@@ -155,6 +156,7 @@ int main(int argc, char *argv[]) {
 
   // print the good ones
   newln1();
+  print1("goods[]:\n");
   for (i = 0; i < 4; i++)
     print1("  idx:  hex, bits%3s| ","");
   newln1();
@@ -204,6 +206,7 @@ int main(int argc, char *argv[]) {
   #endif
 
   // print their table
+  print1("\ntable[]:");
   for(int m = 3; m < 6; m++) {
     int k = 0;
     n = (m-3) << 6;
@@ -318,8 +321,11 @@ int main(int argc, char *argv[]) {
         // RAF ^^^: 2+5=7, 7+2=9, 9+2=11, 11+2=13
         // n-round start index is 13*n + 2 + 5*k
         for(int k = 0; k < 16; k++, r = rotl5(r)) {
-          *p++ = table[z + (r&63)];
-          print1("  %02d", r&63, r&63);
+          uint8_t w, v = r & 63;
+          w = table[z + v];
+          v = w ? v : (~v) & 63;
+          *p++ = table[z + v];
+          print1("  %02d", v);
         }
         newln1();
       }

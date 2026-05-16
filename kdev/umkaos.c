@@ -26,11 +26,11 @@ __attribute__((aligned(8)))
 static volatile uint64_t e;
 #endif
 
-#define newln1()       if(!argn) { putchar('\n'); }
+#define newln1()       if(!argn) { putchar('\n'); fflush(stdout); }
 #define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
-#define newln2()       if(!argn) { print2("\n"); }
+#define newln2()       if(!argn) { print2("\n"); fflush(stderr); }
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
 ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
@@ -84,9 +84,9 @@ int main(int argc, char *argv[]) {
   }
 
   print2(
-    "\n//> Executing %s in %s\n",
+    "\n//> Executing %s in %s",
     __FILE__, VERSION);
-  newln1();
+  newln2();
 
   #if USE_SEQ_FUNCS
   urnd_eclt();
@@ -124,11 +124,11 @@ int main(int argc, char *argv[]) {
   #endif
 
   // check their counting
+  newln1();
   print1("  tot: %3d/124\n", n);
   print1("   3b: %3d/124\n", nb[0]);
   print1("   4b: %3d/124\n", nb[1]);
   print1("   5b: %3d/124\n", nb[2]);
-  newln1();
   if(n != 124) return(1);
 
   #if USE_SEQ_FUNCS
@@ -154,6 +154,7 @@ int main(int argc, char *argv[]) {
   #endif
 
   // print the good ones
+  newln1();
   for (i = 0; i < 4; i++)
     print1("  idx:  hex, bits%3s| ","");
   newln1();
@@ -273,7 +274,8 @@ int main(int argc, char *argv[]) {
 
       if(!argn) {
         rndr[n] = r;
-        print1("\n  entr. pool: 0x%08x --> b#%s\n",
+        newln1();
+        print1("  entr. pool: 0x%08x --> b#%s\n",
              rndr[n], bit64str(rndr[n], 32));
         rndm[n] = m;
         print1(" const. n.%02d: 0x%08x --> b#%s\n",
@@ -300,7 +302,36 @@ int main(int argc, char *argv[]) {
     }
     newln2();
   }
-  print2("};\n")
+  print2("};")
+  newln2();
+
+  if(!argn) {
+    print1("\nr&63 (dec):\n");
+    memset(mpage, 0, sizeof(mpage));
+    for(int i = 0; i < TABLESZE; i += 128)
+      memcpy(table + i + 34, table + i, 64-34);
+    // RAF ^^^: fill the whole table, r&63 always
+    uint8_t *p = mpage;
+    for(i = 0; i < 4; i++) {
+      for(n = 0; n < 4; n++) {
+        uint32_t z = n*16, r = rotl32(rndr[n], 2);
+        // RAF ^^^: 2+5=7, 7+2=9, 9+2=11, 11+2=13
+        // n-round start index is 13*n + 2 + 5*k
+        for(int k = 0; k < 16; k++, r = rotl5(r)) {
+          *p++ = table[z + (r&63)];
+          print1("  %02d", r&63, r&63);
+        }
+        newln1();
+      }
+    }
+    p = mpage;
+    print1("\ntable[%d] (hex):", TABLESZE);
+    for(int i = 0; i < TABLESZE; i ++) {
+      print1("%s  %02x", (i&15)?"":"\n", p[i], p[i]);
+    }
+    newln1();
+  }
+
   if( argn && (uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);
 

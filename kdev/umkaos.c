@@ -317,9 +317,7 @@ int main(int argc, char *argv[]) {
     uint8_t *q = mpage;
     for(i = 0; i < 4; i++) {
       for(n = 0; n < 4; n++) {
-        uint32_t z = n*16, r = rotl32(rndr[n], 2);
-        // RAF ^^^: 2+5=7, 7+2=9, 9+2=11, 11+2=13
-        // n-round start index is 13*n + 2 + 5*k
+        uint32_t z = n*16, r = rotl32(rndr[n], 1<<i);
         for(int k = 0; k < 16; k++, r = rotl5(r)) {
           uint8_t w, v = r & 63;
           w = table[z + v];

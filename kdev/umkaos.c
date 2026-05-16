@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < TABLESZE; i += 128)
       memcpy(table + i + 34, table + i, 64-34);
     // RAF ^^^: fill the whole table, r&63 always
-    uint8_t *p = mpage;
+    uint8_t *q = mpage;
     for(i = 0; i < 4; i++) {
       for(n = 0; n < 4; n++) {
         uint32_t z = n*16, r = rotl32(rndr[n], 2);
@@ -324,18 +324,27 @@ int main(int argc, char *argv[]) {
           uint8_t w, v = r & 63;
           w = table[z + v];
           v = w ? v : (~v) & 63;
-          *p++ = table[z + v];
+          *q++ = table[z + v];
           print1("  %02d", v);
         }
         newln1();
       }
     }
-    p = mpage;
+    q = mpage;
     print1("\ntable[%d] (hex):", TABLESZE);
     for(int i = 0; i < TABLESZE; i ++) {
-      print1("%s  %02x", (i&15)?"":"\n", p[i], p[i]);
+      print1("%s  %02x", (i&15)?"":"\n", q[i], q[i]);
     }
     newln1();
+
+    p = (uint32_t *)mpage;
+    print2("\nstatic const uint32_t ctbl[] = {\n");
+    for(int i = 0; i < TABLESZE/4; i++) {
+      print2("%s0x%08x,%s", (i&7) ? ""  : "  ",
+                  *p++, ((i+1)&7) ? " " : "\n");
+    }
+    print2("};")
+    newln2();
   }
 
   if( argn && (uint8_t *)p != mpage)

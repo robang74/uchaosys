@@ -37,18 +37,24 @@ static volatile uint64_t e;
 + bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
 
 __attribute__((always_inline)) static inline
-uint8_t chkbits(uint8_t x) {
-  int i = 1, n = 1; // RAF: n=0 too many xxx
+uint8_t chkbits(uint8_t x, uint8_t z) {
+  int i = 1, n = z; // RAF: n=0 too many xxx
   uint8_t a, b = bit(0, x);
   for(i; i < 8; i++) {
     if(b != (a = bit(i, x))) {
-      n = 0; b = a; // RAF: n=1 too few goods
+      n = z; b = a; // RAF: n=1 too few goods
     } else if(++n == 3) {
       return 0;
     }
   }
-  return x;
+  return 1;
 }
+
+#if USE_SEQ_FUNCS
+#define collect_entropy() urnd_eclt()
+#else
+#define collect_entropy() (void)(e = nano1rnd(e))
+#endif
 
 // RAF: printf() %b isn't supported by early gcc/libc and by musl.
 // This "least effort" funtion displays differntly on big-endian,
@@ -62,12 +68,20 @@ bit64str (uint64_t register v,
   return ({ b[n] = 0; b; })    ;
 }
 
+typedef struct {
+  uint8_t unos;
+  uint8_t trns;
+  uint8_t bval;
+  uint8_t good;
+} good_byte_t;
+
 int main(int argc, char *argv[]) {
   uint64_t t = get_nanos(); // init the timer, first of all
   uint8_t mpage[WRITESZE];
+  good_byte_t gb[TABLESZE];
   uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
   uint8_t bytes[TABLESZE], nbits[TABLESZE];
-  uint8_t goods[128], nb[4], c;
+  uint8_t goods[128], nb[7], c;
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -88,55 +102,57 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln2();
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(t);
-  #endif
+  collect_entropy();
 
-  // select the good ones
-  for (int i = 0; i < TABLESZE; i++) {
-    bytes[i] = chkbits(i);
-    nbits[i] = cntbits(i);
-    if((c = nbits[i]) > 2 && c < 6)
-      continue;
-    bytes[i] = 0;
-  }
-
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
-
-  // count the good ones
+  // select & count the good ones
   *(uint32_t *)nb = 0;
-  for (i = 0, n = 0; i < TABLESZE; i++) {
-      if(!(c = bytes[i])) continue;
-      nb[nbits[c]-3]++;
-      n++;
+  for (i = 0; i < TABLESZE; i++) {
+    good_byte_t *pg = &gb[i]    ;
+    pg->unos  =   cntbits(i)    ;
+    pg->bval  =           i     ;
+    pg->good  =   chkbits(i,1)  ;
+    pg->good &= (pg->unos > 2)  ;
+    pg->good &= (pg->unos < 6)  ;
+    nb[pg->unos-3] += !!pg->good;
   }
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
+
+  // fill the goods array, p.1-3
+  for (n = 0, r = 0; n < 3; n++) {
+    for (i = 0; i < TABLESZE; i++) {
+      uint8_t *q = &goods[n<<4];
+      if(gb[i].good
+      && gb[i].unos == 3+n)
+        q[r++] = gb[i].bval;
+      if(r == 16) break;
+    }
+  }
+
+  collect_entropy();
+
+  // fill the goods array, p.4
+  for (i = 255, r = 0; i; i--) {
+    uint8_t *q = &goods[3<<4];
+    if(gb[i].good
+    && gb[i].unos == 3+1)
+      q[r++] = gb[i].bval;
+    if(r == 16) break;
+  }
+
+  collect_entropy();
 
   // check their counting
   newln1();
   print1("goods[]:\n");
-  print1("  tot: %3d/124\n", n);
-  print1("   3b: %3d/124\n", nb[0]);
-  print1("   4b: %3d/124\n", nb[1]);
-  print1("   5b: %3d/124\n", nb[2]);
+  n = nb[0] + nb[1] + nb[2];
+  print1("  tot: %3d/66\n", n);
+  print1("   3b: %3d/66\n", nb[0]);
+  print1("   4b: %3d/66\n", nb[1]);
+  print1("   5b: %3d/66\n", nb[2]);
   if(n != 124) return(1);
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   // store the good ones
   n = 1;
@@ -148,11 +164,7 @@ int main(int argc, char *argv[]) {
       goods[n++] = 0;
   }
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   // print the good ones
   newln1();
@@ -170,11 +182,7 @@ int main(int argc, char *argv[]) {
     if(!(++i & 3)) newln1();
   }
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   // create their table
   memset(table, 0, TABLESZE);
@@ -186,11 +194,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   // spacing their table
   for(i = 8; i < 56; i += 8) {
@@ -199,11 +203,7 @@ int main(int argc, char *argv[]) {
     memset(&table[n-8], 0, 8);
   }
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   // print their table
   print1("\ntable[]:");
@@ -219,11 +219,7 @@ int main(int argc, char *argv[]) {
     newln1();
   }
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   // checking the spacing
   n = 0;
@@ -232,11 +228,7 @@ int main(int argc, char *argv[]) {
       print1("%s %03d", n++?",":"  err:", i);
   if(n) newln1();
 
-  #if USE_SEQ_FUNCS
-  urnd_eclt();
-  #else
-  e = nano1rnd(e);
-  #endif
+  collect_entropy();
 
   #ifdef ENSRCS
   // stop collecting CPU jitters
@@ -270,11 +262,7 @@ int main(int argc, char *argv[]) {
           #ifdef ENSRCS
           if(ENTRSRCS & WRTSRC)
           #endif
-          #if USE_SEQ_FUNCS
-          urnd_eclt();
-          #else
-          e = nano1rnd(e);
-          #endif
+          collect_entropy();
           p = (uint32_t *)mpage;
         }
       }

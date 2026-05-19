@@ -77,11 +77,9 @@ typedef struct {
 
 int main(int argc, char *argv[]) {
   uint64_t t = get_nanos(); // init the timer, first of all
-  uint8_t mpage[WRITESZE];
   good_byte_t gb[TABLESZE];
+  uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
-  uint8_t bytes[TABLESZE], nbits[TABLESZE];
-  uint8_t goods[128], nb[7], c;
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -97,12 +95,14 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  collect_entropy(); // #1
+
   print2(
     "\n//> Executing %s in %s",
     __FILE__, VERSION);
   newln2();
 
-  collect_entropy();
+  collect_entropy(); // #2
 
   // select & count the good ones
   *(uint32_t *)nb = 0;
@@ -116,31 +116,37 @@ int main(int argc, char *argv[]) {
     nb[pg->unos-3] += !!pg->good;
   }
 
-  collect_entropy();
+  collect_entropy(); // #3
+
+  // reset the table
+  uint8_t *q = table;
+  memset(q, 0, TABLESZE);
+
+  collect_entropy(); // #4
 
   // fill the goods array, p.1-3
   for (n = 0, r = 0; n < 3; n++) {
     for (i = 0; i < TABLESZE; i++) {
-      uint8_t *q = &goods[n<<4];
       if(gb[i].good
-      && gb[i].unos == 3+n)
+      && gb[i].unos == 3+n) {
         q[r++] = gb[i].bval;
-      if(r == 16) break;
+        if( !(r%16) ) break;
+      }
     }
   }
 
-  collect_entropy();
+  collect_entropy(); // #5
 
   // fill the goods array, p.4
-  for (i = 255, r = 0; i; i--) {
-    uint8_t *q = &goods[3<<4];
+  for (i = 255; i; i--) {
     if(gb[i].good
-    && gb[i].unos == 3+1)
+    && gb[i].unos == 4) {
       q[r++] = gb[i].bval;
-    if(r == 16) break;
+      if( !(r%16) ) break;
+    }
   }
 
-  collect_entropy();
+  collect_entropy(); // #6
 
   // check their counting
   newln1();
@@ -150,21 +156,9 @@ int main(int argc, char *argv[]) {
   print1("   3b: %3d/66\n", nb[0]);
   print1("   4b: %3d/66\n", nb[1]);
   print1("   5b: %3d/66\n", nb[2]);
-  if(n != 124) return(1);
+  if(n != 66) return(1);
 
-  collect_entropy();
-
-  // store the good ones
-  n = 1;
-  memset(goods, 0, sizeof(goods));
-  for (i = 0; i < TABLESZE; i++) {
-      if(!(c = bytes[i])) continue;
-      goods[n++] = c;
-      if(n & 0x9F) continue;
-      goods[n++] = 0;
-  }
-
-  collect_entropy();
+  collect_entropy(); // #7
 
   // print the good ones
   newln1();
@@ -172,63 +166,17 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < 4; i++)
     print1("  idx:  hex, bits%3s| ","");
   newln1();
-  for (i = 0; i < 128; i) {
-    c = goods[i];
+  for (i = 0; i < 64; i) {
+    c = table[i];
     print1("  %03d: 0x%02x, %s%2d%-4s| ",
          i, c,
-      nbits[c] ? " " : "(",
-      nbits[c],
+      gb[c].unos ? " " : "(",
+      gb[c].unos,
             c  ? " " : ")");
     if(!(++i & 3)) newln1();
   }
 
-  collect_entropy();
-
-  // create their table
-  memset(table, 0, TABLESZE);
-  for(int m = 3; m < 6; m++) {
-    n = (m-3) << 6;
-    for (i = 0; i < 128; i++) {
-      if((c = goods[i]) && nbits[c] == m)
-        table[n++] = c;
-    }
-  }
-
-  collect_entropy();
-
-  // spacing their table
-  for(i = 8; i < 56; i += 8) {
-    n = 128 - i;
-    memcpy(&table[n], &table[n-8], 8);
-    memset(&table[n-8], 0, 8);
-  }
-
-  collect_entropy();
-
-  // print their table
-  print1("\ntable[]:");
-  for(int m = 3; m < 6; m++) {
-    int k = 0;
-    n = (m-3) << 6;
-    for (int i = 0; i < 64; i++) {
-      if(!(c = table[n+i])) continue;
-      if(!(k++ & 3)) newln1();
-      print1("  %03d: b#%s %d | ",
-        n+i, bit64str(c,8), nbits[c]);
-    }
-    newln1();
-  }
-
-  collect_entropy();
-
-  // checking the spacing
-  n = 0;
-  for(i = 0; i < 64; i++)
-    if(!table[64+i] && !table[64+((~i)&63)])
-      print1("%s %03d", n++?",":"  err:", i);
-  if(n) newln1();
-
-  collect_entropy();
+  collect_entropy(); // #8
 
   #ifdef ENSRCS
   // stop collecting CPU jitters

@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   uint64_t t = get_nanos(); // init the timer, first of all
   good_byte_t gb[256];
   uint8_t mpage[WRITESZE], nb[7], c;
-  uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
+  uint32_t i, n, r, ncycl = 1, argn = 0;
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -172,9 +172,19 @@ int main(int argc, char *argv[]) {
          i, c,
       gb[c].unos ? " " : "(",
       gb[c].unos,
-            c  ? " " : ")");
+            c    ? " " : ")");
     if(!(++i & 3)) newln1();
   }
+
+  #define prt2(s,m) print2("%s0x%08x, ", s, m);
+
+  print2("\nstatic const uint32_t mtbl[] = {")
+  if(!argn) for (i = 0; i < TABLESZE; i += 4) {
+    uint32_t *w = (uint32_t *)&table[i];
+    prt2((i%16)?"":"\n  ", *w);
+  }
+  print2("\n};")
+  newln2();
 
   collect_entropy(); // #8
 
@@ -186,6 +196,7 @@ int main(int argc, char *argv[]) {
   // for-loop is optimised for 32bit
   int max = (argn?:4);
   uint32_t rndr[4], rndm[4];
+  uint32_t *p = (uint32_t *)mpage;
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
@@ -229,19 +240,17 @@ int main(int argc, char *argv[]) {
   //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
   #undef m
   #undef r
-  print2("\nstatic const uint32_t mltp[] = { \n")
-  #define prt2(s,m) print2("%s0x%08x, ", s, m);
+  print2("\nstatic const uint32_t mltp[] = {")
   if(!argn) while (n--) {
     uint32_t m = rndm[n], r = rndr[n];
-    prt2("  ", m);
+    prt2("\n  ", m);
     for(int k = 1; k & 7; k++) {
       r = rotl32(r, 20);
-      m = urnd_comb(r);
+      m = urnd_comb(r) ;
       prt2("", m);
     }
-    newln2();
   }
-  print2("};")
+  print2("\n};")
   newln2();
 
   if( argn && (uint8_t *)p != mpage)

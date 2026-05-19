@@ -69,15 +69,21 @@
  *
  * Speed from 610 MB/s to 550 MB/s which is a -10% because endogenous robustness
  * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64: passed 256 GB with no warnings
- * px 4 "./umkaos 20" | ent: 7.999989, 257.42, 44.58%, 127.4916, 0.03%,-0.000071
+ * px 4 "./umkaos 20" | ent: 7.999989, 257.42, 44.58%, 127.492, 0.03%, -0.000071
  *
  * CHANGES (in v0.2.7)
  *
- * nano0rnd() introduced for code maintenance (1pt), it regains 590 MB/s (-4%)
+ * nano0rnd() introduced for code maintenance (1pt), it regains.  590 MB/s (-4%)
  *
  * CHANGES (in v0.3.0)
  *
- * get_30ns2() fills the gap, adds scramble and mem::barrier.   576 MB/s (-6%)
+ * get_30ns2() fills the gap, adds scramble and mem::barrier.     576 MB/s (-6%)
+ *
+ * CHANGES (in v0.3.2)
+ *
+ * It uses a 64 bytes table, speed from return at full throttle   608 MB/s (=0%)
+ * px 4 "./umkaos 20" | ent: 7.999988, 272.46, 21.61%, 127.486, 0.02%, +0.000247
+ * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64: passed 256 GB with no warnings
  *
  **************************************************************************** */
 

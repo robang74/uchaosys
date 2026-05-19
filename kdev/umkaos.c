@@ -77,7 +77,7 @@ typedef struct {
 
 int main(int argc, char *argv[]) {
   uint64_t t = get_nanos(); // init the timer, first of all
-  good_byte_t gb[TABLESZE];
+  good_byte_t gb[256];
   uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0, *p = (uint32_t *)mpage;
 
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 
   // select & count the good ones
   *(uint32_t *)nb = 0;
-  for (i = 0; i < TABLESZE; i++) {
+  for (i = 0; i < 256; i++) {
     good_byte_t *pg = &gb[i]    ;
     pg->unos  =   cntbits(i)    ;
     pg->bval  =           i     ;
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
 
   // fill the goods array, p.1-3
   for (n = 0, r = 0; n < 3; n++) {
-    for (i = 0; i < TABLESZE; i++) {
+    for (i = 0; i < 256; i++) {
       if(gb[i].good
       && gb[i].unos == 3+n) {
         q[r++] = gb[i].bval;
@@ -182,10 +182,6 @@ int main(int argc, char *argv[]) {
   // stop collecting CPU jitters
   ENTRSRCS = (MEMSRC | WRTSRC);
   #endif
-
-  // RAF: fill the whole table, r&63 always
-  for(i = 0; i < TABLESZE; i += 128)
-    memcpy(table + i + 34, table + i, 64-34);
 
   // for-loop is optimised for 32bit
   int max = (argn?:4);
@@ -247,45 +243,6 @@ int main(int argc, char *argv[]) {
   }
   print2("};")
   newln2();
-
-#if 0
-  if(!argn) {
-    print1("\nr&63 (dec):\n");
-    memset(mpage, 0, sizeof(mpage));
-    for(int i = 0; i < TABLESZE; i += 128)
-      memcpy(table + i + 34, table + i, 64-34);
-    // RAF ^^^: fill the whole table, r&63 always
-    uint8_t *q = mpage;
-    for(i = 0; i < 4; i++) {
-      for(n = 0; n < 4; n++) {
-        uint32_t z = n*16, r = rotl32(rndr[n], 1<<i);
-        for(int k = 0; k < 16; k++, r = rotl5(r)) {
-          uint8_t w, v = r & 63;
-          w = table[z + v];
-          v = w ? v : (~v) & 63;
-          *q++ = table[z + v];
-          print1("  %02d", v);
-        }
-        newln1();
-      }
-    }
-    q = mpage;
-    print1("\ntable[%d] (hex):", TABLESZE);
-    for(int i = 0; i < TABLESZE; i ++) {
-      print1("%s  %02x", (i&15)?"":"\n", q[i], q[i]);
-    }
-    newln1();
-
-    p = (uint32_t *)mpage;
-    print2("\nstatic const uint32_t ctbl[] = {\n");
-    for(int i = 0; i < TABLESZE/4; i++) {
-      print2("%s0x%08x,%s", (i&7) ? ""  : "  ",
-                  *p++, ((i+1)&7) ? " " : "\n");
-    }
-    print2("};")
-    newln2();
-  }
-#endif
 
   if( argn && (uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);

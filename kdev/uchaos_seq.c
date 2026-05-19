@@ -86,28 +86,20 @@
 
 #include "uchaos_seq.h"
 
-//
-__attribute__((always_inline)) static inline
-uint32_t comb32make(register uint32_t r) {
-  register uint32_t m, c, i;
-
-  i = (r = rotl5(r)) & 31;
-  c = table[1 + i];
-  m = c << 24;
-
-  i = (r = rotl5(r)) & 63;
-  c = table[64 + i] ?: table[64 + ((~i)&63)];
-  m |= c << 16;
-
-  i = (r = rotl5(r)) & 31;
-  c = table[129 + i];
-  m |= c << 8;
-
-  i = (r = rotl5(r)) & 63;
-  c = table[64 + i] ?: table[64 + ((~i)&63)];
-  m |= c << 0;
-
-  return m;
+__attribute__((always_inline))
+static inline
+uint32_t comb32make(
+  register uint32_t r) {
+  register uint32_t m=0 ;
+  register uint8_t  i,n ;
+  for(n = 64; n; n -= 16)
+  {
+    r  = rotl5(r)       ;
+    i  = r & 0x0f       ;
+    i  = table[n + i]   ;
+    m |= i << (n >>1)   ;
+  }
+  return m              ;
 }
 //RAF: 3bit, 4bit, 5bit, 4bit
 // m0:    0     5    10    15 -->  +0
@@ -119,8 +111,9 @@ uint32_t comb32make(register uint32_t r) {
 // m6:  120   125   130   135 -->  -8  -3  +2  +7
 // m7:  140   145   150   155 --> +12
 //   :  160                   -->  +0  repetition
-uint32_t urnd_comb(register uint32_t r) {
-  return comb32make(r);
+uint32_t urnd_comb(
+  register uint32_t r) {
+  return comb32make(r) ;
 }
 
 /* RAF: barrier here prevents caching skew and potentially
@@ -160,7 +153,7 @@ uint64_t _get_30ns2(void)  {
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
   dt =  ct - t            ; // this dif can skew (1)
    t =  ct                ; // save the previous (2)
-  #if 0                   
+  #if 0
   dt = (dt & 0xffff) << 10; // it closes the gap
   ct += dt                ; // sum always < 2^30 (a)
                             // and scrambles LSB

@@ -35,7 +35,6 @@
 #define PAGEORDR    12
 #define PAGESIZE    (2 << PAGEORDR)
 #define PAGEFULL(x) (x >> PAGEORDR)
-#define TABLESZE    64
 #define BLOCKSZE    512
 #define WRITESZE    BLOCKSZE
 
@@ -44,12 +43,30 @@
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
-#ifdef UCHAOS_SEQ_C
-__attribute__((aligned(4)))
-__thread uint8_t table[TABLESZE];
+#ifdef _USE_MTBL
+#define USE_MTBL 1
+
+  #define TABLESZE  64
+  #ifdef UCHAOS_SEQ_C
+  #include "uchaos_tbl.h"
+  const uint8_t __thread *table;
+  #else
+  extern
+  const uint8_t __thread *table;
+  #endif
+
 #else
-extern
-__thread uint8_t table[];
+#define USE_MTBL 0
+
+  #define TABLESZE  64
+  #ifdef UCHAOS_SEQ_C
+  __attribute__((aligned(4)))
+  uint8_t __thread table[TABLESZE];
+  #else
+  extern
+  uint8_t __thread table[];
+  #endif
+
 #endif
 
 __attribute__((always_inline)) static inline
@@ -59,8 +76,8 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
 }
 #define rotl5(x) rotl32(x, 5)
 
-#ifdef _USE_SEQ_FUNCS //////////////////////////////////////////////////////////
-#define USE_SEQ_FUNCS 1
+#ifdef _USE_FNCS //////////////////////////////////////////////////////////
+#define USE_FNCS 1
 typedef union {
   uint64_t e;
   uint32_t h[2];
@@ -90,7 +107,7 @@ void urnd_eclt(void);
 #define urnd_e64e() ({ _mr_e; })
 
 #else //////////////////////////////////////////////////////////////////////////
-#define USE_SEQ_FUNCS 0
+#define USE_FNCS 0
 #endif
 
 #endif // UCHAOS_SEQ_H

@@ -5,8 +5,9 @@
  * Compile with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
  *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
- *   cc $CFLAGS -D_USE_SEQ_FUNCS uchaos_seq.c umkaos.c -o umkaos
- *   cc $CFLAGS umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_FNCS uchaos_seq.c umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_MTBL              umkaos.c -o umkaos && ./umkaos
+ *   ./umkaos 2> uchaos_tbl.h
  *
  * Functions tests:
  *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
@@ -17,7 +18,7 @@
 
 #include "getnanos.h"
 
-#ifdef  _USE_SEQ_FUNCS
+#ifdef _USE_FNCS
 #pragma message "Using uchaos_seq functions"
 #include "uchaos_seq.h"
 #else
@@ -50,7 +51,7 @@ uint8_t chkbits(uint8_t x, uint8_t z) {
   return 1;
 }
 
-#if USE_SEQ_FUNCS
+#if USE_FNCS
 #define collect_entropy() urnd_eclt()
 #else
 #define collect_entropy() (void)(e = nano1rnd(e))
@@ -81,6 +82,11 @@ int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0;
 
+#if USE_MTBL
+  table = (const uint8_t *)mtbl;
+  collect_entropy(); // #0
+#endif
+
   // for-loop is optimised for 32bit
   if(argc & 2) {
     argn = atol(argv[1]);
@@ -103,7 +109,8 @@ int main(int argc, char *argv[]) {
   newln2();
 
   collect_entropy(); // #2
-
+#if USE_MTBL
+#else
   // select & count the good ones
   *(uint32_t *)nb = 0;
   for (i = 0; i < 256; i++) {
@@ -175,10 +182,11 @@ int main(int argc, char *argv[]) {
             c    ? " " : ")");
     if(!(++i & 3)) newln1();
   }
+#endif
+  #define prt2(s,m) print2("%s0x%08x, ", s, m)
 
-  #define prt2(s,m) print2("%s0x%08x, ", s, m);
-
-  print2("\nstatic const uint32_t mtbl[] = {")
+  print2("\n__attribute__((aligned(4)))"
+    "\nconst uint32_t __thread mtbl[] = {");
   if(!argn) for (i = 0; i < TABLESZE; i += 4) {
     uint32_t *w = (uint32_t *)&table[i];
     prt2((i%16)?"":"\n  ", *w);
@@ -200,7 +208,7 @@ int main(int argc, char *argv[]) {
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
-      #if USE_SEQ_FUNCS
+      #if USE_FNCS
       #define r urnd_e32r()
       #define m urnd_e32m()
       urnd_emix();
@@ -240,7 +248,8 @@ int main(int argc, char *argv[]) {
   //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
   #undef m
   #undef r
-  print2("\nstatic const uint32_t mltp[] = {")
+  print2("\n__attribute__((aligned(4)))"
+    "\nconst uint32_t __thread mltp[] = {");
   if(!argn) while (n--) {
     uint32_t m = rndm[n], r = rndr[n];
     prt2("\n  ", m);

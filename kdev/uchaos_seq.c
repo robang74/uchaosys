@@ -230,7 +230,7 @@ register uint64_t e,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-#ifdef _USE_SEQ_FUNCS
+#ifdef _USE_FNCS
 
 __thread urnd_mr_t _urnd_entr;
 

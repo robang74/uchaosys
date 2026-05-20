@@ -39,7 +39,8 @@ static volatile uint64_t e;
 ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
 + bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
 
-__attribute__((always_inline)) static inline
+static inline
+__attribute__((always_inline))
 uint8_t chkbits(uint8_t x, uint8_t z) {
   int i = 1, n = z; // RAF: n=0 too many xxx
   uint8_t a, b = bit(0, x);
@@ -51,6 +52,43 @@ uint8_t chkbits(uint8_t x, uint8_t z) {
     }
   }
   return 1;
+}
+
+static inline
+__attribute__((always_inline))
+void _scramtbl(uint32_t r) {
+  uint8_t *p = (uint8_t *)table;
+  for (int i = 0; i < 4; i++) {
+    uint8_t a, b, n;
+    n  = r >> (i<<3);
+    a  = n & 0x0f;
+    b  = n >> 4;
+    b  = (b-a) ? b : (~a) & 0x0f;
+    a += i << 4;
+    b += i << 4;
+    n    = p[a];
+    p[a] = p[b];
+    p[b] =    n;
+//  if(p[a] && p[b]) {} else
+//  printf("\n--> a: %d, b: %d, n: %d, r: 0x%08x\n", a, b, n, r);
+  }
+}
+
+static inline
+__attribute__((always_inline))
+void scramtbl(register uint32_t r) {
+  for (int i = 0; i < 6; i++) {
+    _scramtbl(r);
+    r = rotl5(r);
+  }
+}
+
+static inline
+void print_chkxor(void) {
+  uint32_t w = *(uint32_t *)table;
+  for (int i = 4; i < 64; i += 4)
+    w ^= *(uint32_t *)&table[i];
+  printf("\n  chkxor: 0x%08x\n", w);
 }
 
 #if USE_FNCS
@@ -128,7 +166,7 @@ int main(int argc, char *argv[]) {
   collect_entropy(); // #3
 
   // reset the table
-  uint8_t *q = table;
+  uint8_t *q = (uint8_t *)table;
   memset(q, 0, TABLESZE);
 
   collect_entropy(); // #4
@@ -185,16 +223,8 @@ int main(int argc, char *argv[]) {
     if(!(++i & 3)) newln1();
   }
 #endif
-  #define prt2(s,m) print2("%s0x%08x, ", s, m)
 
-  print2("\n__attribute__((aligned(4)))"
-    "\nconst uint32_t __thread mtbl[] = {");
-  if(!argn) for (i = 0; i < 64; i += 4) {
-    uint32_t *w = (uint32_t *)&table[i];
-    prt2((i%16)?"":"\n  ", *w);
-  }
-  print2("\n};")
-  newln2();
+  if(!argn) print_chkxor();
 
   collect_entropy(); // #8
 
@@ -243,28 +273,44 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+  #undef m
+  #undef r
 
+  if(!argn) print_chkxor();
+
+  #define prt2(s,m) print2("%s0x%08x, ", s, m)
   //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
   //r32:   0|        8|       16|       24|       32|
   //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
   //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
-  #undef m
-  #undef r
-  print2("\n__attribute__((aligned(4)))"
-    "\nconst uint32_t __thread mltp[] = {");
   if(!argn) {
+    print2("\n__attribute__((aligned(4)))"
+      "\nconst uint32_t __thread mltp[] = {");
     uint32_t m1 = rndm[n-1];
     while (n--) {
       uint32_t m = rndm[n], r = rndr[n];
       prt2("\n  ", m);
+      scramtbl(r);
       for(int k = 1; k & 7; k++) {
         r = rotl32(r, 20);
         m = urnd_comb(r) ;
         prt2("", m);
+        scramtbl(r);
       }
     }
     prt2("\n  ", m1);
     print2("\n};\n");
+  }
+
+  if(!argn) {
+    print2("\n__attribute__((aligned(4)))"
+      "\nconst uint32_t __thread mtbl[] = {");
+    for (i = 0; i < 64; i += 4) {
+      uint32_t *w = (uint32_t *)&table[i];
+      prt2((i%16)?"":"\n  ", *w);
+    }
+    print2("\n};")
+    newln2();
   }
 
   if( argn && (uint8_t *)p != mpage)

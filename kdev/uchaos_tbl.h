@@ -1,5 +1,5 @@
 
-//> Executing umkaos.c in v0.3.3
+//> Executing umkaos.c in v0.3.4
 
 __attribute__((aligned(4)))
 const uint32_t __thread mtbl[] = {
@@ -15,7 +15,7 @@ const uint32_t __thread mltp[] = {
   0xb2d35a49, 0x996d4b34, 0xa6d66a4a, 0xd2d64d49, 0x95cd3654, 0x99ad5a94, 0xd26d5a92, 0x96da364a, 
   0xa95b4d4c, 0xd4d95964, 0xd26d5549, 0xcc9b2b64, 0xcc6b652c, 0xaa9b3625, 0x95ad4d25, 0xa9ab354c, 
   0xb2d65525, 0xaaab4b49, 0x965b3332, 0xd2d65a25, 0xd46b5554, 0x96d52b2c, 0xa66d5a49, 0xd46b3325, 
+  0xaab3552a,
 };
 
-//> Run time:  171263 nS --> 0.171 mS
-
+//> Run time:  226502 nS --> 0.227 mS

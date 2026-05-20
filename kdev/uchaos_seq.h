@@ -2,7 +2,7 @@
  * uchaos_seq.h - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.3.3"
+ #define VERSION "v0.3.4"
  /*
  * Public interface, it hides internal but speed drops by 2/3 because functions.
  *
@@ -43,38 +43,45 @@
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
-#ifdef _USE_MTBL
-#define USE_MTBL 1
-
-  #define TABLESZE  64
-  #ifdef UCHAOS_SEQ_C
-  #include "uchaos_tbl.h"
-  const uint8_t __thread *table;
-  #else
-  extern
-  const uint8_t __thread *table;
-  #endif
-
+#ifdef _USE_MLTP
+#define USE_MLTP 1
+#undef _USE_MTBL
+#define TABLESZE 128
 #else
-#define USE_MTBL 0
-
-  #define TABLESZE  64
-  #ifdef UCHAOS_SEQ_C
-  __attribute__((aligned(4)))
-  uint8_t __thread table[TABLESZE];
-  #else
-  extern
-  uint8_t __thread table[];
-  #endif
-
+#define USE_MLTP 0
+#define TABLESZE 64
 #endif
 
-__attribute__((always_inline)) static inline
+#ifdef _USE_MTBL
+#define USE_MTBL 1
+#else
+#define USE_MTBL 0
+#endif
+
+#ifdef UCHAOS_SEQ_C
+#include "uchaos_tbl.h"
+#else
+extern
+#endif
+const uint8_t __thread *table;
+
+static inline
+__attribute__((always_inline))
 uint32_t rotl32(uint32_t x, uint8_t n) {
   n &= 31;
   return (x << n) | (x >> (32-n));
 }
 #define rotl5(x) rotl32(x, 5)
+
+#if   USE_MTBL
+  #define urnd_init() { table = (const uint8_t *)mtbl; }
+#elif USE_MLTP
+  #define urnd_init() { table = (const uint8_t *)mltp; }
+#else // mtbl[] may not exist
+  __attribute__((aligned(4)))
+  uint8_t __thread _buf[TABLESZE];
+  #define urnd_init() { table = (const uint8_t *)_buf; }
+#endif
 
 #ifdef _USE_FNCS //////////////////////////////////////////////////////////
 #define USE_FNCS 1
@@ -88,23 +95,24 @@ __thread urnd_mr_t _urnd_entr;
 
 uint32_t urnd_comb(register uint32_t r);
 uint64_t urnd_emix(void);
-void urnd_eclt(void);
+void     urnd_eclt(void);
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 // RAF: the order is inverted in big-endian systems
-  #define urnd_mr32_m(e) (e).h[1]
-  #define urnd_mr32_r(e) (e).h[0]
-#else
-  #define urnd_mr32_m(e) (e).h[0]
-  #define urnd_mr32_r(e) (e).h[1]
-#endif
+  #define     urnd_mr32_m(e) (e).h[1]
+  #define     urnd_mr32_r(e) (e).h[0]
+#else           // LITTLE ENDIAN
+  #define     urnd_mr32_m(e) (e).h[0]
+  #define     urnd_mr32_r(e) (e).h[1]
+#endif          // ENDIANESS END
+
 #define _mr_e             _urnd_entr.e
 #define _mr_m urnd_mr32_m(_urnd_entr)
 #define _mr_r urnd_mr32_r(_urnd_entr)
 
-#define urnd_e32r() ({ _mr_r; })
-#define urnd_e32m() ({ _mr_m; })
-#define urnd_e64e() ({ _mr_e; })
+#define       urnd_e32r() ({ _mr_r; })
+#define       urnd_e32m() ({ _mr_m; })
+#define       urnd_e64e() ({ _mr_e; })
 
 #else //////////////////////////////////////////////////////////////////////////
 #define USE_FNCS 0

@@ -7,6 +7,7 @@
  *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
  *   cc $CFLAGS -D_USE_FNCS uchaos_seq.c umkaos.c -o umkaos && ./umkaos
  *   cc $CFLAGS -D_USE_MTBL              umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_MLTP              umkaos.c -o umkaos && ./umkaos
  *   ./umkaos 2> uchaos_tbl.h
  *
  * Functions tests:
@@ -83,8 +84,8 @@ int main(int argc, char *argv[]) {
   uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0;
 
-#if USE_MTBL
-  table = (const uint8_t *)mtbl;
+  urnd_init();
+#if USE_MTBL | USE_MLTP
   collect_entropy(); // #0
 #endif
 
@@ -110,7 +111,7 @@ int main(int argc, char *argv[]) {
   newln2();
 
   collect_entropy(); // #2
-#if USE_MTBL
+#if USE_MTBL | USE_MLTP
 #else
   // select & count the good ones
   *(uint32_t *)nb = 0;
@@ -188,7 +189,7 @@ int main(int argc, char *argv[]) {
 
   print2("\n__attribute__((aligned(4)))"
     "\nconst uint32_t __thread mtbl[] = {");
-  if(!argn) for (i = 0; i < TABLESZE; i += 4) {
+  if(!argn) for (i = 0; i < 64; i += 4) {
     uint32_t *w = (uint32_t *)&table[i];
     prt2((i%16)?"":"\n  ", *w);
   }
@@ -251,17 +252,20 @@ int main(int argc, char *argv[]) {
   #undef r
   print2("\n__attribute__((aligned(4)))"
     "\nconst uint32_t __thread mltp[] = {");
-  if(!argn) while (n--) {
-    uint32_t m = rndm[n], r = rndr[n];
-    prt2("\n  ", m);
-    for(int k = 1; k & 7; k++) {
-      r = rotl32(r, 20);
-      m = urnd_comb(r) ;
-      prt2("", m);
+  if(!argn) {
+    uint32_t m1 = rndm[n-1];
+    while (n--) {
+      uint32_t m = rndm[n], r = rndr[n];
+      prt2("\n  ", m);
+      for(int k = 1; k & 7; k++) {
+        r = rotl32(r, 20);
+        m = urnd_comb(r) ;
+        prt2("", m);
+      }
     }
+    prt2("\n  ", m1);
+    print2("\n};\n");
   }
-  print2("\n};")
-  newln2();
 
   if( argn && (uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);

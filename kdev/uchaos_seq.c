@@ -2,7 +2,7 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
- #define VERSION "v0.3.3" // version definition moved in uchaos_seq.h
+ #define VERSION "v0.3.4" // version definition moved in uchaos_seq.h
  *
  * Compile and run with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
@@ -79,11 +79,15 @@
  *
  * get_30ns2() fills the gap, adds scramble and mem::barrier.     576 MB/s (-6%)
  *
- * CHANGES (in v0.3.3)
+ * CHANGES (in v0.3.3 w/ -D_USE_MTBL)
  *
  * It uses a 64 bytes table, speed from return at full throttle   605 MB/s (-1%)
  * px 4 "./umkaos 20" | ent: 7.999990, 221.20, 93.80%, 127.512, 0.01%, -0.000031
- * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64: passed 256 GB with no warnings
+ *
+ * CHANGES (in v0.3.4 w/ -D_USE_MLTP)
+ *
+ * It uses a 128 combs table, speed from return at full throttle  602 MB/s (-1%)
+ * px 4 "./umkaos 20" | ent: 7.999990, 256.92, 45.44%, 127.506, 0.00%, -0.000173
  *
  **************************************************************************** */
 
@@ -96,9 +100,18 @@ __attribute__((always_inline))
 static inline
 uint32_t comb32make(
   register uint32_t r) {
+  register uint32_t n =
+                TABLESZE;
+#if USE_MLTP
+  register char *p =
+          (char *)table ;
+  r ^= (r >> 7)^(r >>14);
+  r ^= (r >>21)^(r >>28);
+  p +=  r & (n - 1)     ;
+  return *(uint32_t *)p ;
+#else
   register uint32_t m=0 ;
-  register uint8_t  i,n ;
-  n = TABLESZE          ;
+  register uint32_t i   ;
   do {
     r  = rotl5(r)       ;
     i  = r & 0x0f       ;
@@ -106,7 +119,8 @@ uint32_t comb32make(
     i  = table[n + i]   ;
     m |= i << (n >>1)   ;
   } while(n)            ;
-  return m              ;
+  return  m             ;
+#endif
 }
 //RAF: 3bit, 4bit, 5bit, 4bit
 // m0:    0     5    10    15 -->  +0

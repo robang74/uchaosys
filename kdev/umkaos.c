@@ -87,14 +87,17 @@ static inline
 uint64_t chktbl(uint32_t *tb, uint32_t sze) {
   uint64_t y;
   uint32_t i, m, s, w;
-  for (i = m = s = w = 0;
+  for (i = s = w = 0, m = 1;
        i < sze; i++, tb++) {
     w ^= *tb; m *= *tb; s += *tb;
   }
   w ^= s;
-  y  = (w * m);
-  y  = (y << 32) | (m + s);
+  y  = ((uint64_t)w * m);
+//printf("\n--> y: 0x%016lx\n", y);
+  y  = (y << 32) + s + m;
+//printf("\n--> y: 0x%016lx\n", y);
   y ^= ((uint64_t)w) << 16;
+//printf("\n--> y: 0x%016lx\n", y);
   return y;
 }
 
@@ -226,8 +229,18 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  if(!argn)
-    chk = chktbl((uint32_t *)table, TABLESZE >> 2);
+  chk = chktbl((uint32_t *)table, TABLESZE >> 2);
+/*
+ * RAF, TODO: clearly this is a problem to solve!
+ *
+#if USE_MTBL | USE_MLTP
+  if(MTBL_CHK-chk) {
+    fprintf(stderr, "\n  tblchk: 0x%016lx, %s\n",
+      chk, (MTBL_CHK-chk) ? "MISMATCH\n" : "OK");
+    exit(1);
+  }
+#endif
+*/
   collect_entropy(); // #8
 
   #ifdef ENSRCS
@@ -267,10 +280,10 @@ int main(int argc, char *argv[]) {
       if(!argn) {
         rndr[n] = r;
         newln1();
-        print1("  entr. pool: 0x%08x --> b#%s\n",
+        print1("   entr. pool: 0x%08x --> b#%s\n",
              rndr[n], bit64str(rndr[n], 32));
         rndm[n] = m;
-        print1(" const. n.%02d: 0x%08x --> b#%s\n",
+        print1("  const. n.%02d: 0x%08x --> b#%s\n",
           n, rndm[n], bit64str(rndm[n], 32));
       }
     }
@@ -281,8 +294,9 @@ int main(int argc, char *argv[]) {
   if(!argn) {
     uint64_t cxk;
     cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
-    printf("\ntblchk: 0x%016lx, %s",
+    printf("\n  tblchk: 0x%016lx, %s\n",
       cxk, (cxk-chk) ? "KO" : "OK");
+    if(cxk-chk) exit(1);
   }
 
   #define prt2(s,m) print2("%s0x%08x, ", s, m)
@@ -320,7 +334,7 @@ int main(int argc, char *argv[]) {
       uint32_t *w = (uint32_t *)&table[i];
       prt2((i%16)?"":"\n  ", *w);
     }
-    print2("\n};")
+    print2("\n};\n#define MTBL_CHK 0x%016lx", chk)
     newln2();
   }
 

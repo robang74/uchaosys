@@ -100,19 +100,19 @@ __attribute__((always_inline))
 static inline
 uint32_t comb32make(
   register uint32_t r) {
-  register uint32_t n =
-                TABLESZE;
 #if USE_MLTP
-  register char *p =
-          (char *)table ;
+  register uint32_t n =
+                MLTP_SZE;
+  uint8_t register *p =
+        (uint8_t *) mltp;
   r ^= (r >> 7)^(r >>14);
   r ^= (r >>21)^(r >>28);
   p +=  r & (n - 1)     ;
   return *(uint32_t *)p ;
 #else
-  register uint32_t m=0 ;
-  register uint32_t i   ;
-  do {
+  register uint32_t n, m;
+  n = TABLESZE; m=0; do {
+    register uint32_t i ;
     r  = rotl5(r)       ;
     i  = r & 0x0f       ;
     n -= TABLESZE >>2   ;

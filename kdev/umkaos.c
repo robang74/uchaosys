@@ -84,11 +84,18 @@ void scramtbl(register uint32_t r) {
 }
 
 static inline
-void print_chkxor(void) {
-  uint32_t w = *(uint32_t *)table;
-  for (int i = 4; i < 64; i += 4)
-    w ^= *(uint32_t *)&table[i];
-  printf("\n  chkxor: 0x%08x\n", w);
+uint64_t chktbl(uint32_t *tb, uint32_t sze) {
+  uint64_t y;
+  uint32_t i, m, s, w;
+  for (i = m = s = w = 0;
+       i < sze; i++, tb++) {
+    w ^= *tb; m *= *tb; s += *tb;
+  }
+  w ^= s;
+  y  = (w * m);
+  y  = (y << 32) | (m + s);
+  y ^= ((uint64_t)w) << 16;
+  return y;
 }
 
 #if USE_FNCS
@@ -117,15 +124,10 @@ typedef struct {
 } good_byte_t;
 
 int main(int argc, char *argv[]) {
-  uint64_t t = get_nanos(); // init the timer, first of all
+  uint64_t chk, t = get_nanos(); // init the timer, first of all
   good_byte_t gb[256];
   uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0;
-
-  urnd_init();
-#if USE_MTBL | USE_MLTP
-  collect_entropy(); // #0
-#endif
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -148,9 +150,15 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln2();
 
+  urnd_init();
+
   collect_entropy(); // #2
+
 #if USE_MTBL | USE_MLTP
 #else
+  // byte WR pointer to the table
+  uint8_t *q = (uint8_t *)table;
+
   // select & count the good ones
   *(uint32_t *)nb = 0;
   for (i = 0; i < 256; i++) {
@@ -164,12 +172,6 @@ int main(int argc, char *argv[]) {
   }
 
   collect_entropy(); // #3
-
-  // reset the table
-  uint8_t *q = (uint8_t *)table;
-  memset(q, 0, TABLESZE);
-
-  collect_entropy(); // #4
 
   // fill the goods array, p.1-3
   for (n = 0, r = 0; n < 3; n++) {
@@ -213,7 +215,7 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < 4; i++)
     print1("  idx:  hex, bits%3s| ","");
   newln1();
-  for (i = 0; i < 64; i) {
+  for (i = 0; i < TABLESZE; i) {
     c = table[i];
     print1("  %03d: 0x%02x, %s%2d%-4s| ",
          i, c,
@@ -224,8 +226,8 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  if(!argn) print_chkxor();
-
+  if(!argn)
+    chk = chktbl((uint32_t *)table, TABLESZE >> 2);
   collect_entropy(); // #8
 
   #ifdef ENSRCS
@@ -276,7 +278,12 @@ int main(int argc, char *argv[]) {
   #undef m
   #undef r
 
-  if(!argn) print_chkxor();
+  if(!argn) {
+    uint64_t cxk;
+    cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
+    printf("\ntblchk: 0x%016lx, %s",
+      cxk, (cxk-chk) ? "KO" : "OK");
+  }
 
   #define prt2(s,m) print2("%s0x%08x, ", s, m)
   //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
@@ -284,7 +291,9 @@ int main(int argc, char *argv[]) {
   //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
   //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
   if(!argn) {
-    print2("\n__attribute__((aligned(4)))"
+    print2(
+      "\n#define MLTP_SZE 128"
+      "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mltp[] = {");
     uint32_t m1 = rndm[n-1];
     while (n--) {
@@ -303,9 +312,11 @@ int main(int argc, char *argv[]) {
   }
 
   if(!argn) {
-    print2("\n__attribute__((aligned(4)))"
+    print2(
+      "\n#define MTBL_SZE 64"
+      "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mtbl[] = {");
-    for (i = 0; i < 64; i += 4) {
+    for (i = 0; i < TABLESZE; i += 4) {
       uint32_t *w = (uint32_t *)&table[i];
       prt2((i%16)?"":"\n  ", *w);
     }

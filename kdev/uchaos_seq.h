@@ -46,10 +46,8 @@
 #ifdef _USE_MLTP
 #define USE_MLTP 1
 #undef _USE_MTBL
-#define TABLESZE 128
 #else
 #define USE_MLTP 0
-#define TABLESZE 64
 #endif
 
 #ifdef _USE_MTBL
@@ -58,12 +56,22 @@
 #define USE_MTBL 0
 #endif
 
-#ifdef UCHAOS_SEQ_C
+#if USE_MTBL | USE_MLTP
 #include "uchaos_tbl.h"
+#define TABLESZE MTBL_SZE
+#define urnd_init() memcpy(table, mtbl, TABLESZE)
 #else
-extern
+#define TABLESZE 64
+#define urnd_init() memset(table,    0, TABLESZE)
 #endif
-const uint8_t __thread *table;
+
+#ifdef UCHAOS_SEQ_C
+__attribute__((aligned(4)))
+uint8_t __thread table[TABLESZE];
+#else
+extern const
+uint8_t __thread const *table;
+#endif
 
 static inline
 __attribute__((always_inline))
@@ -72,16 +80,6 @@ uint32_t rotl32(uint32_t x, uint8_t n) {
   return (x << n) | (x >> (32-n));
 }
 #define rotl5(x) rotl32(x, 5)
-
-#if   USE_MTBL
-  #define urnd_init() { table = (const uint8_t *)mtbl; }
-#elif USE_MLTP
-  #define urnd_init() { table = (const uint8_t *)mltp; }
-#else // mtbl[] may not exist
-  __attribute__((aligned(4)))
-  uint8_t __thread _buf[TABLESZE];
-  #define urnd_init() { table = (const uint8_t *)_buf; }
-#endif
 
 #ifdef _USE_FNCS //////////////////////////////////////////////////////////
 #define USE_FNCS 1

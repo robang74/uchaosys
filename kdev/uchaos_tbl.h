@@ -1,6 +1,7 @@
 
 //> Executing umkaos.c in v0.3.4
 
+#define MTBL_SZE 64
 __attribute__((aligned(4)))
 const uint32_t __thread mtbl[] = {
   0x2a292625, 0x4934322c, 0x54524c4a, 0xa4949264, 
@@ -9,6 +10,7 @@ const uint32_t __thread mtbl[] = {
   0xcaccd2d4, 0xacb2b4c9, 0xa5a6a9aa, 0x9596999a, 
 };
 
+#define MLTP_SZE 128
 __attribute__((aligned(4)))
 const uint32_t __thread mltp[] = {
   0xaab3552a, 0x95b56932, 0xb25b6a4c, 0x956b6625, 0xacd96a64, 0xa5d52da4, 0xcada3354, 0xd4da65a4, 

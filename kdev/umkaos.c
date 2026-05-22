@@ -69,8 +69,6 @@ void _scramtbl(uint32_t r) {
     n    = p[a];
     p[a] = p[b];
     p[b] =    n;
-//  if(p[a] && p[b]) {} else
-//  printf("\n--> a: %d, b: %d, n: %d, r: 0x%08x\n", a, b, n, r);
   }
 }
 
@@ -83,6 +81,14 @@ void scramtbl(register uint32_t r) {
   }
 }
 
+#define prt2(s,m) fprintf(stderr, "%s0x%08x, ", s, m)
+static inline
+uint64_t prntbl(uint32_t *tb, uint32_t sze) {
+  uint32_t i;
+  for (i = 0; i < sze; i++, tb++)
+    prt2((i&3)?"":"\n  ", *tb);
+}
+
 static inline
 uint64_t chktbl(uint32_t *tb, uint32_t sze) {
   uint64_t y;
@@ -91,13 +97,8 @@ uint64_t chktbl(uint32_t *tb, uint32_t sze) {
        i < sze; i++, tb++) {
     w ^= *tb; m *= *tb; s += *tb;
   }
-  w ^= s;
-  y  = ((uint64_t)w * m);
-//printf("\n--> y: 0x%016lx\n", y);
-  y  = (y << 32) + s + m;
-//printf("\n--> y: 0x%016lx\n", y);
-  y ^= ((uint64_t)w) << 16;
-//printf("\n--> y: 0x%016lx\n", y);
+  y  = ((uint64_t)s * m);
+  y ^= (y >> 32) + s + m;
   return y;
 }
 
@@ -229,18 +230,16 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
+
   chk = chktbl((uint32_t *)table, TABLESZE >> 2);
-/*
- * RAF, TODO: clearly this is a problem to solve!
- *
 #if USE_MTBL | USE_MLTP
-  if(MTBL_CHK-chk) {
+  if((i = MTBL_CHK-chk)) {
     fprintf(stderr, "\n  tblchk: 0x%016lx, %s\n",
-      chk, (MTBL_CHK-chk) ? "MISMATCH\n" : "OK");
+      chk, i ? "MISMATCH\n" : "OK");
     exit(1);
   }
 #endif
-*/
+
   collect_entropy(); // #8
 
   #ifdef ENSRCS
@@ -294,12 +293,13 @@ int main(int argc, char *argv[]) {
   if(!argn) {
     uint64_t cxk;
     cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
-    printf("\n  tblchk: 0x%016lx, %s\n",
-      cxk, (cxk-chk) ? "KO" : "OK");
-    if(cxk-chk) exit(1);
+    if(cxk-chk) {
+      printf("\n  tblchk: 0x%016lx, %s\n",
+        cxk, (cxk-chk) ? "MISMATCH" : "OK");
+      exit(1);
+    }
   }
 
-  #define prt2(s,m) print2("%s0x%08x, ", s, m)
   //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
   //r32:   0|        8|       16|       24|       32|
   //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
@@ -326,15 +326,14 @@ int main(int argc, char *argv[]) {
   }
 
   if(!argn) {
+    uint64_t cxk;
+    cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
     print2(
       "\n#define MTBL_SZE 64"
       "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mtbl[] = {");
-    for (i = 0; i < TABLESZE; i += 4) {
-      uint32_t *w = (uint32_t *)&table[i];
-      prt2((i%16)?"":"\n  ", *w);
-    }
-    print2("\n};\n#define MTBL_CHK 0x%016lx", chk)
+    prntbl((uint32_t *)table, TABLESZE >> 2);
+    print2("\n};\n#define MTBL_CHK 0x%016lx", cxk)
     newln2();
   }
 

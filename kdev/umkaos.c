@@ -291,7 +291,8 @@ int main(int argc, char *argv[]) {
   #undef r
 
   if(!argn) {
-    uint32_t m1 = rndm[n-1];
+    uint32_t tb[MLTP_SZE+4];
+    uint8_t *w = (uint8_t *)tb;
 #if 0
     // checking the table is still untouched
     cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
@@ -318,7 +319,7 @@ int main(int argc, char *argv[]) {
       "\nconst uint32_t __thread mtbl[] = {");
     prntbl((uint32_t *)table, TABLESZE >> 2);
     print2("\n};\n#define MTBL_CHK 0x%016lx",
-      chktbl((uint32_t *)table, TABLESZE >> 2));
+      chktbl((uint32_t *)table, TABLESZE >> 2) );
     newln2();
 
     //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
@@ -329,19 +330,26 @@ int main(int argc, char *argv[]) {
       "\n#define MLTP_SZE 128"
       "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mltp[] = {");
+
     for(i = 0; i < 16; i++) {
-      uint8_t *q = (uint8_t *)&table[i];
-      print2("%s0x%02x%02x%02x%02x, ",
-        (i&3) ? "" : "\n  ",
-        q[0+i], q[16+i], q[32+i], q[48+i]);
+      const uint8_t *q = &table[i];
+      *w++ = q[ 0+i];
+      *w++ = q[16+i];
+      *w++ = q[32+i];
+      *w++ = q[48+i];
     }
     for(i = 0; i < 16; i++) {
-      uint8_t *q = (uint8_t *)&table[i];
-      print2("%s0x%02x%02x%02x%02x, ",
-        (i&3) ? "" : "\n  ",
-        q[0+i], q[48+i], q[32+i], q[16+i]);
+      const uint8_t *q = &table[i];
+      *w++ = q[ 0+i];
+      *w++ = q[48+i];
+      *w++ = q[32+i];
+      *w++ = q[16+i];
     }
-    print2("\n  0x%08x\n};\n", m1);
+    tb[MLTP_SZE] = tb[0];
+    prntbl(tb, 1 + (MLTP_SZE >> 2));
+    print2("\n};\n#define MLTP_CHK 0x%016lx",
+      chktbl(tb, 1 + (MLTP_SZE >> 2)) );
+    newln2();
   }
   else
   if((uint8_t *)p != mpage)

@@ -8,7 +8,8 @@
  *   cc $CFLAGS -D_USE_FNCS uchaos_seq.c umkaos.c -o umkaos && ./umkaos
  *   cc $CFLAGS -D_USE_MTBL              umkaos.c -o umkaos && ./umkaos
  *   cc $CFLAGS -D_USE_MLTP              umkaos.c -o umkaos && ./umkaos
- *   ./umkaos 2> uchaos_tbl.h
+ *   cc $CFLAGS -DMLTP_SZE=128           umkaos.c -o umkaos && ./umkaos
+ *   ./umkaos > uchaos_tbl.h
  *
  * Functions tests:
  *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
@@ -154,6 +155,17 @@ int main(int argc, char *argv[]) {
     __FILE__, VERSION);
   newln2();
 
+  if( (MLTP_SZE != 64 && MLTP_SZE != 128)
+#if USE_MTBL
+   || (MTBL_SZE != 64 && MTBL_SZE != 128)
+#endif
+   || (TABLESZE != 64 && TABLESZE != 128) )
+  {
+    print2(
+      "\nERROR: unsupported table size\n");
+    exit(1);  
+  }
+
   urnd_init();
 
   collect_entropy(); // #2
@@ -293,15 +305,7 @@ int main(int argc, char *argv[]) {
   if(!argn) {
     uint32_t tb[MLTP_SZE+4];
     uint8_t *w = (uint8_t *)tb;
-#if 0
-    // checking the table is still untouched
-    cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
-    if(cxk-chk) {
-      printf("\n  tblchk: 0x%016lx, %s\n",
-        cxk, (cxk-chk) ? "MISMATCH" : "OK");
-      exit(1);
-    }
-#endif
+
     // scramble the table by sectors
     while (n--) {
       uint32_t m = rndm[n];
@@ -313,39 +317,47 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    n = TABLESZE >> 2;
     print2(
-      "\n#define MTBL_SZE 64"
       "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mtbl[] = {");
-    prntbl((uint32_t *)table, TABLESZE >> 2);
-    print2("\n};\n#define MTBL_CHK 0x%016lx",
-      chktbl((uint32_t *)table, TABLESZE >> 2) );
+    prntbl((uint32_t *)table, n);
+    print2("\n};"
+      "\n#define MTBL_SZE %d"
+      "\n#define MTBL_CHK 0x%016lx",
+        TABLESZE, chktbl((uint32_t *)table, n) );
     newln2();
 
     //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
     //r32:   0|        8|       16|       24|       32|
     //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
     //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
+    n = MLTP_SZE >> 2;
     print2(
-      "\n#define MLTP_SZE 128"
       "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mltp[] = {");
-
-    for(i = 0; i < 16; i++) {
+    for(i = 0; i < (TABLESZE >> 2); i++) {
       const uint8_t *q = &table[i];
       *w++ =  q[ 0 + i];
       *w++ =  q[16 + i];
       *w++ =  q[32 + i];
       *w++ =  q[48 + i];
+    }
+#if MLTP_SZE > 64
+    for(i = 0; i < (TABLESZE >> 2); i++) {
+      const uint8_t *q = &table[i];
       *w++ = ~q[32 + i]; // ~5  -->  3  bits
       *w++ =  q[48 + i]; // 2nd --> 4th byte
       *w++ = ~q[ 0 + i]; // ~3  -->  5  bits
-      *w++ =  q[16 + i]; // 4th --> 2nd byte
+      *w++ =  q[16 + i]; // 2nd --> 4th byte
     }
-    tb[MLTP_SZE] = tb[0];
-    prntbl(tb, 1 + (MLTP_SZE >> 2));
-    print2("\n};\n#define MLTP_CHK 0x%016lx",
-      chktbl(tb, 1 + (MLTP_SZE >> 2)) );
+#endif
+    tb[n] = tb[0];
+    prntbl(tb, 1 + n);
+    print2("\n};"
+      "\n#define MLTP_SZE %d"
+      "\n#define MLTP_CHK 0x%016lx",
+        MLTP_SZE, chktbl(tb, 1 + n) );
     newln2();
   }
   else

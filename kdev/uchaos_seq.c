@@ -75,7 +75,7 @@
  *
  * nano0rnd() introduced for code maintenance (1pt), it regains.  590 MB/s (-4%)
  *
- * CHANGES (in v0.3.0)
+ * CHANGES (in v0.4.0)
  *
  * get_30ns2() fills the gap, adds scramble and mem::barrier.     576 MB/s (-6%)
  *
@@ -88,6 +88,11 @@
  *
  * It uses a 128 combs table, speed from return at full throttle  602 MB/s (-1%)
  * px 4 "./umkaos 20" | ent: 7.999990, 256.92, 45.44%, 127.506, 0.00%, -0.000173
+ *
+ * CHANGES (in v0.4.0 w/ -D_USE_MLTP)
+ *
+ * It uses a 64 combs table, speed from return at full throttle   642 MB/s (+5%)
+ * px 4 "./umkaos 20" | ent: 7.999990, 231.51, 85.18%, 127.520, 0.02%, -0.000294
  *
  **************************************************************************** */
 

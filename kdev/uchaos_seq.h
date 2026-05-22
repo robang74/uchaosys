@@ -2,7 +2,7 @@
  * uchaos_seq.h - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.3.9"
+ #define VERSION "v0.4.0"
  /*
  * Public interface, it hides internal but speed drops by 2/3 because functions.
  *
@@ -62,6 +62,9 @@
 #define urnd_init() memcpy(table, mtbl, TABLESZE)
 #else
 #define TABLESZE 64
+#ifndef MLTP_SZE
+#define MLTP_SZE TABLESZE
+#endif
 #define urnd_init() memset(table,    0, TABLESZE)
 #endif
 

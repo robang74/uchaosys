@@ -333,17 +333,14 @@ int main(int argc, char *argv[]) {
 
     for(i = 0; i < 16; i++) {
       const uint8_t *q = &table[i];
-      *w++ = q[ 0+i];
-      *w++ = q[16+i];
-      *w++ = q[32+i];
-      *w++ = q[48+i];
-    }
-    for(i = 0; i < 16; i++) {
-      const uint8_t *q = &table[i];
-      *w++ = q[ 0+i];
-      *w++ = q[48+i];
-      *w++ = q[32+i];
-      *w++ = q[16+i];
+      *w++ =  q[ 0 + i];
+      *w++ =  q[16 + i];
+      *w++ =  q[32 + i];
+      *w++ =  q[48 + i];
+      *w++ = ~q[32 + i]; // ~5  -->  3  bits
+      *w++ =  q[48 + i]; // 2nd --> 4th byte
+      *w++ = ~q[ 0 + i]; // ~3  -->  5  bits
+      *w++ =  q[16 + i]; // 4th --> 2nd byte
     }
     tb[MLTP_SZE] = tb[0];
     prntbl(tb, 1 + (MLTP_SZE >> 2));

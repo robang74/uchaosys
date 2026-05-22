@@ -29,11 +29,11 @@ __attribute__((aligned(8)))
 static volatile uint64_t e;
 #endif
 
-#define newln1()       if(!argn) { putchar('\n'); fflush(stdout); }
-#define print1(fmt...) if(!argn) { fprintf(stdout, fmt); }
-#define print2(fmt...) if(!argn) { fprintf(stderr, fmt); }
+#define newln1()       if(  0  ) { putchar('\n'); fflush(stdout); }
+#define print1(fmt...) if(  0  ) { fprintf(stdout, fmt); }
+#define print2(fmt...) if(!argn) { fprintf(stdout, fmt); }
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
-#define newln2()       if(!argn) { print2("\n"); fflush(stderr); }
+#define newln2()       if(!argn) { print2("\n"); fflush(stdout); }
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
 ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
@@ -81,7 +81,7 @@ void scramtbl(register uint32_t r) {
   }
 }
 
-#define prt2(s,m) fprintf(stderr, "%s0x%08x, ", s, m)
+#define prt2(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
 uint64_t prntbl(uint32_t *tb, uint32_t sze) {
   uint32_t i;
@@ -230,7 +230,6 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-
   chk = chktbl((uint32_t *)table, TABLESZE >> 2);
 #if USE_MTBL | USE_MLTP
   if((i = MTBL_CHK-chk)) {
@@ -287,57 +286,65 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+  newln1();
   #undef m
   #undef r
 
   if(!argn) {
-    uint64_t cxk;
+    uint32_t m1 = rndm[n-1];
+#if 0
+    // checking the table is still untouched
     cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
     if(cxk-chk) {
       printf("\n  tblchk: 0x%016lx, %s\n",
         cxk, (cxk-chk) ? "MISMATCH" : "OK");
       exit(1);
     }
-  }
-
-  //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
-  //r32:   0|        8|       16|       24|       32|
-  //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
-  //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
-  if(!argn) {
-    print2(
-      "\n#define MLTP_SZE 128"
-      "\n__attribute__((aligned(4)))"
-      "\nconst uint32_t __thread mltp[] = {");
-    uint32_t m1 = rndm[n-1];
+#endif
+    // scramble the table by sectors
     while (n--) {
-      uint32_t m = rndm[n], r = rndr[n];
-      prt2("\n  ", m);
-      scramtbl(r);
-      for(int k = 1; k & 7; k++) {
+      uint32_t m = rndm[n];
+      scramtbl((r = rndr[n]));
+      for(i = 1; i & 7; i++) {
         r = rotl32(r, 20);
         m = urnd_comb(r) ;
-        prt2("", m);
         scramtbl(r);
       }
     }
-    prt2("\n  ", m1);
-    print2("\n};\n");
-  }
 
-  if(!argn) {
-    uint64_t cxk;
-    cxk = chktbl((uint32_t *)table, TABLESZE >> 2);
     print2(
       "\n#define MTBL_SZE 64"
       "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mtbl[] = {");
     prntbl((uint32_t *)table, TABLESZE >> 2);
-    print2("\n};\n#define MTBL_CHK 0x%016lx", cxk)
+    print2("\n};\n#define MTBL_CHK 0x%016lx",
+      chktbl((uint32_t *)table, TABLESZE >> 2));
     newln2();
-  }
 
-  if( argn && (uint8_t *)p != mpage)
+    //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
+    //r32:   0|        8|       16|       24|       32|
+    //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
+    //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
+    print2(
+      "\n#define MLTP_SZE 128"
+      "\n__attribute__((aligned(4)))"
+      "\nconst uint32_t __thread mltp[] = {");
+    for(i = 0; i < 16; i++) {
+      uint8_t *q = (uint8_t *)&table[i];
+      print2("%s0x%02x%02x%02x%02x, ",
+        (i&3) ? "" : "\n  ",
+        q[0+i], q[16+i], q[32+i], q[48+i]);
+    }
+    for(i = 0; i < 16; i++) {
+      uint8_t *q = (uint8_t *)&table[i];
+      print2("%s0x%02x%02x%02x%02x, ",
+        (i&3) ? "" : "\n  ",
+        q[0+i], q[48+i], q[32+i], q[16+i]);
+    }
+    print2("\n  0x%08x\n};\n", m1);
+  }
+  else
+  if((uint8_t *)p != mpage)
     t = write(1, mpage, ((uint8_t *)p)-mpage);
 
   t = get_nanos(); // collecting the running time

@@ -146,7 +146,7 @@ else
   qaccel="${QMACH:+-M $QMACH} $qaccel"
 fi
 
-cmdlnx="-append '$cmdlnx ${KARGS:-}'"
+cmdlnx="-append '$cmdlnx rcutree.rcu_expedited=1 ${KARGS:-}'"
 
 # disable this line if it creates trouble because ulimit -l isn't friendly
 grep -qi uchaos /etc/os-release || qaccel="$qaccel -overcommit mem-lock=on"

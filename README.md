@@ -67,6 +67,8 @@ It is interesting to note how the memory is allocated&hairsp;.<br>
 ¹ in v0.6.8 without sources download variable time.<br>
 ² without `RNG_test` for which .cpio size +2.28 MB.
 
+**TODO**: replacing the initramfs with an EROFS root filesystem.
+
 <br>
 
 ### Components

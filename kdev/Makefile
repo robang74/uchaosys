@@ -80,8 +80,12 @@ sign: all
 uckaos: uckaos.c uchaos_dev.h
 	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s
 
-umkaos: umkaos.c uchaos_seq.h uchaos_seq.c
-	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s -Wno-format-extra-args
+uchaos_tbl.h: umkaos.c
+	$(OPTS) $(CC) -O3 $< -I../usrl -o umkaos -s -Wno-format-extra-args
+	./umkaos >uchaos_tbl.h
+
+umkaos: umkaos.c uchaos_seq.h uchaos_seq.c uchaos_tbl.h
+	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s -Wno-format-extra-args -D_USE_MLTP
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

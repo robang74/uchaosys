@@ -1,3 +1,4 @@
+usrl/uchaosbox
 kdev/linux-kernel
 kdev/linux-5.15.202.orig
 kdev/.uchaos_dev.o.d
@@ -5,7 +6,8 @@ kdev/modules.order
 kdev/Module.symvers
 kdev/uchaos_dev.ko.gz
 kdev/uchaos_dev.ko
-usrl/uchaosbox
+kdev/uchaos_tbl.h
+kdev/umkaos
 kdev/uckaos
 kdev/*.cmd
 kdev/*.mod*

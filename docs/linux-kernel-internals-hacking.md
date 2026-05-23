@@ -263,8 +263,8 @@ An entropy algorithm that derives its unpredictability primarily from **doing no
 
 Accepting the paradigm that chaos exists beforehands and entropy is analog chaos leaking into digital systems, the straightforward consequence is to dump the use of any fixed multiplicative constant because they can be easily tracked down and implements stochastics branching or flip-flopping that are not easily exposed by any `get_time_ns()` LSB tampering attack.
 
-- [kdev/uchaos_seq.c](../kdev/uchaos_seq.c) &nbsp;(working example, developing in progress)
-
 In fact there are two kind of attacks against those are trying to generates randomness from nanoseconds timings. One is about `setdate()` and `settime()` that alter the UNIX time expressed in seconds since EPOCH (1st Jan 1970) but also can interfere/skew the values under 1s because WHEN they get happen. The other is about LSB as described above. 
 
 While filtering the multiplicative constants is the fastest, leas performance impacting and the most generic way to precisely tampering timings/random when it is worth the most. Which means that under normal conditions the tampering isn't visible because isn't working at all, thus doesn't generate systemic drift or skews or others evidence.
+
+One viable solution is using a pre-computed table of multiplicative comb-constants byte-randomised at each compilation, like [umkaos](../kdev/umkaos.c) does since v0.4.0. At generation time one, in every cycle a multiplicative constant is randomly pick-up among 64 (or 128) pre-computed. The 32-bits comb pattern is 3, 4, 5, 4 unos which allows to store N 32-bit constants into a 8-bits addressable N+1 table, creating a circular unos-pattern and variable-misaligned memory-access jittering.

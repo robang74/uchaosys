@@ -170,6 +170,16 @@ int main(int argc, char *argv[]) {
 
   collect_entropy(); // #2
 
+#if USE_MLTP
+  chk = chktbl((uint32_t *)mltp, 1 + (MLTP_SZE >> 2));
+  if((i = MLTP_CHK-chk)) {
+    fprintf(stderr, "\n  mltchk: 0x%016lx, %s\n",
+      chk, i ? "MISMATCH\n" : "OK");
+    exit(1);
+  }
+  collect_entropy(); // #3
+#endif
+
 #if USE_MTBL | USE_MLTP
 #else
   // byte WR pointer to the table

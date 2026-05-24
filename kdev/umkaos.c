@@ -263,11 +263,6 @@ int main(int argc, char *argv[]) {
 
   collect_entropy(); // #8
 
-  #ifdef ENSRCS
-  // stop collecting CPU jitters
-  ENTRSRCS = (MEMSRC | WRTSRC);
-  #endif
-
   // for-loop is optimised for 32bit
   int max = (argn?:4);
   uint32_t rndr[4], rndm[4];
@@ -275,23 +270,20 @@ int main(int argc, char *argv[]) {
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
-      #if USE_FNCS
+#if USE_FNCS
       #define r urnd_e32r()
       #define m urnd_e32m()
       urnd_emix();
-      #else
+#else
       __attribute__((aligned(4)))
-      uint32_t m, r;
+              uint32_t m,  r ;
       e = nano3rnd(e, &m, &r);
-      #endif
+#endif
 
       if(argn) {
         *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
           ssize_t wn = write(1, mpage, WRITESZE);
-          #ifdef ENSRCS
-          if(ENTRSRCS & WRTSRC)
-          #endif
           collect_entropy();
           p = (uint32_t *)mpage;
         }
@@ -309,8 +301,10 @@ int main(int argc, char *argv[]) {
     }
   }
   newln1();
+#if USE_FNCS
   #undef m
   #undef r
+#endif
 
   if(!argn) {
     uint32_t tb[MLTP_SZE+4];

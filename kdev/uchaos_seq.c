@@ -179,15 +179,15 @@ uint64_t _get_30ns2(void)  {
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;
   dt =  ct - t            ; // this dif can skew (1)
    t =  ct                ; // save the previous (2)
-  #if 0
+#if 0
   dt = (dt & 0xffff) << 10; // it closes the gap
   ct += dt                ; // sum always < 2^30 (a)
                             // and scrambles LSB
   ct ^= dt << 4           ; // 2^(16+14)-1 = 67M (b)
-  #else
+#else
   dt = (dt & 0xffff) << 14; // it closes the gap
   ct = (dt ^ ct) + dt     ; // and adds scramble (c)
-  #endif
+#endif
   // when using time as multiplier, it is nice to
   // fill-up the range uncovered by 2^30 and 1BLN.
   // LSB drive stochastics, who can control them?

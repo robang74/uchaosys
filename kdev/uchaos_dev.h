@@ -122,8 +122,8 @@ static archul_t *kbufptr = NULL;
  */
 
 __attribute__((always_inline))
-static inline archul_t rotlbit(archul_t n, u8 c) {
-    c &= ABX; return (n << c) | (n >> ((-c) & ABX));
+static inline archul_t rotlbit(register archul_t n, u8 c) {
+    return (n << (c &= ABX)) | (n >> ((-c) & ABX));
 }
 
 /* xxhash.com - Extremely fast non-cryptographic hash algorithm
@@ -162,7 +162,7 @@ static inline archul_t rotlbit(archul_t n, u8 c) {
       (archul_t)XXH3_##ABN##bbits((const void *)&_a, HASHSIZE); })
 #else
   __attribute__((always_inline))
-  static inline archul_t knuthmx(archul_t iw) {
+  static inline archul_t knuthmx(register archul_t iw) {
       register archul_t w = iw, m = murmul3 ;
       w ^= rotlbit(w,  getprmx16(w)) + rot3 ;
       w *= rotlbit(m,  w ^ rot4)     ;
@@ -170,8 +170,7 @@ static inline archul_t rotlbit(archul_t n, u8 c) {
       return w;
   }
   __attribute__((always_inline))
-  static inline archul_t murmux3(archul_t ks, archul_t p) {
-      register archul_t z = ks;
+  static inline archul_t murmux3(register archul_t z, register archul_t p) {
       z =  p ^ ((z >> (ABx-2)) * murmul1);
       z = (z ^ ( z <<  ABx  )) * murmul2;
       z =  z ^ ( z >> (ABx+2));
@@ -205,13 +204,13 @@ static atomic_t loop_failure = ATOMIC_INIT(0);
 __attribute__((flatten))
 static archul_t djb2tum(archul_t seed, size_t num)
 {
-    static unsigned long failure_jiff = 0;
-    static archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASHSEED;
-
+    static __thread archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASHSEED;
 #ifdef _PROVIDE_STATS
-    static u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
-    static archul_t avg = 0, jmn = -1, jmx = 0, javg = 0;
+    static __thread archul_t avg = 0, jmn = -1, jmx = 0, javg = 0;
+    static __thread u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
 #endif
+    static __thread unsigned long failure_jiff = 0;
+
     volatile int i, j = 0; // volatile as current CPU memory barrier in the loop
     register archul_t ent = 0, hsh = ohs; // these two in particular need accel.
     archul_t tns, dlt, dff, ons = 0;

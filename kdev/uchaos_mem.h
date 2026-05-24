@@ -8,8 +8,8 @@
 #define UCHAOS_MEM_H
 
 #define TS_N_ORDER 3
-#define TS_N_MULVAL murmul1
-#define TS_N_ADDVAL murmul2
+#define TS_N_MULVAL murmul3
+#define TS_N_ADDVAL murmul4
 #define TS_N_OFFSET (HASHSIZE << 1)
 #define TS_N_REPLICAS ((1 << TS_N_ORDER) - 1)
 #define GPF_KBUF_FLAGS (GFP_KERNEL | __GFP_ZERO | __GFP_COMP | __GFP_NOWARN)
@@ -107,7 +107,7 @@ static void *ts_mempages_zalloc(void) {
 
 static u64 kbufptr_mseed(u64 t) {
   register unsigned i;
-  register archul_t v = TS_N_ADDVAL;
+  register archul_t w = TS_N_ADDVAL;
   volatile archul_t *ptr = ts.kbufptr;
   volatile u64 *buf = (u64 *)ts.kbufptr;
   u64 msk, sze = ((u64)PAGE_SIZE << ts.kbuf_pages_order) >> 1;
@@ -121,11 +121,11 @@ static u64 kbufptr_mseed(u64 t) {
     msk = ((sze - 1) >> 3) << 3;
     for (i = 0; i < TS_N_REPLICAS; ++i) {
       memcpy((void *)ptr, (void *)_printk + ((u16)t1 & msk), sze);
-      v ^= *ptr + TS_N_ADDVAL;
+      w ^= *ptr + TS_N_ADDVAL;
       t2 = get_time_ns();
       dt = (t2 > t1) ? t2 - t1 : 0;
-      v ^= rotlbit(v + dt - odt, dt);
-      ptr = (volatile archul_t *)( (u64)buf + ((v + t1) & msk) );
+      w ^= rotlbit(w + dt - odt, dt);
+      ptr = (volatile archul_t *)( (u64)buf + ((w + t1) & msk) );
 #ifdef _PROVIDE_STATS
       if(mint > dt) mint = dt;
       if(maxt < dt) maxt = dt;
@@ -141,7 +141,7 @@ static u64 kbufptr_mseed(u64 t) {
     (u32)sze, i, (u32)mint, (u32)(avgt / 10), (u32)(avgt % 10),
       (u32)maxt, USE_RAW_CYCLES ? "uP" : "nS");
 #endif
-  return v * TS_N_MULVAL;
+  return w * TS_N_MULVAL;
 }
 
 #endif /* UCHAOS_MEM_H */

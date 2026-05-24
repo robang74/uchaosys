@@ -59,20 +59,35 @@
 #define ABy ((ABN>>2)-1)  //  7 or 15
 #define ABz ((ABN>>3)-1)  //  3 or  7
 
-#define EBUF_ITEMS 4
 #define HASHSIZE (ABN >> 3)
 #define MAX_INPUT_SIZE (1024 << 3)
 #define KBUFSIZE (MAX_INPUT_SIZE + HASHSIZE)
+#define EBUF_ITEMS  4
+#define rot1       47ULL
+#define rot2       17ULL
+#define rot3       13ULL
+#define rot4        5ULL
+
+#ifdef _USE_MTBL
+#define USE_MTBL 1
+#include "uchaos_tbl.h"
+#define USE_FIX_MLTPLR 0
+#define MLTP_MSK   (MLTP_SZE-1)
+#define MLTP64(n)  (*(u64 *)(((u8 *)mltp) + ((n) & MLTP_MSK)))
+#define HASHSEED   ( (rot4<<24) | (rot3<<16) | (rot2<<8) | rot1 )
+#define murmul1    MLTP64(z ^ rot1)
+#define murmul2    MLTP64(0 ^ rot2) // RAF: perculiar one
+#define murmul3    MLTP64(w ^ rot3)
+#define murmul4    MLTP64(t ^ rot4)
+#else
+#define USE_MTBL 0
 #define HASHSEED 14695981039346656037ULL // FNV-1a
 //                 0xCBF29CE484222325ULL // FNV-1a
 #define murmul1    0xff51afd7ed558ccdULL
 #define murmul2    0xc4ceb9fe1a85ec53ULL
 #define murmul3    0x9E3779B9045d9f3bULL
 #define murmul4    HASHSEED
-#define rot1       47
-#define rot2       17
-#define rot3       13
-#define rot4        5
+#endif
 
 #define dtskew(x) (!x || (x)>>28) // 2^29 is the biggest 2^n before 1E9
 #define ONESEC msecs_to_jiffies(1 << 10)

@@ -72,8 +72,8 @@
 __attribute__((aligned(4)))
 uint8_t __thread table[TABLESZE];
 #else
-extern const
-uint8_t __thread const *table;
+extern
+uint8_t __thread table[];
 #endif
 
 static inline

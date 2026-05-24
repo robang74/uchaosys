@@ -137,9 +137,9 @@ int main(int argc, char *argv[]) {
   // for-loop is optimised for 32bit
   if(argc & 2) {
     argn = atol(argv[1]);
-    if(argn < 2) argn = 4;
+    if(argn < 4) argn = 4;
     if(argn < 64) {
-      if(argn > 32) {
+      if(argn > 31) {
         ncycl = 1ULL << (argn-31);
         argn  = 1ULL << 31;
       } else {
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
   collect_entropy(); // #2
 
 #if USE_MLTP
-  chk = chktbl((uint32_t *)mltp, 1 + (MLTP_SZE >> 2));
+  chk = chktbl((uint32_t *)mltp, 4 + (MLTP_SZE >> 2));
   if((i = MLTP_CHK-chk)) {
     fprintf(stderr, "\n  mltchk: 0x%016lx, %s\n",
       chk, i ? "MISMATCH\n" : "OK");
@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   if(!argn) {
-    uint32_t tb[MLTP_SZE+4];
+    uint32_t tb[MLTP_SZE + 16];
     uint8_t *w = (uint8_t *)tb;
 
     // scramble the table by sectors
@@ -345,12 +345,14 @@ int main(int argc, char *argv[]) {
       *w++ =  q[16 + i]; // 2nd --> 4th byte
     }
 #endif
-    tb[n] = tb[0];
-    prntbl(tb, 1 + n);
+    for(i = 0; i < 4; i++){
+      tb[n+i] = tb[i];
+    }
+    prntbl(tb, 4 + n);
     print2("\n};"
       "\n#define MLTP_SZE %d"
       "\n#define MLTP_CHK 0x%016lx",
-        MLTP_SZE, chktbl(tb, 1 + n) );
+        MLTP_SZE, chktbl(tb, 4 + n) );
     newln2();
 
     n = TABLESZE >> 2;

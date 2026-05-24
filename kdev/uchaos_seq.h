@@ -2,7 +2,7 @@
  * uchaos_seq.h - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  */
- #define VERSION "v0.4.0"
+ #define VERSION "v0.4.1"
  /*
  * Public interface, it hides internal but speed drops by 2/3 because functions.
  *
@@ -39,7 +39,6 @@
 #define WRITESZE    BLOCKSZE
 
 #define LSB32       0xffffffff
-#define SEEDZ       0xec19
 
 #define bit(y,x) (((x) >> (y)) & 1)
 
@@ -79,8 +78,7 @@ uint8_t __thread table[];
 static inline
 __attribute__((always_inline))
 uint32_t rotl32(uint32_t x, uint8_t n) {
-  n &= 31;
-  return (x << n) | (x >> (32-n));
+  return (x << (n &= 31)) | (x >> (32-n));
 }
 #define rotl5(x) rotl32(x, 5)
 

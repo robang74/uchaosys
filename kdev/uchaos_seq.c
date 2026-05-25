@@ -13,9 +13,9 @@
  *   cc $CFLAGS -DMLTP_SZE=128           umkaos.c -o umkaos && ./umkaos
  *   ./umkaos > uchaos_tbl.h
  *
- *   CFLAGS32="-march=i486 -mtune=generic -mno-avx2 -mno-avx"
- *   CFLAGS32="-m32 -D_USE_FNCS uchaos_seq.c $CFLAGS32 -static"
- *   cc $CFLAGS -D_USE_MLTP $CFLAGS32 umkaos.c -o umkaos32 && ./umkaos32
+ *   CFLAGS32="-static -m32 -march=i486 -mtune=generic -mno-avx2 -mno-sse3"
+ *   CFLAGS32="-mno-sse2 -mno-sse -mno-avx -D_USE_FNCS uchaos_seq.c $CFLAGS32"
+ *   cc $CFLAGS -D_USE_MLTP $CFLAGS32   umkaos.c -o umkaos32 && ./umkaos32
  *
  * Functions tests:
  *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
@@ -171,7 +171,7 @@ uint32_t urnd_comb(
  * is not trivial, it is the ultimate sophistication, instead.
  */
 #define get_30ns2() ({ uint64_t _t=_get_30ns2(); \
-                      asm volatile("" : "+g"(_t)); _t; })
+                    asm volatile("" : "+g"(_t)); _t; })
 
 // RAF: this function is used only here, and its prototype
 // consistency isn't relevant: returns 64 for the caller.

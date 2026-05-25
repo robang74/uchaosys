@@ -4,7 +4,7 @@ MODULE_NAME := uchaos_dev
 obj-m += $(MODULE_NAME).o
 
 # Add GDB flags to force symbol generation during compilation
-EXTRA_CFLAGS += -g0 -O2 -Wall -fstack-protector
+EXTRA_CFLAGS += -g0 -O2 -Wall -fstack-protector -s
 # not yet supported -ftrivial-auto-var-init=zero
 
 # Automatically create dependencies by c code files
@@ -80,7 +80,7 @@ sign: all
 uckaos: uckaos.c uchaos_dev.h
 	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s
 
-uchaos_tbl.h: umkaos.c
+uchaos_tbl.h: umkaos.c uchaos_seq.h uchaos_seq.c
 	$(OPTS) $(CC) -O3 $< -I../usrl -o umkaos -s -Wno-format-extra-args
 	./umkaos >uchaos_tbl.h
 

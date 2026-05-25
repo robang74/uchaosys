@@ -171,7 +171,9 @@ uint32_t urnd_comb(
 
 // RAF: this function is used only here, and its prototype
 // consistency isn't relevant: returns 64 for the caller.
-__attribute__((always_inline)) static inline
+__attribute__((always_inline))
+__attribute__((hot))
+static inline
 uint64_t _get_30ns2(void)  {
   static
   uint32_t __thread t = 0 ;
@@ -225,6 +227,7 @@ register uint64_t t)  {
 }
 
 __attribute__((always_inline))
+__attribute__((hot))
 static inline
 uint64_t nano1rnd(
 register uint64_t e)  { // used during "e" warming phase
@@ -266,6 +269,7 @@ register uint64_t e,
 __thread urnd_mr_t _urnd_entr;
 
 __attribute__((always_inline))
+__attribute__((hot))
 static inline
 uint64_t nano4rnd(
 register uint64_t e)  {

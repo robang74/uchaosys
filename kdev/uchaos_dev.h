@@ -125,7 +125,7 @@ static archul_t *kbufptr = NULL;
 
 __attribute__((always_inline))
 static inline archul_t rotlbit(register archul_t n, u8 c) {
-    return (n << (c &= ABX)) | (n >> ((-c) & ABX));
+    c &= ABX; return (n << c) | (n >> ((-c) & ABX));
 }
 
 /* xxhash.com - Extremely fast non-cryptographic hash algorithm

@@ -32,9 +32,6 @@
 #include <sched.h>
 #include <time.h>
 
-#define PAGEORDR    12
-#define PAGESIZE    (2 << PAGEORDR)
-#define PAGEFULL(x) (x >> PAGEORDR)
 #define BLOCKSZE    512
 #define WRITESZE    BLOCKSZE
 

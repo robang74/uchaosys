@@ -4,9 +4,20 @@
  *
  #define VERSION "v0.4.2" // version definition moved in uchaos_seq.h
  *
- * Compile and run with:
- *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -falign-functions=32 -I../usrl"
- *   cc uchaos_seq.c umkaos.c $CFLAGS -mavx2 -o umkaos && ./umkaos
+ * Compile with:
+ *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
+ *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
+ *   cc $CFLAGS -D_USE_FNCS uchaos_seq.c umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_MTBL              umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_MLTP              umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -DMLTP_SZE=128           umkaos.c -o umkaos && ./umkaos
+ *   ./umkaos > uchaos_tbl.h
+ *
+ * Functions tests:
+ *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
+ *  px 4 "./umkaos 20" | ent
+ *  px 8 "./umkaos 25" | dd bs=1M of=/dev/null
+ *  px 4 "./umkaos 34" | ../prnd/RNG_test stdin64
  *
  *******************************************************************************
  * TESTING

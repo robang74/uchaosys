@@ -39,7 +39,7 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific for the reference tagged version [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) which adopts the all-static policy (footprints: +3% sys, +1% musl) and boots on an experimental *frankenstein* glibc-musl all-static qemu compiled on Ubuntu 22.04 (footprint: +25% dev/build).
+The data reported below are indicative and specific for every version. Since the tagged [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5), this projects adopts the all-static policy (footprints: +3% sys, +1% musl) and boots on an experimental *frankenstein* glibc-musl all-static qemu compiled on Ubuntu 22.04 (footprint: +25% dev/build).
 
 Reference processor **i5-8365**, toolchain metrics:
 

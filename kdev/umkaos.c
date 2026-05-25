@@ -9,6 +9,7 @@
  *
  **************************************************************************** */
 
+#include <inttypes.h>
 #include "getnanos.h"
 
 #ifdef _USE_FNCS
@@ -246,7 +247,7 @@ int main(int argc, char *argv[]) {
   chk = chktbl(table);
 #if USE_MTBL | USE_MLTP
   if((i = MTBL_CHK-chk)) {
-    fprintf(stderr, "\n  tblchk: 0x%016lx, %s\n",
+    fprintf(stderr, "\n  tblchk: 0x%016llx, %s\n",
       chk, i ? "MISMATCH\n" : "OK");
     exit(1);
   }
@@ -345,7 +346,7 @@ int main(int argc, char *argv[]) {
     prntbl(tb, n);
     print2("\n};"
       "\n#define MLTP_SZE %d"
-      "\n#define MLTP_CHK 0x%016lx",
+      "\n#define MLTP_CHK 0x%016" PRIx64,
         MLTP_SZE, chktbl(tb) );
     newln2();
 
@@ -356,7 +357,7 @@ int main(int argc, char *argv[]) {
     prntbl((uint32_t *)table, 1 + (TABLESZE >> 2));
     print2("\n};"
       "\n#define MTBL_SZE %d"
-      "\n#define MTBL_CHK 0x%016lx",
+      "\n#define MTBL_CHK 0x%016" PRIx64,
         TABLESZE, chktbl(table) );
     newln2();
   }
@@ -366,8 +367,8 @@ int main(int argc, char *argv[]) {
 
   t = get_nanos(); // collecting the running time
   print2(
-    "\n//> Run time: %7lu nS --> %.03lf mS\n",
-      t, (double)t/1E6);
+    "\n//> Run time: %7.0f nS --> %.03lf mS\n",
+      (float)t, (double)t/1E6);
 
   newln2();
   return 0;

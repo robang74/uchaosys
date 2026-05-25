@@ -165,8 +165,8 @@ int main(int argc, char *argv[]) {
 #if USE_MLTP
   chk = chktbl(mltp);
   if((i = MLTP_CHK-chk)) {
-    fprintf(stderr, "\n  mltchk: 0x%016lx, %s\n",
-      chk, i ? "MISMATCH\n" : "OK");
+    fprintf(stderr, "\n  mltchk: 0x%016" PRIx64
+      ", %s\n", chk, i ? "MISMATCH\n" : "OK");
     exit(1);
   }
   collect_entropy(); // #3
@@ -247,8 +247,8 @@ int main(int argc, char *argv[]) {
   chk = chktbl(table);
 #if USE_MTBL | USE_MLTP
   if((i = MTBL_CHK-chk)) {
-    fprintf(stderr, "\n  tblchk: 0x%016llx, %s\n",
-      chk, i ? "MISMATCH\n" : "OK");
+    fprintf(stderr, "\n  tblchk: 0x%016" PRIx64
+      ", %s\n", chk, i ? "MISMATCH\n" : "OK");
     exit(1);
   }
 #endif

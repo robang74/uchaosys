@@ -13,6 +13,10 @@
  *   cc $CFLAGS -DMLTP_SZE=128           umkaos.c -o umkaos && ./umkaos
  *   ./umkaos > uchaos_tbl.h
  *
+ *   CFLAGS32="-march=i486 -mtune=generic -mno-avx2 -mno-avx"
+ *   CFLAGS32="-m32 -D_USE_FNCS uchaos_seq.c $CFLAGS32 -static"
+ *   cc $CFLAGS -D_USE_MLTP $CFLAGS32 umkaos.c -o umkaos32 && ./umkaos32
+ *
  * Functions tests:
  *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
  *  px 4 "./umkaos 20" | ent

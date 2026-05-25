@@ -117,6 +117,13 @@ Two series of graphs chosen from a paper (2013) and a tech blog (2025), and chos
 
 The uChaos engine injects the whole pack, relies basically on the least significant 8 bits, and leverages the 3+2 LSB difference between two consecutive latencies (jitter) for stochastics branching. The whole pack is for maximising performance in better-than-worst-scenarios, and the `1/f`-pink components require a whitening function as finaliser.
 
+---
+
+### Quick start beyond CPU jitter
+
+Check [this document](../kdev/umkaos32.md) about `umkaos` 32bit i386 musl-static elf to learn about all the advantages offered by this approach and to download a pre-built executable that can be tested and integrated with a simple `popen()` to provide a 400MB/s RNG for the sake of every unprivileged userland application that wants to run unobserved: plausible deniability also at microcode level.
+
+
 `--`<br>
 Cheers,<br>
 [Roberto A. Foglietta](https://www.linkedin.com/in/robertofoglietta/)<br>

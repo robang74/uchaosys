@@ -4,7 +4,7 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-The umkaos32 is a userland binary built for supporting all the x86 CPUs from i386 and above. Compared with the same code compiled for AVX2 x64 which has a throughput of 600MB/s, the 32bit loses less than half of the performance and provides 75% throughput (400 MB/s). Because it is compiled as static musl can elf thus it rusn on every system without extra libraries and when compressed with the self-extracting `gzcmd.sh` format takes less than 20Kb.
+The umkaos32 is a userland binary built for supporting all the x86 CPUs from i386 and above. Compared with the same code compiled for AVX2 x64 which has a throughput of 600MB/s, the 32bit loses less than half of the performance and provides 67% throughput (400 MB/s). Because it is compiled as static musl can elf thus it runs on every system without extra libraries and when compressed with the self-extracting `gzcmd.sh` format takes less than 20Kb.
 
 Like uchaos and uckaos (80MB/s), it provides entropy conduction without the need of a seed but it also avoid to use every fixed multiplicative constant to be hard to detect by the the CPU microcode. Instead, it uses a 64bit comb words stored in a 76 bytes table in a way the purposely misaligned 8bit reading increasing the jittering within the hot loop.
 
@@ -16,7 +16,7 @@ This strongly increases the difficulty of being detected at running time and thu
 
 Moreover, because it does not need any particular privilege, every user can run it. Because its output is designed to be consumed by piping it, every application can `popen()` as an external independent executable without even the burden of integrating its GPLv2 code.
 
-- download the pre-compiled self-extracting 32bit statoc binary from [here](https://raw.githubusercontent.com/robang74/working-in-progress/refs/heads/main/uchaosys.qemu/umkaos32.gz.sh)
+- download the pre-compiled self-extracting 32bit static binary from [here](https://raw.githubusercontent.com/robang74/working-in-progress/refs/heads/main/uchaosys.qemu/umkaos32.gz.sh)
 
 Finally, like uchaos and uckaos, it provides white RNG which passed the 256GB PractRand test without flaw. Like every stochastic noise, sometimes it shows a 1E-3 event (unusual) and rarely a 2nd order event 1E-6 (mildly) but within the first 256GB, I did not observe yet a third order event. Such events are statistically probable thus their frequencies, the significant trait is their distribution is discrete by 1E-3 circa as 1st order.
 

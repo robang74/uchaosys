@@ -105,6 +105,8 @@ It is essential to underline that uChaos at the time of this text first writing 
 
 Last but not least, the chaos engine is **exactly** the same in kernel and user spaces: the same [`uchaos_dev.h`](kdev/uchaos_dev.h) translated in userspace by trivial macros. It compiles twice, and the two binaries never misalign: same file, same code. Audited once, it runs everywhere.
 
+Check [this document](kdev/umkaos32.md) about `umkaos` 32bit i386 musl-static elf to learn about all the advantages offered by this approach and to download a pre-built executable that can be tested and integrated with a simple `popen()` to provide a 400MB/s RNG for the sake of every unprivileged userland application that wants to run unobserved: plausible deniability also at microcode level.
+
 <br>
 
 ### Quick Start

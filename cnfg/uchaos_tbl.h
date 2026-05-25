@@ -1,30 +1,33 @@
 
-//> Executing umkaos.c in v0.4.2
+/*
+ * (c) 2026, roberto.foglietta@gmail.com, GPLv2
+ */
+//> Executing uChaoSys::umkaos.c v0.4.2
 
 // RAF: not aligned at 32 bit on purpose
 __attribute__((weak))
 const uint32_t __thread mltp[] = {
-  0x99d365a4, 0xa9b64d34, 0xaacd6a2a, 0xccda5394, 
-  0xa6d52b29, 0xb4d96664, 0x9a6b352c, 0xca5b594a, 
-  0x0099d365, 0x00a9b64d, 0x0eaacd6a, 0x5bccda53, 
-  0x39a6d52b, 0x15b4d966, 0xab9a6b35, 0xe8ca5b59, 
-  0x99d365a4, 0xa9b64d34, 0xaacd6a2a, 0xccda5394, 
+  0xa5b3654c, 0xd4ab66a4, 0x9a9b4b25, 0x996d3332, 
+  0xccd96964, 0xb4d63552, 0xd2da5994, 0xa9cb4d2c, 
+  0x00a5b365, 0x00d4ab66, 0x009a9b4b, 0x00996d33, 
+  0x00ccd969, 0x00b4d635, 0x00d2da59, 0x00a9cb4d, 
+  0xa5b3654c, 0xd4ab66a4, 0x9a9b4b25, 0x996d3332, 
   0x00000000, 
 };
 #define MLTP_SZE 64
-#define MLTP_CHK 0x2b49d09b44fd7858
+#define MLTP_CHK 0x21b63455b21acae6
 
 __attribute__((weak))
 __attribute__((aligned(4)))
 const uint32_t __thread mtbl[] = {
-  0x253432a4, 0x9294492a, 0x26644c29, 0x524a542c, 
-  0x694d5565, 0x4b535a6a, 0x3366362b, 0x2d595635, 
-  0x9bb66dd3, 0xd6dacbcd, 0xadd9b3d5, 0xab5bb56b, 
-  0xc9a9ac99, 0x95cc96aa, 0xb2b4d4a6, 0xd2caa59a, 
+  0x2aa4544c, 0x92323425, 0x26524a64, 0x492c2994, 
+  0x5a665665, 0x2b33534b, 0x55352d69, 0x364d6a59, 
+  0xcdabadb3, 0x5b6d6b9b, 0xb6d6b5d9, 0xd3cbd5da, 
+  0x96d4aaa5, 0x9599b29a, 0xcab4accc, 0xc9a9a6d2, 
   0x00000000, 
 };
 #define MTBL_SZE 64
-#define MTBL_CHK 0x0693b99741df784b
+#define MTBL_CHK 0x8c9c602f2f656be6
 
-//> Run time:   48675 nS --> 0.049 mS
+//> Run time:   30447 nS --> 0.030 mS
 

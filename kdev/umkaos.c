@@ -142,10 +142,11 @@ int main(int argc, char *argv[]) {
 
   collect_entropy(); // #1
 
-  print2(
-    "\n//> Executing %s in %s",
-    __FILE__, VERSION);
-  newln2();
+  fprintf(argn ? stderr : stdout,
+    "\n/*\n * (c) 2026, roberto.foglietta@gmail.com, GPLv2\n */"
+    "\n//> Executing uChaoSys::%s %s\n",
+      __FILE__, VERSION);
+  fflush(argn ? stderr : stdout);
 
   if( (MLTP_SZE != 64 && MLTP_SZE != 128)
 #if USE_MTBL

@@ -19,9 +19,9 @@
  *
  * Functions tests:
  *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
- *  px 4 "./umkaos 20" | ent
- *  px 8 "./umkaos 25" | dd bs=1M of=/dev/null
- *  px 4 "./umkaos 34" | ../prnd/RNG_test stdin64
+ *  px 4 "./umkaos 20 2>&-" | ent
+ *  px 8 "./umkaos 25 2>&-" | dd bs=1M of=/dev/null
+ *  px 4 "./umkaos 34 2>&-" | ../prnd/RNG_test stdin64
  *
  *******************************************************************************
  * TESTING

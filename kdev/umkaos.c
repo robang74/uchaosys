@@ -91,17 +91,18 @@ uint64_t prntbl(uint32_t *tb, uint32_t sze) {
 }
 
 static inline
-uint64_t chktbl(uint32_t *tb, uint32_t sze) {
+uint64_t _chktbl(uint32_t *tb) {
   uint64_t y;
   uint32_t i, m, s, w;
-  for (i = s = w = 0, m = 1;
-       i < sze; i++, tb++) {
+  for (i = s = w = 0, m = 1; *tb; i++, tb++) {
     w ^= *tb; m *= *tb; s += *tb;
   }
-  y  = ((uint64_t)s * m);
+  w ^= s + m;
+  y  = (uint64_t)  w * m;
   y ^= (y >> 32) + s + m;
   return y;
 }
+#define chktbl(tp) _chktbl((uint32_t *)tp)
 
 #if USE_FNCS
 #define collect_entropy() urnd_eclt()
@@ -171,7 +172,7 @@ int main(int argc, char *argv[]) {
   collect_entropy(); // #2
 
 #if USE_MLTP
-  chk = chktbl((uint32_t *)mltp, 4 + (MLTP_SZE >> 2));
+  chk = chktbl(mltp);
   if((i = MLTP_CHK-chk)) {
     fprintf(stderr, "\n  mltchk: 0x%016lx, %s\n",
       chk, i ? "MISMATCH\n" : "OK");
@@ -252,7 +253,7 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  chk = chktbl((uint32_t *)table, TABLESZE >> 2);
+  chk = chktbl(table);
 #if USE_MTBL | USE_MLTP
   if((i = MTBL_CHK-chk)) {
     fprintf(stderr, "\n  tblchk: 0x%016lx, %s\n",
@@ -328,6 +329,7 @@ int main(int argc, char *argv[]) {
     n = MLTP_SZE >> 2;
     print2(
       "\n// RAF: not aligned at 32 bit on purpose"
+      "\n__attribute__((weak))"
       "\nconst uint32_t __thread mltp[] = {");
     for(i = 0; i < (TABLESZE >> 2); i++) {
       const uint8_t *q = &table[i];
@@ -345,25 +347,27 @@ int main(int argc, char *argv[]) {
       *w++ =  q[16 + i]; // 2nd --> 4th byte
     }
 #endif
-    for(i = 0; i < 4; i++){
-      tb[n+i] = tb[i];
+    for(i = 0; i < 4; i++) {
+      table[TABLESZE+i] = 0;
+      tb[n++] = tb[i];
     }
-    prntbl(tb, 4 + n);
+    tb[n++] = 0;
+    prntbl(tb, n);
     print2("\n};"
       "\n#define MLTP_SZE %d"
       "\n#define MLTP_CHK 0x%016lx",
-        MLTP_SZE, chktbl(tb, 4 + n) );
+        MLTP_SZE, chktbl(tb) );
     newln2();
 
-    n = TABLESZE >> 2;
     print2(
+      "\n__attribute__((weak))"
       "\n__attribute__((aligned(4)))"
       "\nconst uint32_t __thread mtbl[] = {");
-    prntbl((uint32_t *)table, n);
+    prntbl((uint32_t *)table, 1 + (TABLESZE >> 2));
     print2("\n};"
       "\n#define MTBL_SZE %d"
       "\n#define MTBL_CHK 0x%016lx",
-        TABLESZE, chktbl((uint32_t *)table, n) );
+        TABLESZE, chktbl(table) );
     newln2();
   }
   else

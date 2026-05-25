@@ -70,7 +70,9 @@
 
 #ifdef _USE_MTBL
 #define USE_MTBL 1
+#ifndef MLTP_SZE
 #include "uchaos_tbl.h"
+#endif
 #define USE_FIX_MLTPLR 0
 #define MLTP_MSK   (MLTP_SZE-1)
 #define MLTP64(n)  (*(u64 *)(((u8 *)mltp) + ((n) & MLTP_MSK)))

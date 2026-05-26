@@ -150,7 +150,7 @@ $(SDIR)/.done:
 update: .sync
 	@$(call print_stop)
 
-updatebbox:
+updatebbox: .sync
 	@echo "Updating busybox at the uchaosys branch HEAD"
 	cd bbox && git fetch origin uchaosys --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
@@ -161,9 +161,9 @@ defconfig: .sync
 	rm -f musl/.conf $(MAKELOG)
 	$(MAKELNX) musl/.conf
 
-_sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
+_sources: $(SDIR)/.done qemu/src/.done gzcmd.gz.sh
 
-sources: defconfig qemu/src/.done
+sources: defconfig 
 	@$(call print_start,"","")
 	@$(MAKELNX) _sources
 	@$(call print_stop)

@@ -84,6 +84,10 @@ Inside the shell:
 
 - `whoami`
 
+After the exit:
+
+- `rm -f iamroot`
+
 > [!WARNING]
 > This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
 

@@ -35,6 +35,7 @@ The 32-bit binary shows a drop in performance which is just a fraction (`-33%`) 
 ### Preparing the container for building
 
 ```sh
+# After the preparation:
 docker -it run i386/alpine:latest /bin/sh
 # Inside the container:
 apk update

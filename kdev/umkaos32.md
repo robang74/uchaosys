@@ -4,6 +4,7 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
+This document is a design rationale. It explains the architectural transition from uchaos/uckaos to umkaos and why randomized comb-based mixing supersedes fixed-constant whitening hashes in the uChaos paradigm.
 
 ### Introduction
 

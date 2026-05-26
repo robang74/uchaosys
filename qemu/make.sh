@@ -79,8 +79,9 @@ if [ "${1:-}" = "sources" -o ! -e src/.done ]; then
   touch .done
   cd ..
   set +e
+  exit 0
 fi
-test "${1:-}" = "sources" && shift
+#test "${1:-}" = "sources" && shift
 cp -af minikvm.mak $src_dir/configs/devices/x86_64-softmmu/ || exit 1
 
 ################################################################################

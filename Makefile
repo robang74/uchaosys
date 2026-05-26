@@ -163,7 +163,7 @@ defconfig: .sync
 
 _sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
 
-sources: defconfig
+sources: defconfig qemu/src/.done
 	@$(call print_start,"","")
 	@$(MAKELNX) _sources
 	@$(call print_stop)
@@ -407,9 +407,14 @@ distclean: deepclean
 ucfg/pkg-config:
 	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
 
-qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config
+qemu/src/.done:
 	@$(call print_start,"","")
-	cd qemu && time -p sh make.sh sources
+	cd qemu && sh make.sh sources
+	@$(call print_stop)
+
+qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done
+	@$(call print_start,"","")
+	cd qemu && sh make.sh
 	touch $@
 
 virt/.done: qemu/output/.done

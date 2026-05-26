@@ -52,7 +52,7 @@ export devc
 
 ---
 
-#### THE SUID ESCAPES FROM THE CONTAINER
+### The SUID escapes from the container
  
 Can we consider this a local priviledge escalation? 😁
 
@@ -94,7 +94,7 @@ After the exit:
 
 ---
 
-### 32bit musl-static for i386 platform
+### 32-bit musl-static for i386 platform
 
 ```sh
 biname="umkaos32"
@@ -127,7 +127,7 @@ Basic test:
 
 <br>
 
-### Rationale
+### Rationale about umkaos
 
 The original math problem was impossible to solve, unless attacked piece by piece, which is a quite wrong/uncommon approach for a theoretical serious study but it fits great when coding procedures (practical implementation) is an essential part of the problem solution.
 

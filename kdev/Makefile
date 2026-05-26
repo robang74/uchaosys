@@ -61,10 +61,9 @@ dist: all
 	strip --strip-debug $(KO_FILE)
 	@echo "Compressing with gzip -9 ... "
 	gzip -9 -c $(KO_FILE) > $(KO_FILE).gz
-	@printf "Final size: "
-	@du -b $(KO_FILE).gz | tr '\t' ' '
-	@printf "Final size: "
-	@du -b uckaos | tr '\t' ' '
+	@printf "Final size: \n"
+	@du -b $(KO_FILE).gz uckaos umkaos | tr '\t' ' ' | sed -e "s/^/  /"
+	@echo
 
 sign: all
 	@echo "Signing the kernel module requires root priviledges"

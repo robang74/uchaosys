@@ -139,7 +139,7 @@ gzcmd.gz.sh: gzcmd.sh
 	sh $< $< gzcmd
 	touch $@
 
-$(SDIR)/.done: .sync
+$(SDIR)/.done:
 	@$(call print_start,"","Wait downloading sources ...")
 	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl extract_all
 	@$(call print_stop)
@@ -155,13 +155,13 @@ updatebbox:
 	cd bbox && git fetch origin uchaosys --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
-defconfig:
+defconfig: .sync
 	rm -f bbox/.config bbox/.conf $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
 _sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
 
-sources:
+sources: .sync
 	@$(call print_start,"","")
 	@$(MAKELNX) _sources
 	@$(call print_stop)

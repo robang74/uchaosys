@@ -150,18 +150,18 @@ $(SDIR)/.done: .sync
 update: .sync
 	@$(call print_stop)
 
-updatebbox:
+updatebbox: .sync
 	@echo "Updating busybox at the uchaosys branch HEAD"
 	cd bbox && git fetch origin uchaosys --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
-defconfig:
+defconfig: .sync
 	rm -f bbox/.config bbox/.conf $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
 
 _sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
 
-sources:
+sources: .sync
 	@$(call print_start,"","")
 	@$(MAKELNX) _sources
 	@$(call print_stop)

@@ -13,7 +13,7 @@ Like uchaos and uckaos (80MB/s), it provides entropy conduction without the need
 
 It creates its own table randomly shuffling the values at each run, thus it self-prepare a different .h at each building. Here below this step isn't reported but it is as simple as:
 
-- ./umkaos >uchaos_tbl.h
+- `./umkaos > uchaos_tbl.h`
 
 This strongly increases the difficulty of being detected at running time and thus targeted for being poisoned. While the SW virtualised CPU jittering might lack of real entropy in software virtual machines, and the scheduler jittering might be not totally trustable, the misaligned RAM readings, supplies even when KVM passthrough isn't enabled.
 
@@ -27,7 +27,7 @@ Finally, the umkaos was designed to be as 32-bit friendly as possible despite be
 
 The aggressive inlining policy combined with a 32-bit algorithm design, allows the compiler to avoid using the few 32-bit coupled registers (`EDX:EAX`, `ECX:EBX`) and "leaving them uncongested, because the inner core's live set requires only two pairs for the 64-bit condenser and timing accumulator, while all other variables are pure 32-bit scalars."
 
-The 32-bit binary shows a drop in performance which is just a fraction (-33%) even less than half (-50%). While an order of magnitude would be expected for a full 64-bit cryptographic code, instead.
+The 32-bit binary shows a drop in performance which is just a fraction (`-33%`) even less the bare minimum half (`-50%`). While an order of magnitude would be expected for a full 64-bit cryptographic code, instead.
 
 <br>
 
@@ -125,19 +125,19 @@ Basic test:
 
 The original math problem was impossible to solve, unless attacked piece by piece, which is a quite wrong/uncommon approach for a theoretical serious study but it fits great when coding procedures (practical implementation) is an essential part of the problem solution.
 
-1. - murmur3 is fast but vulnerable because constant are constant
+1. murmur3 is fast but vulnerable because constant are constant
 
-2. - constants are vulnerable because they are well known in advance
+2. constants are vulnerable because they are well known in advance
 
-3. - not all the multipliers are equal and each creates N-dimension space
+3. not all the multipliers are equal and each creates N-dimension space
 
-4. - bits alternation isn't enough by itself but Fourier combs are descents
+4. bits alternation isn't enough by itself but Fourier combs are descents
 
-5. - descents is not enough, unless enough lasts so little that its is fine
+5. descents is not enough, unless enough lasts so little that its is fine
 
-6. - stochastics input aren't enough for a RNG, whitening is a need
+6. stochastics input aren't enough for a RNG, whitening is a need
 
-7. - whitening is a fragile step because can create structures
+7. whitening is a fragile step because can create structures
 
 At this points few fact arises as prominent:
 

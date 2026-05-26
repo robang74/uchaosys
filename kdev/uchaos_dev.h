@@ -204,7 +204,7 @@ static atomic_t loop_failure = ATOMIC_INIT(0);
  * forced into inlining, regardless of its own attributes.
  */
 __attribute__((flatten))
-static archul_t djb2tum(archul_t seed, size_t num)
+static archul_t djb2tum(archul_t seed, int num)
 {
     static __thread archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASHSEED;
 #ifdef _PROVIDE_STATS
@@ -411,7 +411,7 @@ static inline ssize_t _unprotected_interuptible_kbuf_fill(size_t len) {
  * threads to elaborate a file long enough to make the multithreading
  * setup O(1) negligible compared with the elaboration time O(size/N).
  */
-static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
+static inline int __init4_djb2tum(archul_t *ebuf, int nents) {
     archul_t seed = HASHSEED ^ get_time_ns();
 #if USE_TSMEM_SEED
     kbuf = ts_mempages_zalloc();
@@ -420,7 +420,7 @@ static inline int __init4_djb2tum(archul_t *ebuf, size_t nents) {
     kbuf = NULL;
     seed =            knuthmx(seed) ;
 #endif
-    seed = djb2tum(seed,  loop_mult * init_runs);
+    seed = djb2tum(seed,  loop_mult * init_runs); // RAF: !overflow, 7*63 max
     if(!kbuf) {
       // static *ptr allocation at init means: go or not-go, there is not try
       kbufptr = kzalloc(KBUFSIZE, GFP_KERNEL);

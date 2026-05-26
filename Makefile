@@ -156,12 +156,14 @@ updatebbox:
 	  && git checkout FETCH_HEAD
 
 defconfig: .sync
-	rm -f bbox/.config bbox/.conf $(KDIR)/.hdrs $(SDIR)/.done
-	rm -f musl/.conf $(MAKELOG) && $(MAKELNX) musl/.conf
+	rm -f $(KDIR)/.hdrs $(SDIR)/.done
+	rm -f bbox/.config bbox/.conf
+	rm -f musl/.conf $(MAKELOG)
+	$(MAKELNX) musl/.conf
 
 _sources: musl/.conf $(SDIR)/.done gzcmd.gz.sh
 
-sources: .sync
+sources: defconfig
 	@$(call print_start,"","")
 	@$(MAKELNX) _sources
 	@$(call print_stop)

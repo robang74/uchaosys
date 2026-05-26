@@ -75,7 +75,7 @@ if [ "${1:-}" = "sources" -o ! -e src/.done ]; then
   cd $src_dir
   $infl_cmd ../$url_name --strip-components=1
   sed -e '/cxl\.c/d' -e '/cxl-stub/d' -i hw/acpi/meson.build
-  patch -p1 < ../../cnfg/q35-remove-old-machines-v3-patch
+  patch -p1 < ../../cnfg/q35-remove-old-machines-v4-patch
   touch .done
   cd ..
   set +e

@@ -18,9 +18,12 @@
 
 This project is based on the previous case study `random.txt` in [WIP](https://github.com/robang74/working-in-progress?tab=readme-ov-file#working-in-progress), starting on **2026-01-26**. Which leveraged the [BMLS](https://github.com/robang74/bare-minimal-linux-system) testing system for evolving from shell script (PoC) to the kernel (MVP). The main goal of respawning from scratch the project on a new repository is to strip the project from all that stuff accumulated over and over during the experimental development.
 
-* [Technical Presentation for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) (2026-03-16)
+* [Technical Presentation for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) &nbsp;(2026-03-16)
+* [Why it works so well as training consultancy content](docs/gemini-thinking-uchaosys-peer-review.md#why-it-works-so-well-as-training-consultancy-content) &nbsp;(2026-04-07)
 
-Last but not least, this project provide a **micro 1.70 MB Linux embedded system** (footprint v0.6.2 including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views.
+Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources.
+
+Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views. Including the ability of self-hosting and self-executing in a cascade KVM 64MB to TCG 32MB, for example.
 
 <br>
 
@@ -34,36 +37,33 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### information
 
-The data reported below are indicative and specific for the reference tagged version [v0.6.2](https://github.com/robang74/uchaosys/releases/tag/v0.6.2) (repository in .zip archive size: 103 KB).
+The data reported below are indicative and specific for every version. Since the tagged [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5), this projects adopts the all-static policy (footprints: +3% sys, +1% musl) and boots on an experimental *frankenstein* glibc-musl all-static qemu compiled on Ubuntu 22.04 (footprint: +25% dev/build).
 
-Reference processor **i5-8365**, building times:
+Reference processor **i5-8365**, toolchain metrics:
 
-- `musl building elapsed time: 1021 s`&hairsp;¹
-- `linux kernel building time:  118 s`
-- `busybox custom making time:   15 s`
-- `uchaos proj compiling time:    8 s`
-- `system building total time: 1162 s  (19m 36s)`&hairsp;²
+- `system building total time:  970 s  (16m 10s)`&hairsp;¹
+- `dev/build environment size: 5529 MB (5.40 GB)`
+- `repository .zip copy  size:  464 KB (pdf+img)`
 
-Reference architecture **x86_64**, footprint sizes:
+Reference architecture **x86_64**, system footprint:
 
-- `dev/build enviroment  size: 4824 MB (4.71 GB)`
-- `uncompressed .cpio    size:  644 KB`
+- `uncompressed .cpio    size:  664 KB`
 - `initramfs.cpio.gz     size:  416 KB`
-- `linux kernel image    size: 1328 KB`
-- `qemu bootable system  size: 1744 KB (1.70 MB)`
+- `linux kernel image    size: 1384 KB`
+- `qemu bootable system  size: 1800 KB (1.76 MB)`&hairsp;²
 
 Running this minimal system, the essential metrics:
 
 - `CPU single-pipeline KVM: sh start.sh -q -m 32`
-- `total time for being ready to user: 0.056 s `**!!!**
-- `total available memory in userland: 18856 KB`
-    - `host: 32768, zram: -4724, cpio:  -736 KB`
-    - `mlnx: 23548, used: -2404, buff: -1468 KB`
+- `total time for being ready to user: 0.062 s `**!!!**
+- `total available memory in userland: 18876 KB`
+    - `host: 32768, zram: -4719, cpio:  -664 KB`
+    - `mlnx: 23544, used: -2448, buff: -1460 KB`
 
-It is interesting to note how the memory is allocated&hairsp;³.<br>
-³ without `RNG_test` installed which size is 2.23 MB.<br>
-² not the sum but elapsed time from `make buildall`.<br>
-¹ without accounting sources download variable time.
+It is interesting to note how the memory is allocated&hairsp;.<br>
+
+¹ without accounting sources download variable time.<br>
+² without `RNG_test` for which .cpio size +2.28 MB.
 
 <br>
 
@@ -72,16 +72,17 @@ It is interesting to note how the memory is allocated&hairsp;³.<br>
 - **musl v1.2.15**, and related packages for the cross-compilation toolchain;
 - **busybox v1.38**, as the whole initramfs system component and user shell;
 - **linux v5.15.202**, as the kernel from a very widely spread LTS branch;
-- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver.
+- **uchaosbox & dev.ko**, as userland utility toolbox and char device driver;
+- **qemu v10.2.2**, as machine emulator with virtio/microvm/q35 support.
 
 #### External tools 
 
 - [dL1](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) &dash; **PractRand RNG_test**, external static tool for testing randonmess quality 
 - [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
 
-While PractRand `RNG_test` (2288 KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
+While PractRand `RNG_test` (2288&nbsp;KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
 
-The `RNG_test.gz.sh` (906 KB) is 1366 KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
+The `RNG_test.gz.sh` (906&nbsp;KB) is 1366&nbsp;KB lighter than the original, as much as the `bzImage`. Indeed, `RNG_test` requires a lot of RAM when working versus which the gzcmd saving isn't relevant but the rationale remains, presented here as a practical example.
 
 However, using gzcmd executables make sense only when a storage is available. Otherwise there are two copies in RAM, at least. After all, `gzcmd.sh` exists as an alternative to compressed archives and initramfs is nothing else than a compressed `cpio` archive.
 
@@ -89,7 +90,7 @@ However, using gzcmd executables make sense only when a storage is available. Ot
 
 ### Abstract
 
-In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal crng once) by loading the module which needs [to hack the kernel internals](https://raw.githubusercontent.com/robang74/uchaosys/refs/heads/devl/docs/linux-kernel-internals-hacking.png) because backport fix from 6.x left a corner case uncovered.
+In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal crng once) by loading the module which needs [to hack the kernel internals](docs/linux-kernel-internals-hacking.png) because backport fix from 6.x left a corner case uncovered.
 
 It is worth to underline that this choice is not suggested as per a standard case use of uChaos but it is necessary for testing uChaos/crng duo excluding every possible internal source of interference: if it doesn't fail, it isn't because other sources of entropy are supplying.
 
@@ -115,7 +116,7 @@ cd uchaosys
 time make sources
 #    real	 2m42.075s
 time make buildall
-#    real	22m33.494s
+#    real	16m10.232s  <-- v0.6.8: -29%, parallelism
 # to run uChaoSys on u/qemu
 make runqemu
 
@@ -144,15 +145,19 @@ Considering that the system footprint is below 2MB, offering a binary sample mak
 
 ### Hacked μ-qemu
 
-Since [v0.6.4](https://github.com/robang74/uchaosys/releases/tag/v0.6.4) this project also provides the option of compiling a special [footprint reduced](qemu/) edition of the `qemu-system-x86_64` binary (8188 KB) which uses a subset of ROMs (488 KB).
+- [μ-footprint hacked qemu edition](qemu/) &hairsp;host page, last version
+
+Since v0.6.5 this project also provides the option of compiling an experimental *frankenstein* [glibc-musl static](qemu/glibc-musl-fix.c) edition of the `qemu-system-x86_64` binary ([v0.6.7](https://github.com/robang74/uchaosys/releases/tag/v0.6.7): 7264&nbsp;KB, -3% minz w/lto) which uses a subset of ROMs (488&nbsp;KB, tgz: 272&nbsp;KB).
 
 > FILE: 'qemu-system-x86_64.gz.sh', HEAD: 1392 (4), 
-> GZIP: 3099857 (3027 Kb, 37 %), GZSH: v0.1.6
+> GZIP: 2656031 (2594 Kb, 35 %), GZSH: v0.1.6
 
 > FILE: 'RNG_test.gz.sh', HEAD: 1384 (4), 
 > GZIP: 927519 (906 Kb, 39 %), GZSH: v0.1.6
 
-It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains under 6 MB.
+It is worth to note that the whole package uChaoSys + u-QEMU + RNG_test once compressed – by [`gzcmd.sh`](https://github.com/robang74/bare-minimal-linux-system/blob/main/gzcmd.sh) in a self-executable or by `gzip` into the `initramfs.cpio.gz` – remains **under 6MB** (precisely 5.44&nbsp;MB).
+
+This result has been achieved in 7-days from the initial commit of this project.
 
 <br>
 

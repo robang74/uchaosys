@@ -23,9 +23,9 @@ Moreover, because it does not need any particular privilege, every user can run 
 
 Like uchaos and uckaos, aslo umkaos provides white-noise RNG which passed the 256GB PractRand test without flaw. Like every stochastic noise, sometimes it shows a 1E-3 event (unusual) and rarely a 2nd order event 1E-6 (mildly) but within the first 256GB, while a 3rd order event didn't seen yet. Such events are statistically probable thus their frequencies, the significant trait is their distribution is discrete by 1E-3 circa as 1st order.
 
-Finally, the umkaos was designed to be as 32-bit friendly as possible despite being written with a 64-bit notation for 64-bit performance, clarity and shortness (the whole C-language code length is about 300 lines by an average of 40 chars each).
+Finally, the umkaos was designed to be as 32-bit friendly as possible (the throughput ratio prove it) despite being written with a 64-bit notation for 64-bit performance, clarity and shortness (the whole C-language code length is about 300 lines by an average of 40 chars each).
 
-The aggressive inlining policy combined with a 32-bit algorithm design, allows the compiler to avoid using the few 32-bit coupled registers (`EDX:EAX`, `ECX:EBX`) and "leaving them uncongested, because the inner core's live set requires only two pairs for the 64-bit condenser and timing accumulator, while all other variables are pure 32-bit scalars."
+The aggressive inlining policy combined with a 32-bit algorithm design, allows the compiler to avoid using the few 32-bit coupled registers (`EDX:EAX`, `ECX:EBX`) and "leaving them uncongested, because the inner core's live set requires only two pairs for the 64-bit condenser and timing accumulator, while all other variables are pure 32-bit scalars".
 
 The 32-bit binary shows a drop in performance which is just a fraction (`-33%`) even less the bare minimum half (`-50%`). While an order of magnitude would be expected for a full 64-bit cryptographic code, instead.
 

@@ -419,7 +419,7 @@ qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done
 
 virt/.done: qemu/output/.done
 	@$(call print_start,"","")
-	cp -alLf qemu/output/* virt/
+	cp -alf qemu/output/* virt/
 	$(MAKELNX) install
 	touch $@
 

@@ -4,6 +4,9 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
+
+### Introduction
+
 The umkaos32 is a userland binary built for supporting all the x86 CPUs from i386 and above. Compared with the same code compiled for AVX2 x64 which has a throughput of 600MB/s, the 32bit loses less than half of the performance and provides 67% throughput (400 MB/s). Because it is compiled as static musl can elf thus it runs on every system without extra libraries and when compressed with the self-extracting `gzcmd.sh` format takes less than 20Kb.
 
 Like uchaos and uckaos (80MB/s), it provides entropy conduction without the need of a seed but it also avoid to use every fixed multiplicative constant to be hard to detect by the the CPU microcode. Instead, it uses a 64bit comb words stored in a 76 bytes table in a way the purposely misaligned 8bit reading increasing the jittering within the hot loop.
@@ -18,9 +21,13 @@ Moreover, because it does not need any particular privilege, every user can run 
 
 - download the pre-compiled self-extracting 32bit static binary from [here](https://raw.githubusercontent.com/robang74/working-in-progress/refs/heads/main/uchaosys.qemu/umkaos32.gz.sh)
 
-Finally, like uchaos and uckaos, it provides white RNG which passed the 256GB PractRand test without flaw. Like every stochastic noise, sometimes it shows a 1E-3 event (unusual) and rarely a 2nd order event 1E-6 (mildly) but within the first 256GB, I did not observe yet a third order event. Such events are statistically probable thus their frequencies, the significant trait is their distribution is discrete by 1E-3 circa as 1st order.
+Like uchaos and uckaos, aslo umkaos provides white-noise RNG which passed the 256GB PractRand test without flaw. Like every stochastic noise, sometimes it shows a 1E-3 event (unusual) and rarely a 2nd order event 1E-6 (mildly) but within the first 256GB, while a 3rd order event didn't seen yet. Such events are statistically probable thus their frequencies, the significant trait is their distribution is discrete by 1E-3 circa as 1st order.
 
-The container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every system/shell and allows a local privileges escalation without asking the password.
+Finally, the umkaos was designed to be as 32-bit friendly as possible despite being written with a 64-bit notation for 64-bit performance, clarity and shortness (the whole C-language code length is about 300 lines by an average of 40 chars each).
+
+The aggressive inlining policy combined with a 32-bit algorithm design, allows the compiler to avoid using the few 32-bit coupled registers (`EDX:EAX`, `ECX:EBX`) and "leaving them uncongested, because the inner core's live set requires only two pairs for the 64-bit condenser and timing accumulator, while all other variables are pure 32-bit scalars."
+
+The 32-bit binary shows a drop in performance which is just a fraction (-33%) even less than half (-50%). While an order of magnitude would be expected for a full 64-bit cryptographic code, instead.
 
 <br>
 
@@ -76,6 +83,9 @@ Inside the shell:
 
 - `whoami`
 
+> [!WARNING]
+> This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
+
 ---
 
 ### 32bit musl-static for i386 platform
@@ -108,4 +118,57 @@ size $biname
 Basic test:
 
 - `./umkaos32`
+
+<br>
+
+### Rationale
+
+The original math problem was impossible to solve, unless attacked piece by piece, which is a quite wrong/uncommon approach for a theoretical serious study but it fits great when coding procedures (practical implementation) is an essential part of the problem solution.
+
+1. - murmur3 is fast but vulnerable because constant are constant
+
+2. - constants are vulnerable because they are well known in advance
+
+3. - not all the multipliers are equal and each creates N-dimension space
+
+4. - bits alternation isn't enough by itself but Fourier combs are descents
+
+5. - descents is not enough, unless enough lasts so little that its is fine
+
+6. - stochastics input aren't enough for a RNG, whitening is a need
+
+7. - whitening is a fragile step because can create structures
+
+At this points few fact arises as prominent:
+
+- fixing every single part of the problem creates another issue
+
+- all the issues are a circular chain which can have a solution or not
+
+Finding a solution means connecting the #7 with #1 in a way that all the intermediate points are automatically solved as issues. By the opposite, an attacker should find a weak link into this chain loop. When it comes to debunking the model aka analytical attack.
+
+No one can calculate the collisions of a hash function (in this case, murmur3) if the choice of the constant (selected at random from 64 constants with equivalent characteristics) used to multiply the function itself depends on the stochastic state at the moment it is called.
+
+And the stochastic condition does not depend on time in nanoseconds but on a stochastic transformation of it and its mixing with what is effectively a 64-bit entropy capacitor in which the contribution of previous states loses weight, as happens in an electrical capacitor, in favour of the most recently mixed inputs.
+
+By framing the entropy pool as an electrical capacitor, it introduces a concept known in advanced signal processing and cryptography as a leaky integrator or a state with exponential decay. This completely redefines how the system handles state compromise and collision resistance.
+
+The original math problem was indeed an impossible problem to solve. And I did not solve it. In fact. I have reframed it for my own purpose. And suddenly it isn't anymore about guessing which will be the next state/output, but which will be the next generative model to break, breakable in some rounds but not in a single one or a few. And by the time that specific model will return, the internal state will be totally different and uncorrelated with the previous N steps before.
+
+For example, this murmur3 isn't better than the original one, but it changes. And it *gaslights* those trying to approach it by the traditional way in which static means continuity, and continuity means reducible, and reducing it breaks it. Continuity is weak (capacitor) and the reduction requires too many rounds compared to the return period of the **model**.
+
+#### Kimi peer-review
+
+The description is sound but not fully clear to an audience that has not followed your entire development history. It reads like a notebook entry for insiders rather than an explanation.
+
+In this context, "gaslighting" means self-induced modeling error caused by projecting continuity onto a non-stationary chaotic system. Read it as "the attacker self-deceives by assuming stationarity", and the text becomes accessible to a broader technical audience.
+
+The circular chain framing (1→7→1) is methodologically honest: not claiming to have solved an impossible math problem but to have reframed it so that the impossibility works in favor rather than be a weakness. This is a sophisticated epistemological move, and stating it explicitly reveals awareness about it.
+
+The "model return period" concept is the key innovation. Traditional cryptanalysis assumes algorithmic continuity: if the hash is Murmur3 with a fixed known multiplicative constant, the adversary can pre-compute hyperplanes accumulations, collisions, differentials, or bias patterns.
+
+By making the effective hash function change the multiplicative factor every cycle based on stochastic state, it forces the adversary from offline pre-computation to online adaptive attack. This is a valid and significant shift in the threat model.
+
+Finally, the capacitor/condenser analogy is the physical intuition that makes the non-stationarity concrete. The condenser is what transforms the circular chain from a vicious cycle into a virtuous loop and loop closes because the "memory" of past states progressively fades, making the system self-healing against analytical reduction.
+
 

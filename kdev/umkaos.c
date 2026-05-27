@@ -37,9 +37,13 @@ static volatile uint64_t e;
 #endif
 
 #define MTBL_STRN "MTBL"
-#define MLTP_STRN "MLTP"
 #define MTBL_VARN "mtbl"
+
+#define MLTP_STRN "MLTP"
 #define MLTP_VARN "mltp"
+
+#define COPY_STRN "COPY"
+#define COPY_VARN "copy"
 
 #ifdef _DO_DEBUG
   #define DEBUG 1
@@ -60,7 +64,7 @@ static volatile uint64_t e;
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef COPY_SZE
-#pragma message "Using copy as umks_head"
+#pragma message "Using copy buf as umks_head"
 #define umks_head ((const uint8_t *)copy)
 #else
 #define COPY_SZE (sizeof(umks_head))
@@ -72,19 +76,32 @@ uint8_t umks_head[] = {
   "\n\0\0\0\0"
 };
 #endif
+/*
+ * RAF: when the header is masked, it never appears in RAM
+ * because its printout is made a single char at time but
+ * this doesn't imply that the whole string isn't cached
+ * by something in the between. Anyway, in best effort.
+ */
 
+/*
+ * RAF: removing the string solves the fingerprint mark
+ * completely but whatever it violates the GPLv2 or not
+ * the main point remains about HOW hiding the binary
+ * once the constants have been compacted and suffled.
+ */
 static inline
 void prtxcpy(int fd) {
   const uint8_t *q = umks_head;
-  uint8_t x, c = q[COPY_SZE-2];
-  ssize_t wn;
-  if(c) {
-    for(int i = 0; i < HEAD_SIZE; i++) {
-       x = c ^ *q++;
-       wn = write(fd, &x, 1);
-    }
-  } else {
-    wn = write(fd, q, HEAD_SIZE);
+  ssize_t wn = COPY_SZE;
+  uint8_t x, c = q[wn-2];
+
+  print1("\n// hsize: %d / %ld, xchar: 0x%02x\n",
+    HEAD_SIZE, wn, c);
+
+  if(!c) { wn = write(fd, q, HEAD_SIZE); }
+  else for(int i = 0; i < HEAD_SIZE; i++) {
+     x = c ^ *q++;
+     wn = write(fd, &x, 1);
   }
 }
 
@@ -204,7 +221,7 @@ int main(int argc, char *argv[]) {
   good_byte_t gb[256];
   uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0;
-  ssize_t wn;
+  ssize_t wn = COPY_SZE;
 
   collect_entropy(); // #1
 
@@ -240,37 +257,11 @@ int main(int argc, char *argv[]) {
   collect_entropy(); // #3
 
   if(umks_head && umks_head[0]) { //////////////////////////////////////////////
-    /*
-     * RAF: removing the string solves the fingerprint mark
-     * completely but whatever it violates the GPLv2 or not
-     * the main point remains about HOW hiding the binary
-     * once the constants have been compacted and suffled.
-     */
-    wn = COPY_SZE;
-    r = 1 + !!argn;
-    c = umks_head[COPY_SZE - 2];
-    printf("\n// hsize: %d / %ld, xchar: 0x%02x\n", HEAD_SIZE, wn, c);
 #if RNG_ONLY
     if( HEAD_SIZE != 123 || wn != 128 ) // RAF: weak fingerprint
       return 1;
-    else
-    /*
-     * RAF: when the header is masked, it never appears in RAM
-     * because its printout is made a single char at time but
-     * this doesn't imply that the whole string isn't cached
-     * by something in the between. Anyway, in best effort.
-     */
-    {
-      const uint8_t *q = umks_head;
-      for(uint8_t x; *q;) { // no need of strlen()
-         x = c ^ *q++;
-         write(r, &x, 1);
-      }
-    }
-#else
-    prtxcpy(r);
 #endif
-
+    prtxcpy(1 + !!argn);
     collect_entropy(); // #4
   } ////////////////////////////////////////////////////////////////////////////
 
@@ -440,12 +431,13 @@ int main(int argc, char *argv[]) {
     for(i = 0, c = m; i < n; i++) {
        *p++ = c ^ *q++;
     }
-    print2(STAT_TYPE ATTR_ALGN ARRY_TYPE "copy" ARRY_OPEN);
-    prntbl((uint32_t *)mpage, n >> 2);
-    print2(ARRY_CLSE DEFN_STRN "COPY_SZE %d", n);
+    for(i = 0; i < 4; i++)
+      *p++ = 0;
+    print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
+    prntbl((uint32_t *)mpage, 1 + (n >> 2));
+    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n);
     newln2();
   }
-  print1("\n// m: 0x%02x, n: %d\n", (uint8_t)m, n);
   if(DEBUG) prtxcpy(2);
 
   //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:

@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
   collect_entropy(); // #3
 
 #if USE_MLTP
-  if(chktbl_match(mltp, MLTP_CHK, MLTP_STR))
+  if(chktbl_match(mltp, MLTP_CHK, MLTP_STRN))
     return 1;
   collect_entropy(); // #4
 #endif

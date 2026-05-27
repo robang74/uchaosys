@@ -91,18 +91,38 @@ uint8_t umks_head[] = {
  */
 static inline
 void prtxcpy(int fd) {
-  const uint8_t *q = umks_head;
-  ssize_t wn = COPY_SZE;
-  uint8_t x, c = q[wn-2];
+  const uint32_t *q = (const uint32_t *)umks_head;
+  uint32_t wn = COPY_SZE >> 2;
+  uint32_t x, c = q[wn-1];
 
-  print1("\n// hsize: %d / %ld, xchar: 0x%02x\n",
-    HEAD_SIZE, wn, c);
+  print1("\n// hsize: %d / %d, xchar: 0x%08x\n",
+    HEAD_SIZE, wn << 2, c);
 
-  if(!c) { wn = write(fd, q, HEAD_SIZE); }
-  else for(int i = 0; i < HEAD_SIZE; i++) {
-     x = c ^ *q++;
-     wn = write(fd, &x, 1);
+  if(!c) {
+    wn = write(fd, q, HEAD_SIZE);
+  } else
+  while((x = c ^ *q++)) {
+     wn = write(fd, &x, 4);
   }
+}
+
+static inline
+void cpyxcpy(uint32_t *p, uint32_t m) {
+  const uint32_t *q = (const uint32_t *)umks_head;
+  uint32_t wn = COPY_SZE >> 2;
+  uint32_t x, c = q[wn-1] ^ m;
+
+  print1("\n// hsize: %d / %d, xchar: 0x%08x\n",
+    HEAD_SIZE, wn << 2, c);
+
+  if(!c) {
+    memcpy(p, q, wn << 2);
+    p += wn;
+  } else
+  while(*q) {
+    *p++ = c ^ *q++;
+  }
+  *p++ = 0;
 }
 
 static inline
@@ -422,19 +442,12 @@ int main(int argc, char *argv[]) {
   #define ARRY_CLSE "\n};"
   #define DEFN_STRN "\n#define "
 
-  n = COPY_SZE;
-  c = umks_head[n - 2];
+  n = COPY_SZE >> 2;
   if(umks_head) {
-    const uint8_t *q = umks_head;
-    uint8_t *p = mpage;
-    for(i = 0, c ^= m; i < n; i++) {
-       *p++ = c ^ *q++;
-    }
-    for(i = 0; i < 4; i++)
-      *p++ = 0;
+    cpyxcpy((uint32_t *)mpage, m);
     print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
-    prntbl((uint32_t *)mpage, 1 + (n >> 2));
-    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n);
+    prntbl((uint32_t *)mpage, 1 + n);
+    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
     newln2();
   }
   if(DEBUG) prtxcpy(2);

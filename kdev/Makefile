@@ -77,18 +77,20 @@ sign: all
 %.o: %.c %.h
 
 uckaos: uckaos.c uchaos_dev.h
-	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s
+	$(OPTS) $(CC) -O3 $< -I../usrl -s -o $@
 
 uchaos_tbl.h: umkaos.c uchaos_seq.h uchaos_seq.c
-	$(OPTS) $(CC) -O3 $< -I../usrl -o umkaos -s -Wno-format-extra-args
-	./umkaos >uchaos_tbl.h
+	$(OPTS) $(CC) -O3 $< -I../usrl -s -Wno-format-extra-args -o umkaosh -D_USE_FNCS
+	./umkaosh > uchaos_tbl.h
 
 umkaos: umkaos.c uchaos_seq.h uchaos_seq.c uchaos_tbl.h
-	$(OPTS) $(CC) -O3 $< -I../usrl -o $@ -s -Wno-format-extra-args -D_USE_MLTP
+	$(OPTS) $(CC) -O3 $< -I../usrl -s -Wno-format-extra-args -o $@ \
+	  -D_USE_MLTP -D_RNG_ONLY
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 	rm -f $(KO_FILE).gz uckaos umkaos
+	rm -f uchaos_tbl.h umkaosh
 
 veryclean: clean
 deepclean: veryclean

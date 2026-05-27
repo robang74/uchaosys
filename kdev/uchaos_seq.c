@@ -7,10 +7,10 @@
  * Compile with:
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
  *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
- *   cc $CFLAGS -D_USE_FNCS uchaos_seq.c umkaos.c -o umkaos && ./umkaos
- *   cc $CFLAGS -D_USE_MTBL              umkaos.c -o umkaos && ./umkaos
- *   cc $CFLAGS -D_USE_MLTP              umkaos.c -o umkaos && ./umkaos
- *   cc $CFLAGS -DMLTP_SZE=128           umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_FNCS     umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_MTBL     umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_USE_MLTP     umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -DMLTP_SZE=128  umkaos.c -o umkaos && ./umkaos
  *   ./umkaos > uchaos_tbl.h
  *
  *   CFLAGS32="-static -m32 -march=i486 -mtune=generic -mno-avx2 -mno-sse3"

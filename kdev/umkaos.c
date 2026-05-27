@@ -5,31 +5,64 @@
  * Compile and run with (check uchaos_seq.c for all the cases):
  *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
  *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
- *   cc $CFLAGS umkaos.c -o umkaos && ./umkaos
- *
+ *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos
+ *   ./umkaos > uchaos_tbl.h
+ *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c -o umkaos && ./umkaos
+ *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
+ * 
  **************************************************************************** */
 
-#include <inttypes.h>
-#include "getnanos.h"
+#include "uchaos_seq.c"
 
 #ifdef _USE_FNCS
 #pragma message "Using uchaos_seq functions"
-#include "uchaos_seq.h"
 #else
-#include "uchaos_seq.c"
 __attribute__((aligned(8)))
 static volatile uint64_t e;
 #endif
 
-#define newln1()       if(  0  ) { putchar('\n'); fflush(stdout); }
-#define print1(fmt...) if(  0  ) { fprintf(stdout, fmt); }
+#ifdef _RNG_ONLY
+#define RNG_ONLY 1
+#include <sys/syscall.h>
+#define prterr(x...)
+#undef  write
+#define write(a,b,c) syscall(SYS_write,a,b,c);
+#else
+#define RNG_ONLY 0
+#include <inttypes.h>
+#include "getnanos.h"
+#define prterr(x...) fprintf(stderr, x)
+#endif
+
+#define MTBL_STRN "MTBL"
+#define MLTP_STRN "MLTP"
+#define MTBL_VARN "mtbl"
+#define MLTP_VARN "mltp"
+
+#ifdef _DO_DEBUG
+#define DEBUG 1
+#else
+#define DEBUG 0
+#endif
+#define newln1()       if(DEBUG) { putchar('\n'); fflush(stderr); }
+#define print1(fmt...) if(DEBUG) { fprintf(stderr, fmt); }
+
 #define print2(fmt...) if(!argn) { fprintf(stdout, fmt); }
-#define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 #define newln2()       if(!argn) { print2("\n"); fflush(stdout); }
+#define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
 ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
 + bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
+
+static uint8_t umks_head[] = {
+  "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
+  "\n//> Executing uChaoSys::umkaos " VERSION
+#if RNG_ONLY
+  "\n//> Use w/arg N for 2^N bytes dataout\n"
+#endif
+  "\n\0\0\0\0"
+};
 
 static inline
 __attribute__((always_inline))
@@ -73,27 +106,46 @@ void scramtbl(register uint32_t r) {
   }
 }
 
-#define prt2(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
+#define prt08x(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
 uint64_t prntbl(uint32_t *tb, uint32_t sze) {
   uint32_t i;
   for (i = 0; i < sze; i++, tb++)
-    prt2((i&3)?"":"\n  ", *tb);
+    prt08x((i&3)?"":"\n  ", *tb);
 }
 
 static inline
-uint64_t _chktbl(uint32_t *tb) {
+uint64_t _chktbl(uint32_t *tb) { // RAF, TODO: with void *, instead macro?
   uint64_t y;
   uint32_t i, m, s, w;
   for (i = s = w = 0, m = 1; *tb; i++, tb++) {
     w ^= *tb; m *= *tb; s += *tb;
   }
+  if(!m)
+    prterr("\n> ERROR: Check(!!m) failed!!\n");
   w ^= s + m;
   y  = (uint64_t)  w * m;
   y ^= (y >> 32) + s + m;
   return y;
 }
 #define chktbl(tp) _chktbl((uint32_t *)tp)
+
+static inline
+int _chktbl_match(uint32_t *tb, uint64_t tochk, const char *str) {
+  uint64_t chk = _chktbl(tb);
+  if(tochk != chk)
+    prterr("\n> MISMATCH %s: 0x%016" PRIx64 ", \n", str, chk);
+  return (tochk != chk);
+}
+#define chktbl_match(tb,a,b) _chktbl_match((uint32_t *)tb,a,b)
+
+static inline
+__attribute__((always_inline))
+unsigned _strlen(uint8_t *str) {
+  unsigned n = 0;
+  if(str) while(*str++) n++;
+  return n;
+}
 
 #if USE_FNCS
 #define collect_entropy() urnd_eclt()
@@ -121,10 +173,14 @@ typedef struct {
 } good_byte_t;
 
 int main(int argc, char *argv[]) {
-  uint64_t chk, t = get_nanos(); // init the timer, first of all
+#if RNG_ONLY
+#else
+  uint64_t t = get_nanos(); // init the timer, first of all
+#endif
   good_byte_t gb[256];
   uint8_t mpage[WRITESZE], nb[7], c;
   uint32_t i, n, r, ncycl = 1, argn = 0;
+  ssize_t wn;
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -142,11 +198,31 @@ int main(int argc, char *argv[]) {
 
   collect_entropy(); // #1
 
-  fprintf(argn ? stderr : stdout,
-    "\n/*\n * (c) 2026, roberto.foglietta@gmail.com, GPLv2\n */"
-    "\n//> Executing uChaoSys::%s %s\n",
-      __FILE__, VERSION);
-  fflush(argn ? stderr : stdout);
+  r = 1 + !!argn;
+  n = _strlen(umks_head);
+  wn = sizeof(umks_head);
+  c = umks_head[n + 1];
+  print1("\n hsize: %d / %ld, xchar: 0x%02x\n", n, wn, c);
+#if RNG_ONLY
+  if( n != 123 || wn != 128 )
+    return 1;
+  else
+  // RAF: when the header is masked, it never appears in RAM
+  // becuase its printout is made a single char at time but
+  // this doesn't imply that the whole string isn't cached
+  // by something in the between. Anyway, in best effort.
+  {
+    uint8_t *q = umks_head;
+    for(i = 0; (*q ^= c); i++, q++)
+       write(r, q, 1);
+  }
+#else
+  if( n != 84 || wn != 89 || c )
+    return 1;
+  wn = write(r, umks_head, n);
+#endif
+
+  collect_entropy(); // #2
 
   if( (MLTP_SZE != 64 && MLTP_SZE != 128)
 #if USE_MTBL
@@ -154,26 +230,24 @@ int main(int argc, char *argv[]) {
 #endif
    || (TABLESZE != 64 && TABLESZE != 128) )
   {
-    print2(
-      "\nERROR: unsupported table size\n");
-    exit(1);  
+    prterr("\n> ERROR: unsupported table size\n");
+    return 1;
   }
 
   urnd_init();
 
-  collect_entropy(); // #2
+  collect_entropy(); // #3
 
 #if USE_MLTP
-  chk = chktbl(mltp);
-  if((i = MLTP_CHK-chk)) {
-    fprintf(stderr, "\n  mltchk: 0x%016" PRIx64
-      ", %s\n", chk, i ? "MISMATCH\n" : "OK");
-    exit(1);
-  }
-  collect_entropy(); // #3
+  if(chktbl_match(mltp, MLTP_CHK, MLTP_STR))
+    return 1;
+  collect_entropy(); // #4
 #endif
 
 #if USE_MTBL | USE_MLTP
+  if(chktbl_match(mtbl, MTBL_CHK, MTBL_STRN))
+    return 1;
+  collect_entropy(); // #4
 #else
   // byte WR pointer to the table
   uint8_t *q = (uint8_t *)table;
@@ -190,7 +264,7 @@ int main(int argc, char *argv[]) {
     nb[pg->unos-3] += !!pg->good;
   }
 
-  collect_entropy(); // #3
+  collect_entropy(); // #4
 
   // fill the goods array, p.1-3
   for (n = 0, r = 0; n < 3; n++) {
@@ -245,18 +319,9 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  chk = chktbl(table);
-#if USE_MTBL | USE_MLTP
-  if((i = MTBL_CHK-chk)) {
-    fprintf(stderr, "\n  tblchk: 0x%016" PRIx64
-      ", %s\n", chk, i ? "MISMATCH\n" : "OK");
-    exit(1);
-  }
-#endif
-
   collect_entropy(); // #8
 
-  // for-loop is optimised for 32bit
+  // RAF: for-loop is optimised for 32bit //////////////////////////////////////
   int max = (argn?:4);
   uint32_t rndr[4], rndm[4];
   uint32_t *p = (uint32_t *)mpage;
@@ -272,106 +337,115 @@ int main(int argc, char *argv[]) {
               uint32_t m,  r ;
       e = nano3rnd(e, &m, &r);
 #endif
-
       if(argn) {
         *p++ = r;
         if((uint8_t *)p == mpage + WRITESZE) {
-          ssize_t wn = write(1, mpage, WRITESZE);
+          wn = write(1, mpage, WRITESZE);
           collect_entropy();
           p = (uint32_t *)mpage;
         }
-      }
-
-      if(!argn) {
+      } else {
         rndr[n] = r;
+        rndm[n] = m;
+
         newln1();
         print1("   entr. pool: 0x%08x --> b#%s\n",
              rndr[n], bit64str(rndr[n], 32));
-        rndm[n] = m;
         print1("  const. n.%02d: 0x%08x --> b#%s\n",
           n, rndm[n], bit64str(rndm[n], 32));
       }
     }
   }
-  newln1();
 #if USE_FNCS
   #undef m
   #undef r
 #endif
+  newln1();
 
-  if(!argn) {
-    uint32_t tb[MLTP_SZE + 16];
-    uint8_t *w = (uint8_t *)tb;
-
-    // scramble the table by sectors
-    while (n--) {
-      uint32_t m = rndm[n];
-      scramtbl((r = rndr[n]));
-      for(i = 1; i & 7; i++) {
-        r = rotl32(r, 20);
-        m = urnd_comb(r) ;
-        scramtbl(r);
-      }
-    }
-
-    //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
-    //r32:   0|        8|       16|       24|       32|
-    //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
-    //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
-    n = MLTP_SZE >> 2;
-    print2(
-      "\n// RAF: not aligned at 32 bit on purpose"
-      "\n__attribute__((weak))"
-      "\nconst uint32_t __thread mltp[] = {");
-    for(i = 0; i < (TABLESZE >> 2); i++) {
-      const uint8_t *q = &table[i];
-      *w++ =  q[ 0 + i];
-      *w++ =  q[16 + i];
-      *w++ =  q[32 + i];
-      *w++ =  q[48 + i];
-    }
-#if MLTP_SZE > 64
-    for(i = 0; i < (TABLESZE >> 2); i++) {
-      const uint8_t *q = &table[i];
-      *w++ = ~q[32 + i]; // ~5  -->  3  bits
-      *w++ =  q[48 + i]; // 2nd --> 4th byte
-      *w++ = ~q[ 0 + i]; // ~3  -->  5  bits
-      *w++ =  q[16 + i]; // 2nd --> 4th byte
-    }
-#endif
-    for(i = 0; i < 4; i++) {
-      table[TABLESZE+i] = 0;
-      tb[n++] = tb[i];
-    }
-    tb[n++] = 0;
-    prntbl(tb, n);
-    print2("\n};"
-      "\n#define MLTP_SZE %d"
-      "\n#define MLTP_CHK 0x%016" PRIx64,
-        MLTP_SZE, chktbl(tb) );
-    newln2();
-
-    print2(
-      "\n__attribute__((weak))"
-      "\n__attribute__((aligned(4)))"
-      "\nconst uint32_t __thread mtbl[] = {");
-    prntbl((uint32_t *)table, 1 + (TABLESZE >> 2));
-    print2("\n};"
-      "\n#define MTBL_SZE %d"
-      "\n#define MTBL_CHK 0x%016" PRIx64,
-        TABLESZE, chktbl(table) );
-    newln2();
+  if(argn) {
+    wn = (uintptr_t)p - (uintptr_t)mpage;
+    //fprintf(stderr, "\nwn: %ld\n", sizeof(umks_head), wn);
+    if(wn > 0 & wn < WRITESZE)
+      wn = write(1, mpage, wn);
   }
+#if RNG_ONLY
+#else
   else
-  if((uint8_t *)p != mpage)
-    t = write(1, mpage, ((uint8_t *)p)-mpage);
+  { ////////////////////////////////////////////////////////////////////////////
+
+  uint32_t tb[MLTP_SZE + 16];
+  uint8_t *w = (uint8_t *)tb;
+
+  // scramble the table by sectors
+  while (n--) {
+    uint32_t m = rndm[n];
+    scramtbl((r = rndr[n]));
+    for(i = 1; i & 7; i++) {
+      r = rotl32(r, 20);
+      m = urnd_comb(r) ;
+      scramtbl(r);
+    }
+  }
+
+  #define ATTR_WEAK "\n__attribute__((weak))"
+  #define ATTR_ALGN "\n__attribute__((aligned(4)))"
+  #define ARRY_TYPE "\nconst uint32_t __thread "
+  #define ARRY_OPEN "[] = {"
+  #define ARRY_CLSE "\n};"
+  #define DEFN_STRN "\n#define "
+
+  //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
+  //r32:   0|        8|       16|       24|       32|
+  //1\0:    |  3bit   |  4bit   |  5bit   |  4bit   |
+  //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
+  n = MLTP_SZE >> 2;
+  // RAF: mltp is not aligned at 32-bit on purpose
+  print2(ATTR_WEAK ARRY_TYPE MLTP_VARN ARRY_OPEN);
+  for(i = 0; i < (TABLESZE >> 2); i++) {
+    const uint8_t *q = &table[i];
+    *w++ =  q[ 0 + i];
+    *w++ =  q[16 + i];
+    *w++ =  q[32 + i];
+    *w++ =  q[48 + i];
+  }
+#if MLTP_SZE > 64
+  for(i = 0; i < (TABLESZE >> 2); i++) {
+    const uint8_t *q = &table[i];
+    *w++ = ~q[32 + i]; // ~5  -->  3  bits
+    *w++ =  q[48 + i]; // 2nd --> 4th byte
+    *w++ = ~q[ 0 + i]; // ~3  -->  5  bits
+    *w++ =  q[16 + i]; // 2nd --> 4th byte
+  }
+#endif
+  for(i = 0; i < 4; i++) {
+    table[TABLESZE+i] = 0;
+    tb[n++] = tb[i];
+  }
+  tb[n++] = 0;
+  prntbl(tb, n);
+  print2(ARRY_CLSE
+    DEFN_STRN MLTP_STRN "_SZE %d"
+    DEFN_STRN MLTP_STRN "_CHK 0x%016" PRIx64,
+      MLTP_SZE, chktbl(tb) );
+  newln2();
+
+  print2(ATTR_WEAK ATTR_ALGN ARRY_TYPE MTBL_VARN ARRY_OPEN);
+  prntbl((uint32_t *)table, 1 + (TABLESZE >> 2));
+  print2(ARRY_CLSE
+    DEFN_STRN MTBL_STRN "_SZE %d"
+    DEFN_STRN MTBL_STRN "_CHK 0x%016" PRIx64,
+      TABLESZE, chktbl(table) );
+  newln2();
 
   t = get_nanos(); // collecting the running time
   print2(
     "\n//> Run time: %7.0f nS --> %.03lf mS\n",
       (float)t, (double)t/1E6);
-
   newln2();
+
+  } ////////////////////////////////////////////////////////////////////////////
+#endif
+
   return 0;
 }
 

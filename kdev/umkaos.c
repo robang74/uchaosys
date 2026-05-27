@@ -198,22 +198,30 @@ int main(int argc, char *argv[]) {
 
   collect_entropy(); // #1
 
+  /*
+   * RAF: removing the string solves the fingerprint mark
+   * completely but whatever it violates the GPLv2 or not
+   * the main point remains about HOW hiding the binary
+   * once the constants have been compacted and suffled.
+   */
   r = 1 + !!argn;
   n = _strlen(umks_head);
   wn = sizeof(umks_head);
   c = umks_head[n + 1];
   print1("\n hsize: %d / %ld, xchar: 0x%02x\n", n, wn, c);
 #if RNG_ONLY
-  if( n != 123 || wn != 128 )
+  if( n != 123 || wn != 128 ) // RAF: 123,128 weak fingerprint
     return 1;
   else
-  // RAF: when the header is masked, it never appears in RAM
-  // becuase its printout is made a single char at time but
-  // this doesn't imply that the whole string isn't cached
-  // by something in the between. Anyway, in best effort.
+  /*
+   * RAF: when the header is masked, it never appears in RAM
+   * because its printout is made a single char at time but
+   * this doesn't imply that the whole string isn't cached
+   * by something in the between. Anyway, in best effort.
+   */
   {
     uint8_t x, *q = umks_head;
-    for(i = 0; (x = c^*q); i++, q++)
+    for(i = 0; (x = c^*q); i++, q++) // no need for strlen()
        write(r, x, 1);
   }
 #else

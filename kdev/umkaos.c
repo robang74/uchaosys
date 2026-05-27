@@ -253,7 +253,6 @@ int main(int argc, char *argv[]) {
 
   urnd_init();
 
-
   collect_entropy(); // #3
 
   if(umks_head && umks_head[0]) { //////////////////////////////////////////////
@@ -425,10 +424,10 @@ int main(int argc, char *argv[]) {
 
   n = COPY_SZE;
   c = umks_head[n - 2];
-  if(umks_head && !c) {
+  if(umks_head) {
     const uint8_t *q = umks_head;
     uint8_t *p = mpage;
-    for(i = 0, c = m; i < n; i++) {
+    for(i = 0, c ^= m; i < n; i++) {
        *p++ = c ^ *q++;
     }
     for(i = 0; i < 4; i++)

@@ -9,6 +9,8 @@
  *   ./umkaos > uchaos_tbl.h
  *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c -o umkaos && ./umkaos
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
+ *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos
+ *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
  * 
  **************************************************************************** */
 
@@ -118,9 +120,10 @@ void cpyxcpy(uint32_t *p, uint32_t m) {
   if(!c) {
     memcpy(p, q, wn << 2);
     p += wn;
-  } else
-  while(*q) {
-    *p++ = c ^ *q++;
+  } else {
+    while(*q)
+      *p++ = c ^ *q++;
+    *p++ = c;
   }
   *p++ = 0;
 }

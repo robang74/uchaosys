@@ -212,9 +212,9 @@ int main(int argc, char *argv[]) {
   // this doesn't imply that the whole string isn't cached
   // by something in the between. Anyway, in best effort.
   {
-    uint8_t *q = umks_head;
-    for(i = 0; (*q ^= c); i++, q++)
-       write(r, q, 1);
+    uint8_t x, *q = umks_head;
+    for(i = 0; (x = c^*q); i++, q++)
+       write(r, x, 1);
   }
 #else
   if( n != 84 || wn != 89 || c )

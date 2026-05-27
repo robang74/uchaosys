@@ -22,16 +22,18 @@ static volatile uint64_t e;
 #endif
 
 #ifdef _RNG_ONLY
-#define RNG_ONLY 1
-#include <sys/syscall.h>
-#define prterr(x...)
-#undef  write
-#define write(a,b,c) syscall(SYS_write,a,b,c);
+  #define RNG_ONLY 1
+  #include <sys/syscall.h>
+  #define prterr(x...)
+  #undef  write
+  #define write(a,b,c) syscall(SYS_write,a,b,c);
+  #define HEAD_SIZE 123
 #else
-#define RNG_ONLY 0
-#include <inttypes.h>
-#include "getnanos.h"
-#define prterr(x...) fprintf(stderr, x)
+  #define RNG_ONLY 0
+  #include <inttypes.h>
+  #include "getnanos.h"
+  #define prterr(x...) fprintf(stderr, x)
+  #define HEAD_SIZE 84
 #endif
 
 #define MTBL_STRN "MTBL"
@@ -40,9 +42,9 @@ static volatile uint64_t e;
 #define MLTP_VARN "mltp"
 
 #ifdef _DO_DEBUG
-#define DEBUG 1
+  #define DEBUG 1
 #else
-#define DEBUG 0
+  #define DEBUG 0
 #endif
 #define newln1()       if(DEBUG) { putchar('\n'); fflush(stderr); }
 #define print1(fmt...) if(DEBUG) { fprintf(stderr, fmt); }
@@ -55,12 +57,12 @@ static volatile uint64_t e;
 ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
 + bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
 
+////////////////////////////////////////////////////////////////////////////////
+
 static uint8_t umks_head[] = {
   "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
   "\n//> Executing uChaoSys::umkaos " VERSION
-#if RNG_ONLY
   "\n//> Use w/arg N for 2^N bytes dataout\n"
-#endif
   "\n\0\0\0\0"
 };
 
@@ -198,39 +200,40 @@ int main(int argc, char *argv[]) {
 
   collect_entropy(); // #1
 
-  /*
-   * RAF: removing the string solves the fingerprint mark
-   * completely but whatever it violates the GPLv2 or not
-   * the main point remains about HOW hiding the binary
-   * once the constants have been compacted and suffled.
-   */
-  r = 1 + !!argn;
-  n = _strlen(umks_head);
-  wn = sizeof(umks_head);
-  c = umks_head[n + 1];
-  print1("\n hsize: %d / %ld, xchar: 0x%02x\n", n, wn, c);
+  if(umks_head && umks_head[0]) { //////////////////////////////////////////////
+    /*
+     * RAF: removing the string solves the fingerprint mark
+     * completely but whatever it violates the GPLv2 or not
+     * the main point remains about HOW hiding the binary
+     * once the constants have been compacted and suffled.
+     */
+    r = 1 + !!argn;
+    wn = sizeof(umks_head);
+    c = umks_head[HEAD_SIZE + 1];
+    print1("\n hsize: %d / %ld, xchar: 0x%02x\n", HEAD_SIZE, wn, c);
 #if RNG_ONLY
-  if( n != 123 || wn != 128 ) // RAF: 123,128 weak fingerprint
-    return 1;
-  else
-  /*
-   * RAF: when the header is masked, it never appears in RAM
-   * because its printout is made a single char at time but
-   * this doesn't imply that the whole string isn't cached
-   * by something in the between. Anyway, in best effort.
-   */
-  {
-    uint8_t x, *q;
-    for(q = umks_head; (x = c^*q); q++) // no need of strlen()
-       write(r, &x, 1);
-  }
+    if( HEAD_SIZE != 123 || wn != 128 ) // RAF: weak fingerprint
+      return 1;
+    else
+    /*
+     * RAF: when the header is masked, it never appears in RAM
+     * because its printout is made a single char at time but
+     * this doesn't imply that the whole string isn't cached
+     * by something in the between. Anyway, in best effort.
+     */
+    {
+      uint8_t x, *q;
+      for(q = umks_head; *q;) { // no need of strlen()
+         x = c ^ *q++;
+         write(r, &x, 1);
+      }
+    }
 #else
-  if( n != 84 || wn != 89 || c )
-    return 1;
-  wn = write(r, umks_head, n);
+    wn = write(r, umks_head, HEAD_SIZE);
 #endif
+    collect_entropy(); // #2
 
-  collect_entropy(); // #2
+  } ////////////////////////////////////////////////////////////////////////////
 
   if( (MLTP_SZE != 64 && MLTP_SZE != 128)
 #if USE_MTBL

@@ -59,12 +59,34 @@ static volatile uint64_t e;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static uint8_t umks_head[] = {
+#ifdef COPY_SZE
+#pragma message "Using copy as umks_head"
+#define umks_head ((const uint8_t *)copy)
+#else
+#define COPY_SZE (sizeof(umks_head))
+static const
+uint8_t umks_head[] = {
   "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
   "\n//> Executing uChaoSys::umkaos " VERSION
   "\n//> Use w/arg N for 2^N bytes dataout\n"
   "\n\0\0\0\0"
 };
+#endif
+
+static inline
+void prtxcpy(int fd) {
+  const uint8_t *q = umks_head;
+  uint8_t x, c = q[COPY_SZE-2];
+  ssize_t wn;
+  if(c) {
+    for(int i = 0; i < HEAD_SIZE; i++) {
+       x = c ^ *q++;
+       wn = write(fd, &x, 1);
+    }
+  } else {
+    wn = write(fd, q, HEAD_SIZE);
+  }
+}
 
 static inline
 __attribute__((always_inline))
@@ -184,6 +206,8 @@ int main(int argc, char *argv[]) {
   uint32_t i, n, r, ncycl = 1, argn = 0;
   ssize_t wn;
 
+  collect_entropy(); // #1
+
   // for-loop is optimised for 32bit
   if(argc & 2) {
     argn = atol(argv[1]);
@@ -198,42 +222,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  collect_entropy(); // #1
-
-  if(umks_head && umks_head[0]) { //////////////////////////////////////////////
-    /*
-     * RAF: removing the string solves the fingerprint mark
-     * completely but whatever it violates the GPLv2 or not
-     * the main point remains about HOW hiding the binary
-     * once the constants have been compacted and suffled.
-     */
-    r = 1 + !!argn;
-    wn = sizeof(umks_head);
-    c = umks_head[HEAD_SIZE + 1];
-    print1("\n hsize: %d / %ld, xchar: 0x%02x\n", HEAD_SIZE, wn, c);
-#if RNG_ONLY
-    if( HEAD_SIZE != 123 || wn != 128 ) // RAF: weak fingerprint
-      return 1;
-    else
-    /*
-     * RAF: when the header is masked, it never appears in RAM
-     * because its printout is made a single char at time but
-     * this doesn't imply that the whole string isn't cached
-     * by something in the between. Anyway, in best effort.
-     */
-    {
-      uint8_t x, *q;
-      for(q = umks_head; *q;) { // no need of strlen()
-         x = c ^ *q++;
-         write(r, &x, 1);
-      }
-    }
-#else
-    wn = write(r, umks_head, HEAD_SIZE);
-#endif
-    collect_entropy(); // #2
-
-  } ////////////////////////////////////////////////////////////////////////////
+  collect_entropy(); // #2
 
   if( (MLTP_SZE != 64 && MLTP_SZE != 128)
 #if USE_MTBL
@@ -247,7 +236,44 @@ int main(int argc, char *argv[]) {
 
   urnd_init();
 
+
   collect_entropy(); // #3
+
+  if(umks_head && umks_head[0]) { //////////////////////////////////////////////
+    /*
+     * RAF: removing the string solves the fingerprint mark
+     * completely but whatever it violates the GPLv2 or not
+     * the main point remains about HOW hiding the binary
+     * once the constants have been compacted and suffled.
+     */
+    wn = COPY_SZE;
+    r = 1 + !!argn;
+    c = umks_head[COPY_SZE - 2];
+    printf("\n// hsize: %d / %ld, xchar: 0x%02x\n", HEAD_SIZE, wn, c);
+#if RNG_ONLY
+    if( HEAD_SIZE != 123 || wn != 128 ) // RAF: weak fingerprint
+      return 1;
+    else
+    /*
+     * RAF: when the header is masked, it never appears in RAM
+     * because its printout is made a single char at time but
+     * this doesn't imply that the whole string isn't cached
+     * by something in the between. Anyway, in best effort.
+     */
+    {
+      const uint8_t *q = umks_head;
+      for(uint8_t x; *q;) { // no need of strlen()
+         x = c ^ *q++;
+         write(r, &x, 1);
+      }
+    }
+#else
+    prtxcpy(r);
+#endif
+
+    collect_entropy(); // #4
+  } ////////////////////////////////////////////////////////////////////////////
+
 
 #if USE_MLTP
   if(chktbl_match(mltp, MLTP_CHK, MLTP_STRN))
@@ -344,6 +370,7 @@ int main(int argc, char *argv[]) {
       #define m urnd_e32m()
       urnd_emix();
 #else
+      // RAF: main variable r overload
       __attribute__((aligned(4)))
               uint32_t m,  r ;
       e = nano3rnd(e, &m, &r);
@@ -375,7 +402,6 @@ int main(int argc, char *argv[]) {
 
   if(argn) {
     wn = (uintptr_t)p - (uintptr_t)mpage;
-    //fprintf(stderr, "\nwn: %ld\n", sizeof(umks_head), wn);
     if(wn > 0 & wn < WRITESZE)
       wn = write(1, mpage, wn);
   }
@@ -384,12 +410,12 @@ int main(int argc, char *argv[]) {
   else
   { ////////////////////////////////////////////////////////////////////////////
 
-  uint32_t tb[MLTP_SZE + 16];
+  uint32_t tb[MLTP_SZE + 16], m;
   uint8_t *w = (uint8_t *)tb;
 
   // scramble the table by sectors
   while (n--) {
-    uint32_t m = rndm[n];
+    m = rndm[n];
     scramtbl((r = rndr[n]));
     for(i = 1; i & 7; i++) {
       r = rotl32(r, 20);
@@ -397,13 +423,30 @@ int main(int argc, char *argv[]) {
       scramtbl(r);
     }
   }
-
+  
   #define ATTR_WEAK "\n__attribute__((weak))"
   #define ATTR_ALGN "\n__attribute__((aligned(4)))"
   #define ARRY_TYPE "\nconst uint32_t __thread "
+  #define STAT_TYPE "\nstatic"
   #define ARRY_OPEN "[] = {"
   #define ARRY_CLSE "\n};"
   #define DEFN_STRN "\n#define "
+
+  n = COPY_SZE;
+  c = umks_head[n - 2];
+  if(umks_head && !c) {
+    const uint8_t *q = umks_head;
+    uint8_t *p = mpage;
+    for(i = 0, c = m; i < n; i++) {
+       *p++ = c ^ *q++;
+    }
+    print2(STAT_TYPE ATTR_ALGN ARRY_TYPE "copy" ARRY_OPEN);
+    prntbl((uint32_t *)mpage, n >> 2);
+    print2(ARRY_CLSE DEFN_STRN "COPY_SZE %d", n);
+    newln2();
+  }
+  print1("\n// m: 0x%02x, n: %d\n", (uint8_t)m, n);
+  if(DEBUG) prtxcpy(2);
 
   //RAF: 32bit x 4 x 8 = 128byte, but also 128 words:
   //r32:   0|        8|       16|       24|       32|

@@ -220,9 +220,9 @@ int main(int argc, char *argv[]) {
    * by something in the between. Anyway, in best effort.
    */
   {
-    uint8_t x, *q = umks_head;
-    for(i = 0; (x = c^*q); i++, q++) // no need for strlen()
-       write(r, x, 1);
+    uint8_t x, *q;
+    for(q = umks_head; (x = c^*q); q++) // no need of strlen()
+       write(r, &x, 1);
   }
 #else
   if( n != 84 || wn != 89 || c )

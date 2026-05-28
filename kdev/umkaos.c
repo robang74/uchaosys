@@ -7,7 +7,7 @@
  *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
  *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos
  *   ./umkaos > uchaos_tbl.h
- *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c -o umkaos && ./umkaos
+ *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c             -o umkaos
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
  *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
@@ -66,6 +66,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef const uint32_t cu32_t;
+
 #ifdef  COPY_SZE
   #pragma message "Using copy buf as umks_head"
   #define umks_head ((const uint8_t *)copy)
@@ -94,7 +96,7 @@
  */
 static inline
 int prtxcpy(int fd) {
-  const uint32_t *q = (const uint32_t *)umks_head;
+  cu32_t *q = (cu32_t *)umks_head;
   uint32_t wn = COPY_SZE >> 2;
   uint32_t x, c = q[wn-1];
   int n = 0;
@@ -104,40 +106,42 @@ int prtxcpy(int fd) {
 
   if(!c) {
     wn = write(fd, q, HEAD_SIZE);
-  } else
-  while((x = c ^ *q++)) {
-    wn = write(fd, &x, 4);
+  } else {
+    while((x = c ^ *q++)) {
+      wn = write(fd, &x, 4);
+      if (   USE_FNCS
+      && !( 7 & (++n) ) )
+        collect_entropy();
+    }
 #if USE_FNCS
-    if ( !( 7 & (++n) ) )
-      collect_entropy();
-  }
-  collect_entropy();
-#else
-  }
+    collect_entropy();
 #endif
+  }
 
   return n;
 }
 
 static inline
-void cpyxcpy(uint32_t *p, uint32_t m) {
-  const uint32_t *q = (const uint32_t *)umks_head;
-  uint32_t wn = COPY_SZE >> 2;
-  uint32_t x, c = q[wn-1] ^ m;
+void cpyxcpy(void *vp, uint32_t m) {
+  cu32_t *q = (cu32_t *)umks_head;
+  uint32_t *p = vp, wn = COPY_SZE;
 
-  print1("\n// hsize: %d / %d, xchar: 0x%08x\n",
-    HEAD_SIZE, wn << 2, c);
+  m ^= q[(wn >> 2) - 1];
+  print1(
+    "\n// hsize: %d / %d, xchar: 0x%08x\n",
+      HEAD_SIZE, wn, m);
 
-  if(!c) {
-    memcpy(p, q, wn << 2);
-    p += wn;
-  } else {
+  if(m) {
     while(*q) {
-      *p++ = c ^ *q++;
+      *p++ = m ^ *q++;
     }
-    *p++ = c;
+    *p++ = m;
+  } else {
+    memcpy(vp, q, wn);
+    p += wn >> 2;
   }
   *p++ = 0;
+
 #if USE_FNCS
 // RAF: useless here but it masks cpyxcpy()'s role
   collect_entropy();
@@ -188,16 +192,18 @@ void scramtbl(register uint32_t r) {
 
 #define prt08x(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
-uint64_t prntbl(uint32_t *tb, uint32_t sze) {
+uint64_t prntbl(const void *vp, uint32_t sze) {
   uint32_t i;
+  cu32_t *tb = vp;
   for (i = 0; i < sze; i++, tb++)
     prt08x((i&3)?"":"\n  ", *tb);
 }
 
 static inline
-uint64_t _chktbl(uint32_t *tb) { // RAF, TODO: with void *, instead macro?
+uint64_t chktbl(const void *vp) {
   uint64_t y;
   uint32_t i, m, s, w;
+  cu32_t *tb = vp;
   for (i = s = w = 0, m = 1; *tb; i++, tb++) {
     w ^= *tb; m *= *tb; s += *tb;
   }
@@ -208,16 +214,14 @@ uint64_t _chktbl(uint32_t *tb) { // RAF, TODO: with void *, instead macro?
   y ^= (y >> 32) + s + m;
   return y;
 }
-#define chktbl(tp) _chktbl((uint32_t *)tp)
 
 static inline
-int _chktbl_match(uint32_t *tb, uint64_t tochk, const char *str) {
-  uint64_t chk = _chktbl(tb);
+int chktbl_match(const void *vp, uint64_t tochk, const char *str) {
+  uint64_t chk = chktbl(vp);
   if(tochk != chk)
     prterr("\n> MISMATCH %s: 0x%016" PRIx64 ", \n", str, chk);
   return (tochk != chk);
 }
-#define chktbl_match(tb,a,b) _chktbl_match((uint32_t *)tb,a,b)
 
 static inline
 __attribute__((always_inline))
@@ -457,9 +461,9 @@ int main(int argc, char *argv[]) {
 
   n = COPY_SZE >> 2;
   if(umks_head) {
-    cpyxcpy((uint32_t *)mpage, m);
+    cpyxcpy(mpage, m);
     print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
-    prntbl((uint32_t *)mpage, 1 + n);
+    prntbl(mpage, 1 + n);
     print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
     newln2();
   }
@@ -501,7 +505,7 @@ int main(int argc, char *argv[]) {
   newln2();
 
   print2(ATTR_WEAK ATTR_ALGN ARRY_TYPE MTBL_VARN ARRY_OPEN);
-  prntbl((uint32_t *)table, 1 + (TABLESZE >> 2));
+  prntbl(table, 1 + (TABLESZE >> 2));
   print2(ARRY_CLSE
     DEFN_STRN MTBL_STRN "_SZE %d"
     DEFN_STRN MTBL_STRN "_CHK 0x%016" PRIx64,

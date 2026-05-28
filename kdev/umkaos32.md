@@ -100,8 +100,8 @@ Commands to execute in `uchaosys/kdev` folder:
 ```sh
 biname="umkaos32"
 
-CFLAGS="-s -g0 -Wno-format-extra-args -I../usrl -D_USE_FNCS"
-CFLAGS="$CFLAGS -flto -falign-functions=32 -O3 -D_RNG_ONLY"
+CFLAGS="-s -O1 -Wno-format-extra-args -I../usrl -D_USE_FNCS"
+CFLAGS="$CFLAGS -flto -falign-functions=32 -g0 -D_RNG_ONLY"
 CFLAGS="$CFLAGS -ffunction-sections -fdata-sections -Wl,--gc-sections"
 
 CFLAGS32="-m32 -march=i486 -mtune=generic -mno-avx -mno-sse -mno-sse3"
@@ -140,7 +140,7 @@ NO
 umkaos32: ELF 32-bit LSB executable, Intel 80386,
  version 1 (SYSV), statically linked, stripped
    text	   data	    bss	    dec	    hex	filename
-   6299	    320	    428	   7047	   1b87	umkaos32
+   5623	    320	    428	   6371	   18e3	umkaos32
 
 /*
  * (C) 2026, github::@robang74, GPLv2

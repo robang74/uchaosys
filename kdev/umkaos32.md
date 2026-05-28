@@ -93,15 +93,17 @@ After the exit:
 
 ### 32-bit musl-static for i386 platform
 
+Commands to execute in `uchaosys/kdev` folder:
+
 ```sh
 biname="umkaos32"
 
-CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
-CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
+CFLAGS="-s -g0 -Wno-format-extra-args -I../usrl -D_USE_FNCS"
+CFLAGS="$CFLAGS -flto -falign-functions=32 -O3 -D_RNG_ONLY"
 CFLAGS="$CFLAGS -ffunction-sections -fdata-sections -Wl,--gc-sections"
 
-CFLAGS32="-static -m32 -march=i486 -mtune=generic -mno-avx2 -mno-sse3"
-CFLAGS32="-mno-sse2 -mno-sse -mno-avx -D_USE_FNCS uchaos_seq.c $CFLAGS32"
+CFLAGS32="-m32 -march=i486 -mtune=generic -mno-avx -mno-sse -mno-sse3"
+CFLAGS32="$CFLAGS32 -mno-sse2 -mno-avx2 -Wl,--build-id=none -static"
 
 strp() {
   strip --strip-all --remove-section=.comment --remove-section=.note $@
@@ -109,18 +111,41 @@ strp() {
 
 docker run --rm $devc /bin/sh -c "cd kdev && cc $CFLAGS -D_USE_MLTP \
   $CFLAGS32 umkaos.c -no-pie -o $biname && chown 1000:1000 $biname"
-
-echo "Are there i386 unsupported instructions?"
-objdump -d $biname | grep -E 'vmov|vadd|vpxor'
-echo
-file $biname | sed -e "s/V),/&\\n/"
-strp $biname
-size $biname
 ```
 
-Basic test:
+Basic tests:
 
-- `./umkaos32`
+```
+echo "Are there i386 unsupported instructions?"
+objdump -d $biname | grep -E 'vmov|vadd|vpxor' || echo "NO"
+echo "Are there plain-sight text strings?"
+strings $biname | grep robang74 || echo "NO"
+echo
+file $biname | sed -e "s/386,/&\\n/"
+strp $biname
+size $biname
+./umkaos32
+```
+
+Expected results:
+
+```
+Are there i386 unsupported instructions?
+NO
+Are there plain-sight text strings?
+NO
+
+umkaos32: ELF 32-bit LSB executable, Intel 80386,
+ version 1 (SYSV), statically linked, stripped
+   text	   data	    bss	    dec	    hex	filename
+   6299	    320	    428	   7047	   1b87	umkaos32
+
+/*
+ * (C) 2026, github::@robang74, GPLv2
+ */
+//> Executing uChaoSys::umkaos v0.4.2
+//> Use w/arg N for 2^N bytes dataout
+```
 
 <br>
 

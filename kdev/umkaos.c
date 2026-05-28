@@ -11,16 +11,17 @@
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
  *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
- * 
+ *
  **************************************************************************** */
 
 #include "uchaos_seq.c"
-
-#ifdef _USE_FNCS
-#pragma message "Using uchaos_seq functions"
+#if USE_FNCS
+  #pragma message "Using uchaos_seq functions"
+  #define collect_entropy() urnd_eclt()
 #else
-__attribute__((aligned(8)))
-static volatile uint64_t e;
+  __attribute__((aligned(8)))
+  static volatile uint64_t e;
+  #define collect_entropy() (void)(e = nano1rnd(e))
 #endif
 
 #ifdef _RNG_ONLY
@@ -60,23 +61,23 @@ static volatile uint64_t e;
 #define write4(x)      if( argn) { ssize_t w = write(1, &x, 4); }
 
 #define cntbits(_x) ({ uint8_t x = (_x); \
-( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
-+ bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
+  ( bit(0, x) + bit(1, x) + bit(2, x) + bit(3, x) +  \
+  + bit(4, x) + bit(5, x) + bit(6, x) + bit(7, x) ); })
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef COPY_SZE
-#pragma message "Using copy buf as umks_head"
-#define umks_head ((const uint8_t *)copy)
+#ifdef  COPY_SZE
+  #pragma message "Using copy buf as umks_head"
+  #define umks_head ((const uint8_t *)copy)
 #else
-#define COPY_SZE (sizeof(umks_head))
-static const
-uint8_t umks_head[] = {
-  "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
-  "\n//> Executing uChaoSys::umkaos " VERSION
-  "\n//> Use w/arg N for 2^N bytes dataout\n"
-  "\n\0\0\0\0"
-};
+  #define COPY_SZE (sizeof(umks_head))
+  static const
+  uint8_t umks_head[] = {
+    "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
+    "\n//> Executing uChaoSys::umkaos " VERSION
+    "\n//> Use w/arg N for 2^N bytes dataout\n"
+    "\n\0\0\0\0"
+  };
 #endif
 /*
  * RAF: when the header is masked, it never appears in RAM
@@ -92,10 +93,11 @@ uint8_t umks_head[] = {
  * once the constants have been compacted and suffled.
  */
 static inline
-void prtxcpy(int fd) {
+int prtxcpy(int fd) {
   const uint32_t *q = (const uint32_t *)umks_head;
   uint32_t wn = COPY_SZE >> 2;
   uint32_t x, c = q[wn-1];
+  int n = 0;
 
   print1("\n// hsize: %d / %d, xchar: 0x%08x\n",
     HEAD_SIZE, wn << 2, c);
@@ -104,8 +106,17 @@ void prtxcpy(int fd) {
     wn = write(fd, q, HEAD_SIZE);
   } else
   while((x = c ^ *q++)) {
-     wn = write(fd, &x, 4);
+    wn = write(fd, &x, 4);
+#if USE_FNCS
+    if ( !( 7 & (++n) ) )
+      collect_entropy();
   }
+  collect_entropy();
+#else
+  }
+#endif
+
+  return n;
 }
 
 static inline
@@ -121,11 +132,16 @@ void cpyxcpy(uint32_t *p, uint32_t m) {
     memcpy(p, q, wn << 2);
     p += wn;
   } else {
-    while(*q)
+    while(*q) {
       *p++ = c ^ *q++;
+    }
     *p++ = c;
   }
   *p++ = 0;
+#if USE_FNCS
+// RAF: useless here but it masks cpyxcpy()'s role
+  collect_entropy();
+#endif
 }
 
 static inline
@@ -211,12 +227,6 @@ unsigned _strlen(uint8_t *str) {
   return n;
 }
 
-#if USE_FNCS
-#define collect_entropy() urnd_eclt()
-#else
-#define collect_entropy() (void)(e = nano1rnd(e))
-#endif
-
 // RAF: printf() %b isn't supported by early gcc/libc and by musl.
 // This "least effort" funtion displays differntly on big-endian,
 // but it can be a "feature" rather than a bug see the enconding.
@@ -246,7 +256,7 @@ int main(int argc, char *argv[]) {
   uint32_t i, n, r, ncycl = 1, argn = 0;
   ssize_t wn = COPY_SZE;
 
-  collect_entropy(); // #1
+  collect_entropy(); // entc: 1,1,1 for [none],[mtbl],[mltp]
 
   // for-loop is optimised for 32bit
   if(argc & 2) {
@@ -262,7 +272,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  collect_entropy(); // #2
+  collect_entropy(); // entc: 2,2,2
 
   if( (MLTP_SZE != 64 && MLTP_SZE != 128)
 #if USE_MTBL
@@ -276,28 +286,30 @@ int main(int argc, char *argv[]) {
 
   urnd_init();
 
-  collect_entropy(); // #3
+  collect_entropy(); // entc: 3,3,3
 
-  if(umks_head && umks_head[0]) { //////////////////////////////////////////////
+  if(umks_head && umks_head[0]) {
 #if RNG_ONLY
-    if( HEAD_SIZE != 123 || wn != 128 ) // RAF: weak fingerprint
+/*
+ * RAF: 123,128 to weak alone but a piece of a potential fingerprint
+// if( HEAD_SIZE != 123 || wn != 128 )
+ * while the following collapses into wn != 128 by default or noop()
+ */if( HEAD_SIZE+5 != wn || (wn^128) )
       return 1;
 #endif
-    prtxcpy(1 + !!argn);
-    collect_entropy(); // #4
-  } ////////////////////////////////////////////////////////////////////////////
-
+    prtxcpy(1 + !!argn); // entc: from +1 to +4
+  }
 
 #if USE_MLTP
   if(chktbl_match(mltp, MLTP_CHK, MLTP_STRN))
     return 1;
-  collect_entropy(); // #4
+  collect_entropy(); // entc: -,-,4
 #endif
 
 #if USE_MTBL | USE_MLTP
   if(chktbl_match(mtbl, MTBL_CHK, MTBL_STRN))
     return 1;
-  collect_entropy(); // #4
+  collect_entropy(); // entc: -,4,5
 #else
   // byte WR pointer to the table
   uint8_t *q = (uint8_t *)table;
@@ -314,7 +326,7 @@ int main(int argc, char *argv[]) {
     nb[pg->unos-3] += !!pg->good;
   }
 
-  collect_entropy(); // #4
+  collect_entropy(); // entc: 4,-,-
 
   // fill the goods array, p.1-3
   for (n = 0, r = 0; n < 3; n++) {
@@ -327,7 +339,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  collect_entropy(); // #5
+  collect_entropy(); // entc: 5,-,-
 
   // fill the goods array, p.4
   for (i = 255; i; i--) {
@@ -338,8 +350,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  collect_entropy(); // #6
-
   // check their counting
   newln1();
   print1("goods[]:\n");
@@ -348,9 +358,9 @@ int main(int argc, char *argv[]) {
   print1("   3b: %3d/66\n", nb[0]);
   print1("   4b: %3d/66\n", nb[1]);
   print1("   5b: %3d/66\n", nb[2]);
-  if(n != 66) return(1);
+  if(n != 66) return 1;
 
-  collect_entropy(); // #7
+  collect_entropy(); // entc: 6,-,-
 
   // print the good ones
   newln1();
@@ -369,7 +379,7 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  collect_entropy(); // #8
+  collect_entropy(); // entc: 7,5,6 + (1 to 4)
 
   // RAF: for-loop is optimised for 32bit //////////////////////////////////////
   int max = (argn?:4);
@@ -436,7 +446,7 @@ int main(int argc, char *argv[]) {
       scramtbl(r);
     }
   }
-  
+
   #define ATTR_WEAK "\n__attribute__((weak))"
   #define ATTR_ALGN "\n__attribute__((aligned(4)))"
   #define ARRY_TYPE "\nconst uint32_t __thread "

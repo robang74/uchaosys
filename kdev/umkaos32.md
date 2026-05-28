@@ -53,10 +53,10 @@ export devc
 ---
 
 ### The SUID escapes from the container
- 
+
 Can we consider this a local priviledge escalation? 😁
 
-Or a Schrodinger's cat escape outside from its box? 😎 
+Or a Schrodinger's cat escape outside from its box? 😎
 
 ```sh
 docker run -it --rm $devc /bin/sh
@@ -106,7 +106,7 @@ CFLAGS="$CFLAGS -ffunction-sections -fdata-sections -Wl,--gc-sections"
 CFLAGS32="-static -m32 -march=i486 -mtune=generic -mno-avx2 -mno-sse3"
 CFLAGS32="-mno-sse2 -mno-sse -mno-avx -D_USE_FNCS uchaos_seq.c $CFLAGS32"
 
-strp() { 
+strp() {
   strip --strip-all --remove-section=.comment --remove-section=.note $@
 }
 

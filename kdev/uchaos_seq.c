@@ -5,7 +5,7 @@
  #define VERSION "v0.4.2" // version definition moved in uchaos_seq.h
  *
  * Compile with:
- *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
+ *   CFLAGS="-s -g0 -O1 -Wno-format-extra-args -I../usrl"
  *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
  *   cc $CFLAGS -D_USE_FNCS     umkaos.c -o umkaos && ./umkaos
  *   cc $CFLAGS -D_USE_MTBL     umkaos.c -o umkaos && ./umkaos
@@ -39,7 +39,7 @@
  *   gx 4 | ../prnd/RNG_test stdin64
  *
  *******************************************************************************
- * RESULTS (on v0.2.0)
+ * RESULTS (on v0.2.0, w -O3)
  *
  * px 8 "./umkaos $((1<<30))" | dd bs=1M of=/dev/null
  * px n:8
@@ -80,31 +80,31 @@
  *
  *******************************************************************************
  *
- * CHANGES (in v0.2.6)
+ * CHANGES (in v0.2.6, w -O3)
  *
  * Speed from 610 MB/s to 550 MB/s which is a -10% because endogenous robustness
  * px 4 "./umkaos 34" | ../prnd/RNG_test stdin64: passed 256 GB with no warnings
  * px 4 "./umkaos 20" | ent: 7.999989, 257.42, 44.58%, 127.492, 0.03%, -0.000071
  *
- * CHANGES (in v0.2.7)
+ * CHANGES (in v0.2.7, w -O3)
  *
  * nano0rnd() introduced for code maintenance (1pt), it regains.  590 MB/s (-4%)
  *
- * CHANGES (in v0.4.0)
+ * CHANGES (in v0.4.0, w -O3)
  *
  * get_30ns2() fills the gap, adds scramble and mem::barrier.     576 MB/s (-6%)
  *
- * CHANGES (in v0.3.3 w/ -D_USE_MTBL)
+ * CHANGES (in v0.3.3 w/ -D_USE_MTBL -O3)
  *
  * It uses a 64 bytes table, speed from return at full throttle   605 MB/s (-1%)
  * px 4 "./umkaos 20" | ent: 7.999990, 221.20, 93.80%, 127.512, 0.01%, -0.000031
  *
- * CHANGES (in v0.3.4 w/ -D_USE_MLTP)
+ * CHANGES (in v0.3.4 w/ -D_USE_MLTP -O3)
  *
  * It uses a 128 combs table, speed from return at full throttle  602 MB/s (-1%)
  * px 4 "./umkaos 20" | ent: 7.999990, 256.92, 45.44%, 127.506, 0.00%, -0.000173
  *
- * CHANGES (in v0.4.0 w/ -D_USE_MLTP)
+ * CHANGES (in v0.4.0 w/ -D_USE_MLTP -O3)
  *
  * It uses a 64 combs table, speed from return at full throttle   642 MB/s (+5%)
  * px 4 "./umkaos 20" | ent: 7.999990, 231.51, 85.18%, 127.520, 0.02%, -0.000294

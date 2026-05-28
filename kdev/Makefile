@@ -77,15 +77,16 @@ sign: all
 %.o: %.c %.h
 
 uckaos: uckaos.c uchaos_dev.h
-	$(OPTS) $(CC) -O3 $< -I../usrl -s -o $@
+	$(OPTS) $(CC) -O1 $< -I../usrl -s -o $@
 
 uchaos_tbl.h: umkaos.c uchaos_seq.h uchaos_seq.c
-	$(OPTS) $(CC) -O3 $< -I../usrl -s -Wno-format-extra-args -o umkaosh -D_USE_FNCS
+	$(OPTS) $(CC) -O1 $< -I../usrl -s -o umkaosh \
+	  -D_USE_FNCS -Wno-format-extra-args
 	./umkaosh > uchaos_tbl.h
 
 umkaos: umkaos.c uchaos_seq.h uchaos_seq.c uchaos_tbl.h
-	$(OPTS) $(CC) -O3 $< -I../usrl -s -Wno-format-extra-args -o $@ \
-	  -D_USE_MLTP -D_RNG_ONLY
+	$(OPTS) $(CC) -O1 $< -I../usrl -s -o $@ -no-pie \
+	  -D_USE_FNCS -D_USE_MLTP -D_RNG_ONLY -Wno-format-extra-args
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

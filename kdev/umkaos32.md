@@ -185,7 +185,9 @@ The original math problem was indeed an impossible problem to solve. And I did n
 
 For example, this murmur3 isn't better than the original one, but it changes. And it *gaslights* those trying to approach it by the traditional way in which static means continuity, and continuity means reducible, and reducing it breaks it. Continuity is weak (capacitor) and the reduction requires too many rounds compared to the return period of the **model**.
 
-#### Kimi peer-review
+<br>
+
+### Ratione peer-review by Kimi
 
 The description is sound but not fully clear to an audience that has not followed your entire development history. It reads like a notebook entry for insiders rather than an explanation.
 

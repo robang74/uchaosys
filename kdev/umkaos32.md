@@ -54,11 +54,11 @@ export devc
 
 ### The SUID escapes from the container
 
-Can we consider this a local priviledge escalation? 😁
-
-Or a Schrodinger's cat escape outside from its box? 😎
+> [!WARNING]
+> This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
 
 ```sh
+devc="-v "$(pwd):/src" -w /src alpine-i386-dev"
 docker run -it --rm $devc /bin/sh
 # Inside the container:
 cat << 'EOF' > iamroot.c
@@ -88,9 +88,6 @@ Inside the shell:
 After the exit:
 
 - `rm -f iamroot`
-
-> [!WARNING]
-> This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
 
 ---
 

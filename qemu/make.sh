@@ -201,7 +201,7 @@ LIBA="$LIBA $top_dir/$bld_dir/$luc.a"
 ################################################################################
 
 cd $bld_dir
-CFLAGS="$CFLAGS -I$PWD $xlto"
+CFLAGS="$CFLAGS -I$PWD $xlto -no-pie"
 hd="/usr/include"; cp $hd/zlib.h $hd/zconf.h . || exit 1
 
 printf "\nStatic libraries found:\n"
@@ -210,7 +210,7 @@ echo
 if [ "$ld_glib" = "" ]; then
   LDFLAGS="$LDFLAGS -L$glib/libc.so.6 -Wl,-rpath,$glib -Wl,-Bdynamic -lglib-2.0"
 fi
-LDFLAGS="$LDFLAGS $xlto -Wl,-Bstatic $LIBA"
+LDFLAGS="$LDFLAGS $xlto -Wl,-Bstatic -no-pie $LIBA"
 
 if [ "${1:-}" != "noconfig" ]; then
   CFLAGS="" LDFLAGS="" time -p ../$src_dir/configure -j$ncpu \
@@ -250,7 +250,7 @@ if [ ! -x $qbin ] ; then
   echo "Fix the linking stage and repeat ..."
   echo
   CFLAGS=""
-  LDFLAGS=""
+  LDFLAGS="-no-pie"
   for i in open stat; do
     LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"
   done

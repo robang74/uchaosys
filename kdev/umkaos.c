@@ -3,14 +3,27 @@
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
  * Compile and run with (check uchaos_seq.c for all the cases):
- *   CFLAGS="-s -g0 -O3 -Wno-format-extra-args -I../usrl"
- *   CFLAGS="$CFLAGS -mavx2 -flto -falign-functions=32"
- *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos
+ *   CFLAGS="-s -g0 -O1 -falign-functions=32 -I../usrl"
+ *   CFLAGS="$CFLAGS -mavx2 -flto -Wno-format-extra-args"
+ *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos   #1
  *   ./umkaos > uchaos_tbl.h
- *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c             -o umkaos
+ *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c             -o umkaos   #2
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
- *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos
+ *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos   #3
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
+ *
+ * Functions tests:
+ *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
+ *  px 4 "./umkaos 20 2>&-" | ent                                        #A
+ *  px 8 "./umkaos 25 2>&-" | dd bs=1M of=/dev/null                      #B
+ *  px 4 "./umkaos 34 2>&-" | ../prnd/RNG_test stdin64                   #C
+ *
+ *******************************************************************************
+ *
+ * Results (on v0.4.2, w -O1)
+ *
+ *  1073741824 bytes (1.1 GB, 1.0 GiB) copied, 1.62355 s, 661 MB/s (+8%) #3C
+ *  1073741824 bytes (1.1 GB, 1.0 GiB) copied, 2.38894 s, 449 MB/s (68%) #32-bit
  *
  **************************************************************************** */
 
@@ -193,10 +206,8 @@ void scramtbl(register uint32_t r) {
 #define prt08x(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
 uint64_t prntbl(const void *vp, uint32_t sze) {
-  uint32_t i;
-  cu32_t *tb = vp;
-  for (i = 0; i < sze; i++, tb++)
-    prt08x((i&3)?"":"\n  ", *tb);
+  for (cu32_t *tb = vp; sze--; tb++)
+    prt08x((sze&3)?"":"\n  ", *tb);
 }
 
 static inline

@@ -6,6 +6,8 @@
 
 This document is a design rationale. It explains the architectural transition from uchaos/uckaos to umkaos and why randomized comb-based mixing supersedes fixed-constant whitening hashes in the uChaos paradigm. It also contains a container SUID shell exfiltration for root local escalation for the sake of education.
 
+---
+
 ### Introduction
 
 The umkaos32 is a userland binary built for supporting all the x86 CPUs from i386 and above. Compared with the same code compiled for AVX2 x64 which has a throughput of 600MB/s, the 32bit loses less than half of the performance and provides 67% throughput (400 MB/s). Because it is compiled as static musl can elf thus it runs on every system without extra libraries and when compressed with the self-extracting `gzcmd.sh` format takes less than 20Kb.
@@ -115,7 +117,7 @@ docker run --rm $devc /bin/sh -c "cd kdev && cc $CFLAGS -D_USE_MLTP \
 
 Basic tests:
 
-```
+```sh
 echo "Are there i386 unsupported instructions?"
 objdump -d $biname | grep -E 'vmov|vadd|vpxor' || echo "NO"
 echo "Are there plain-sight text strings?"

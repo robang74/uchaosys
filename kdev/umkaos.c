@@ -7,8 +7,9 @@
  *   CFLAGS="$CFLAGS -mavx2 -flto -Wno-format-extra-args"
  *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos   #1
  *   ./umkaos > uchaos_tbl.h
- *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS umkaos.c             -o umkaos   #2
+ *   cc $CFLAGS -D_USE_MLTP -D_USE_FNCS umkaos.c             -o umkaos   #2
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
+ *   ./umkaos > uchaos_tbl.h
  *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos   #3
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
  *
@@ -49,7 +50,7 @@
   #include <inttypes.h>
   #include "getnanos.h"
   #define prterr(x...) fprintf(stderr, x)
-  #define HEAD_SIZE 84
+  #define HEAD_SIZE 84 // should be mod4
 #endif
 
 #define MTBL_STRN "MTBL"
@@ -85,7 +86,6 @@ typedef const uint32_t cu32_t;
   #pragma message "Using copy buf as umks_head"
   #define umks_head ((const uint8_t *)copy)
 #else
-  #define COPY_SZE (sizeof(umks_head))
   static const
   uint8_t umks_head[] = {
     "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
@@ -93,6 +93,7 @@ typedef const uint32_t cu32_t;
     "\n//> Use w/arg N for 2^N bytes dataout\n"
     "\n\0\0\0\0"
   };
+  #define COPY_SZE (sizeof(umks_head))
 #endif
 /*
  * RAF: when the header is masked, it never appears in RAM
@@ -107,6 +108,7 @@ typedef const uint32_t cu32_t;
  * the main point remains about HOW hiding the binary
  * once the constants have been compacted and suffled.
  */
+#define HEAD_SIZE_N ((HEAD_SIZE >> 2) - RNG_ONLY)
 static inline
 int prtxcpy(int fd) {
   cu32_t *q = (cu32_t *)umks_head;
@@ -120,10 +122,11 @@ int prtxcpy(int fd) {
   if(!c) {
     wn = write(fd, q, HEAD_SIZE);
   } else {
-    while((x = c ^ *q++)) {
+    while( (x = c ^ *q++)
+    && n++ < HEAD_SIZE_N ) {
       wn = write(fd, &x, 4);
-      if (   USE_FNCS
-      && !( 7 & (++n) ) )
+      if ( USE_FNCS
+      && !( 7 & n ) )
         collect_entropy();
     }
 #if USE_FNCS
@@ -137,21 +140,21 @@ int prtxcpy(int fd) {
 static inline
 void cpyxcpy(void *vp, uint32_t m) {
   cu32_t *q = (cu32_t *)umks_head;
-  uint32_t *p = vp, wn = COPY_SZE;
+  uint32_t *p = vp, wn = COPY_SZE >> 2;
 
-  m ^= q[(wn >> 2) - 1];
+  m ^= q[wn-1];
   print1(
     "\n// hsize: %d / %d, xchar: 0x%08x\n",
-      HEAD_SIZE, wn, m);
+      HEAD_SIZE, wn << 2, m);
 
   if(m) {
-    while(*q) {
+    while(--wn && *q) {
       *p++ = m ^ *q++;
     }
     *p++ = m;
   } else {
-    memcpy(vp, q, wn);
-    p += wn >> 2;
+    memcpy(vp, q, wn << 2);
+    p += wn;
   }
   *p++ = 0;
 
@@ -206,8 +209,9 @@ void scramtbl(register uint32_t r) {
 #define prt08x(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
 uint64_t prntbl(const void *vp, uint32_t sze) {
+  int i = 0;
   for (cu32_t *tb = vp; sze--; tb++)
-    prt08x((sze&3)?"":"\n  ", *tb);
+    prt08x((i++ & 3)?"":"\n  ", *tb);
 }
 
 static inline
@@ -259,7 +263,7 @@ typedef struct {
   uint8_t trns;
   uint8_t bval;
   uint8_t good;
-} good_byte_t;
+} __attribute__((aligned(4))) good_byte_t;
 
 int main(int argc, char *argv[]) {
 #if RNG_ONLY
@@ -400,6 +404,7 @@ int main(int argc, char *argv[]) {
   int max = (argn?:4);
   uint32_t rndr[4], rndm[4];
   uint32_t *p = (uint32_t *)mpage;
+
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
@@ -470,12 +475,12 @@ int main(int argc, char *argv[]) {
   #define ARRY_CLSE "\n};"
   #define DEFN_STRN "\n#define "
 
-  n = COPY_SZE >> 2;
+  n = COPY_SZE;
   if(umks_head) {
     cpyxcpy(mpage, m);
     print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
-    prntbl(mpage, 1 + n);
-    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
+    prntbl(mpage, 1 + (n >> 2));
+    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n);
     newln2();
   }
   if(DEBUG) prtxcpy(2);

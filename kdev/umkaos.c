@@ -108,7 +108,7 @@ typedef const uint32_t cu32_t;
  * the main point remains about HOW hiding the binary
  * once the constants have been compacted and suffled.
  */
-#define HEAD_SIZE_N ((HEAD_SIZE >> 2))// + RNG_ONLY)
+#define HEAD_SIZE_N ((HEAD_SIZE >> 2) + RNG_ONLY)
 static inline
 int prtxcpy(int fd) {
   cu32_t *q = (cu32_t *)umks_head;
@@ -125,7 +125,7 @@ int prtxcpy(int fd) {
     while( (x = c ^ *q++)
     && n++ < HEAD_SIZE_N ) {
       wn = write(fd, &x, 4);
-      if ( USE_FNCS
+      if (   USE_FNCS
       && !( 7 & n ) )
         collect_entropy();
     }
@@ -140,21 +140,21 @@ int prtxcpy(int fd) {
 static inline
 void cpyxcpy(void *vp, uint32_t m) {
   cu32_t *q = (cu32_t *)umks_head;
-  uint32_t *p = vp, wn = COPY_SZE >> 2;
+  uint32_t *p = vp, wn = COPY_SZE;
 
-  m ^= q[wn-1];
+  m ^= q[(wn >> 2) - 1];
   print1(
     "\n// hsize: %d / %d, xchar: 0x%08x\n",
-      HEAD_SIZE, wn << 2, m);
+      HEAD_SIZE, wn, m);
 
   if(m) {
-    while(--wn && *q) {
+    while(*q) {
       *p++ = m ^ *q++;
     }
     *p++ = m;
   } else {
-    memcpy(vp, q, wn << 2);
-    p += wn;
+    memcpy(vp, q, wn);
+    p += wn >> 2;
   }
   *p++ = 0;
 
@@ -209,9 +209,8 @@ void scramtbl(register uint32_t r) {
 #define prt08x(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
 uint64_t prntbl(const void *vp, uint32_t sze) {
-  int i = 0;
   for (cu32_t *tb = vp; sze--; tb++)
-    prt08x((i++ & 3)?"":"\n  ", *tb);
+    prt08x((sze&3)?"":"\n  ", *tb);
 }
 
 static inline
@@ -263,7 +262,7 @@ typedef struct {
   uint8_t trns;
   uint8_t bval;
   uint8_t good;
-} __attribute__((aligned(4))) good_byte_t;
+} good_byte_t;
 
 int main(int argc, char *argv[]) {
 #if RNG_ONLY
@@ -404,7 +403,6 @@ int main(int argc, char *argv[]) {
   int max = (argn?:4);
   uint32_t rndr[4], rndm[4];
   uint32_t *p = (uint32_t *)mpage;
-
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
@@ -447,19 +445,11 @@ int main(int argc, char *argv[]) {
     wn = (uintptr_t)p - (uintptr_t)mpage;
     if(wn > 0 & wn < WRITESZE)
       wn = write(1, mpage, wn);
-
-#if RNG_ONLY
-  #if USE_MTBL | USE_MLTP
-  // RAF: random lenght code with random bss size to include here
-  // code that writes and reads mpage to randomize text/bss lenghts
-  // because these number below can be used to create a fingerprint.
-  // text	   data	    bss	    dec	    hex	filename
-  // 3223	    960	     88	   4271	   10af	umkaos
-  #endif
-#else
   }
-  else /////////////////////////////////////////////////////////////////////////
-  {
+#if RNG_ONLY
+#else
+  else
+  { ////////////////////////////////////////////////////////////////////////////
 
   uint32_t tb[MLTP_SZE + 16], m;
   uint8_t *w = (uint8_t *)tb;
@@ -483,12 +473,12 @@ int main(int argc, char *argv[]) {
   #define ARRY_CLSE "\n};"
   #define DEFN_STRN "\n#define "
 
-  n = COPY_SZE;
+  n = COPY_SZE >> 2;
   if(umks_head) {
     cpyxcpy(mpage, m);
     print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
-    prntbl(mpage, 1 + (n >> 2));
-    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n);
+    prntbl(mpage, 1 + n);
+    print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
     newln2();
   }
   if(DEBUG) prtxcpy(2);
@@ -507,7 +497,7 @@ int main(int argc, char *argv[]) {
     *w++ =  q[32 + i];
     *w++ =  q[48 + i];
   }
-  #if MLTP_SZE > 64
+#if MLTP_SZE > 64
   for(i = 0; i < (TABLESZE >> 2); i++) {
     const uint8_t *q = &table[i];
     *w++ = ~q[32 + i]; // ~5  -->  3  bits
@@ -515,7 +505,7 @@ int main(int argc, char *argv[]) {
     *w++ = ~q[ 0 + i]; // ~3  -->  5  bits
     *w++ =  q[16 + i]; // 2nd --> 4th byte
   }
-  #endif
+#endif
   for(i = 0; i < 4; i++) {
     table[TABLESZE+i] = 0;
     tb[n++] = tb[i];

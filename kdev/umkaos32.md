@@ -48,7 +48,7 @@ exit
 docker ps -a | grep i386/alpine:latest
 docker commit $cont-id alpine-i386-dev
 
-devc="-v "$(pwd):/src" -w /src alpine-i386-dev"
+devc="-v ".:/src" -w /src alpine-i386-dev"
 export devc
 ```
 
@@ -60,7 +60,7 @@ export devc
 > This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
 
 ```sh
-devc="-v "$(pwd):/src" -w /src alpine-i386-dev"
+devc="-v ".:/src" -w /src alpine-i386-dev"
 docker run -it --rm $devc /bin/sh
 # Inside the container:
 cat << 'EOF' > iamroot.c
@@ -111,7 +111,8 @@ strp() {
   strip --strip-all --remove-section=.comment --remove-section=.note $@
 }
 
-docker run --rm $devc /bin/sh -c "cd kdev && cc $CFLAGS -D_USE_MLTP \
+devc="-v ".:/src" -w /src alpine-i386-dev"
+docker run --rm $devc /bin/sh -c "cc $CFLAGS -D_USE_MLTP \
   $CFLAGS32 umkaos.c -no-pie -o $biname && chown 1000:1000 $biname"
 ```
 

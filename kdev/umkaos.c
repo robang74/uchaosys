@@ -13,7 +13,11 @@
  *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos   #3
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
  *
- * Functions tests:
+ * Recursive compiling test:
+ *  cmpl() { cc $CFLAGS -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos; }
+ *  for i in $(seq 10); do cmpl && ./umkaos | tee uchaos_tbl.h; done
+ *
+ * Functioning as RNG tests:
  *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
  *  px 4 "./umkaos 20 2>&-" | ent                                        #A
  *  px 8 "./umkaos 25 2>&-" | dd bs=1M of=/dev/null                      #B
@@ -21,9 +25,9 @@
  *
  *******************************************************************************
  *
- * Results (on v0.4.2, w -O1)
+ * Results (on v0.4.2, w -O1, code refactorying, p.4)
  *
- *  1073741824 bytes (1.1 GB, 1.0 GiB) copied, 1.62355 s, 661 MB/s (+8%) #3C
+ *  1073741824 bytes (1.1 GB, 1.0 GiB) copied, 1.62355 s, 661 MB/s (+8%) #C3
  *  1073741824 bytes (1.1 GB, 1.0 GiB) copied, 2.38894 s, 449 MB/s (68%) #32-bit
  *
  **************************************************************************** */
@@ -121,7 +125,7 @@ int prtxcpy(int fd) {
   if(!c) {
     wn = write(fd, q, HEAD_SIZE);
   } else {
-    while( (x = c ^ *q++) && n--)
+    while(n-- && (x = c ^ *q++))
       wn = write(fd, &x, 4);
   }
 
@@ -257,7 +261,6 @@ int main(int argc, char *argv[]) {
 #endif
   uint32_t i, n, r, ncycl = 1, argn = 0;
   ssize_t wn = COPY_SZE;
-  uint8_t nb[7], c;
 
   collect_entropy(); // entc: 1,1,1 for [none],[mtbl],[mltp]
 
@@ -313,6 +316,7 @@ int main(int argc, char *argv[]) {
     // byte WR pointer to the table
     uint8_t *q = (uint8_t *)table;
     good_byte_t gb[256];
+    uint8_t nb[7], c;
 
     // select & count the good ones
     *(uint32_t *)nb = 0;
@@ -432,8 +436,12 @@ int main(int argc, char *argv[]) {
         // RAF: random lenght code with random bss size to include here
         // code that writes and reads mpage to randomize text/bss lenghts
         // because these number below can be used to create a fingerprint.
+        // refactoring p.7.1
         // text	   data	    bss	    dec	    hex	filename
         // 3223	    960	     88	   4271	   10af	umkaos
+        // refactoring p.8.1
+        // text	   data	    bss	    dec	    hex	filename
+        // 3195	    928	     88	   4211	   1073	umkaos
         #endif
       #endif
     } else {

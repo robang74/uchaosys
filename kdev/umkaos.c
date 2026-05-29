@@ -148,15 +148,8 @@ void cpyxcpy(void *vp, uint32_t m) {
     *p++ = m;
   } else {
     memcpy(vp, q, COPY_SZE);
-    p += wn;
   }
-  *p = 0;
-
-  p = vp + COPY_SZE - 4;
-  if(p[1]) {
-     //p[0]  =  m;
-     p[1]  =  0;
-  }
+  *(p = vp + COPY_SZE) = 0;
 }
 
 static inline

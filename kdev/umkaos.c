@@ -93,7 +93,7 @@ typedef const uint32_t cu32_t;
     "\n//> Use w/arg N for 2^N bytes dataout\n"
     "\n\0\0\0\0"
   };
-  #define COPY_SZE (sizeof(umks_head))
+  #define COPY_SZE 128
 #endif
 /*
  * RAF: when the header is masked, it never appears in RAM
@@ -108,7 +108,6 @@ typedef const uint32_t cu32_t;
  * the main point remains about HOW hiding the binary
  * once the constants have been compacted and suffled.
  */
-#define HEAD_SIZE_N ((HEAD_SIZE >> 2) )//+ RNG_ONLY)
 static inline
 int prtxcpy(int fd) {
   cu32_t *q = (cu32_t *)umks_head;
@@ -123,10 +122,9 @@ int prtxcpy(int fd) {
     wn = write(fd, q, HEAD_SIZE);
   } else {
     while( (x = c ^ *q++)
-    && n++ < HEAD_SIZE_N ) {
+    && n++ < (HEAD_SIZE >> 2) ) {
       wn = write(fd, &x, 4);
-      if (   USE_FNCS
-      && !( 7 & n ) )
+      if ( USE_FNCS && !(7&n) )
         collect_entropy();
     }
 #if USE_FNCS
@@ -492,7 +490,7 @@ int main(int argc, char *argv[]) {
   if(umks_head) {
     cpyxcpy(mpage, m);
     print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
-    prntbl(mpage, 4 + n);
+    prntbl(mpage, 1 + n);
     print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
     newln2();
   }

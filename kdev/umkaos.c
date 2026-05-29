@@ -269,6 +269,9 @@ int main(int argc, char *argv[]) {
 #if RNG_ONLY
 #else
   uint64_t t = get_nanos(); // init the timer, first of all
+#endif
+#if USE_MTBL | USE_MLTP
+#else
   good_byte_t gb[256];
 #endif
   uint32_t i, n, r, ncycl = 1, argn = 0;

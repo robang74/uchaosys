@@ -44,7 +44,7 @@
   #define prterr(x...)
   #undef  write
   #define write(a,b,c) syscall(SYS_write,a,b,c);
-  #define HEAD_SIZE 123
+  #define HEAD_SIZE 124
 #else
   #define RNG_ONLY 0
   #include <inttypes.h>
@@ -108,7 +108,7 @@ typedef const uint32_t cu32_t;
  * the main point remains about HOW hiding the binary
  * once the constants have been compacted and suffled.
  */
-#define HEAD_SIZE_N ((HEAD_SIZE >> 2) + RNG_ONLY)
+#define HEAD_SIZE_N ((HEAD_SIZE >> 2) )//+ RNG_ONLY)
 static inline
 int prtxcpy(int fd) {
   cu32_t *q = (cu32_t *)umks_head;
@@ -148,7 +148,7 @@ void cpyxcpy(void *vp, uint32_t m) {
       HEAD_SIZE, wn << 2, m);
 
   if(m) {
-    while(*q) {
+    while(wn-- && *q) {
       *p++ = m ^ *q++;
     }
     *p++ = m;
@@ -156,7 +156,7 @@ void cpyxcpy(void *vp, uint32_t m) {
     memcpy(vp, q, wn << 2);
     p += wn;
   }
-  *p++ = 0;
+  *p = 0;
 
 #if USE_FNCS
 // RAF: useless here but it masks cpyxcpy()'s role
@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
  * RAF: 123,128 to weak alone but a piece of a potential fingerprint
 // if( HEAD_SIZE != 123 || wn != 128 )
  * while the following collapses into wn != 128 by default or noop()
- */if( HEAD_SIZE+5 != wn || (wn^128) )
+ */if( HEAD_SIZE+4 != wn || (wn^128) )
       return 1;
 #endif
     prtxcpy(1 + !!argn); // entc: from +1 to +4

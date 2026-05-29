@@ -7,7 +7,7 @@
  *   CFLAGS="$CFLAGS -mavx2 -flto -Wno-format-extra-args"
  *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos   #1
  *   ./umkaos > uchaos_tbl.h
- *   cc $CFLAGS -D_USE_MLTP -D_USE_FNCS umkaos.c             -o umkaos   #2
+ *   cc $CFLAGS -D_USE_MLTP -D_USE_FNCS umkaos.c -o umkaos               #2
  *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
  *   ./umkaos > uchaos_tbl.h
  *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos   #3
@@ -108,7 +108,7 @@ typedef const uint32_t cu32_t;
  * the main point remains about HOW hiding the binary
  * once the constants have been compacted and suffled.
  */
-#define HEAD_SIZE_N ((HEAD_SIZE >> 2) - RNG_ONLY)
+#define HEAD_SIZE_N ((HEAD_SIZE >> 2))// + RNG_ONLY)
 static inline
 int prtxcpy(int fd) {
   cu32_t *q = (cu32_t *)umks_head;
@@ -447,11 +447,19 @@ int main(int argc, char *argv[]) {
     wn = (uintptr_t)p - (uintptr_t)mpage;
     if(wn > 0 & wn < WRITESZE)
       wn = write(1, mpage, wn);
-  }
+
 #if RNG_ONLY
+  #if USE_MTBL | USE_MLTP
+  // RAF: random lenght code with random bss size to include here
+  // code that writes and reads mpage to randomize text/bss lenghts
+  // because these number below can be used to create a fingerprint.
+  // text	   data	    bss	    dec	    hex	filename
+  // 3223	    960	     88	   4271	   10af	umkaos
+  #endif
 #else
-  else
-  { ////////////////////////////////////////////////////////////////////////////
+  }
+  else /////////////////////////////////////////////////////////////////////////
+  {
 
   uint32_t tb[MLTP_SZE + 16], m;
   uint8_t *w = (uint8_t *)tb;
@@ -499,7 +507,7 @@ int main(int argc, char *argv[]) {
     *w++ =  q[32 + i];
     *w++ =  q[48 + i];
   }
-#if MLTP_SZE > 64
+  #if MLTP_SZE > 64
   for(i = 0; i < (TABLESZE >> 2); i++) {
     const uint8_t *q = &table[i];
     *w++ = ~q[32 + i]; // ~5  -->  3  bits
@@ -507,7 +515,7 @@ int main(int argc, char *argv[]) {
     *w++ = ~q[ 0 + i]; // ~3  -->  5  bits
     *w++ =  q[16 + i]; // 2nd --> 4th byte
   }
-#endif
+  #endif
   for(i = 0; i < 4; i++) {
     table[TABLESZE+i] = 0;
     tb[n++] = tb[i];

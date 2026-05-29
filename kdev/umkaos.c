@@ -140,12 +140,12 @@ int prtxcpy(int fd) {
 static inline
 void cpyxcpy(void *vp, uint32_t m) {
   cu32_t *q = (cu32_t *)umks_head;
-  uint32_t *p = vp, wn = COPY_SZE;
+  uint32_t *p = vp, wn = COPY_SZE >> 2;
 
-  m ^= q[(wn >> 2) - 1];
+  m ^= q[wn-1];
   print1(
     "\n// hsize: %d / %d, xchar: 0x%08x\n",
-      HEAD_SIZE, wn, m);
+      HEAD_SIZE, wn << 2, m);
 
   if(m) {
     while(*q) {
@@ -153,8 +153,8 @@ void cpyxcpy(void *vp, uint32_t m) {
     }
     *p++ = m;
   } else {
-    memcpy(vp, q, wn);
-    p += wn >> 2;
+    memcpy(vp, q, wn << 2);
+    p += wn;
   }
   *p++ = 0;
 

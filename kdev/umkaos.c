@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
   if(umks_head) {
     cpyxcpy(mpage, m);
     print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
-    prntbl(mpage, 1 + n);
+    prntbl(mpage, 4 + n);
     print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
     newln2();
   }

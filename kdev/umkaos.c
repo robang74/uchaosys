@@ -209,8 +209,9 @@ void scramtbl(register uint32_t r) {
 #define prt08x(s,m) fprintf(stdout, "%s0x%08x, ", s, m)
 static inline
 uint64_t prntbl(const void *vp, uint32_t sze) {
+  int i = 0;
   for (cu32_t *tb = vp; sze--; tb++)
-    prt08x((sze&3)?"":"\n  ", *tb);
+    prt08x((i++ & 3)?"":"\n  ", *tb);
 }
 
 static inline
@@ -262,17 +263,17 @@ typedef struct {
   uint8_t trns;
   uint8_t bval;
   uint8_t good;
-} good_byte_t;
+} __attribute__((aligned(4))) good_byte_t;
 
 int main(int argc, char *argv[]) {
 #if RNG_ONLY
 #else
   uint64_t t = get_nanos(); // init the timer, first of all
-#endif
   good_byte_t gb[256];
-  uint8_t mpage[WRITESZE], nb[7], c;
+#endif
   uint32_t i, n, r, ncycl = 1, argn = 0;
   ssize_t wn = COPY_SZE;
+  uint8_t nb[7], c;
 
   collect_entropy(); // entc: 1,1,1 for [none],[mtbl],[mltp]
 
@@ -401,8 +402,10 @@ int main(int argc, char *argv[]) {
 
   // RAF: for-loop is optimised for 32bit //////////////////////////////////////
   int max = (argn?:4);
+  uint8_t mpage[WRITESZE];
   uint32_t rndr[4], rndm[4];
   uint32_t *p = (uint32_t *)mpage;
+
   for(int k = 0; k < ncycl; k++) {
     for(n = 0; n < max; n++) {
 
@@ -445,6 +448,15 @@ int main(int argc, char *argv[]) {
     wn = (uintptr_t)p - (uintptr_t)mpage;
     if(wn > 0 & wn < WRITESZE)
       wn = write(1, mpage, wn);
+#if RNG_ONLY
+  #if USE_MTBL | USE_MLTP
+  // RAF: random lenght code with random bss size to include here
+  // code that writes and reads mpage to randomize text/bss lenghts
+  // because these number below can be used to create a fingerprint.
+  // text	   data	    bss	    dec	    hex	filename
+  // 3223	    960	     88	   4271	   10af	umkaos
+  #endif
+#endif
   }
 #if RNG_ONLY
 #else

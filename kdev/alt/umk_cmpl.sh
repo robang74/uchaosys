@@ -7,8 +7,10 @@ if [ "${1:-}" = "clean" ]; then
   exit 0
 fi
 
+r_seq=${1:-$(seq 0 9)}
+
 set -e
-for r in $(seq 0 9); do
+for r in $r_seq; do
   n=0;
   for a in "___a" FNCS; do
     for b in "___b" MTBL MLTB; do
@@ -28,7 +30,10 @@ for r in $(seq 0 9); do
               fi
               nc=$($d/$exe | wc -lc | tr -d ' ')
               nl=$($d/$exe | grep -E "robang74|umkaos|dataout" | wc -l)
-              if [ "$nl$nc" != "37123" ]; then ./umkaos; exit 1; fi
+              if [ "$nl$nc" != "37123" ]; then
+                $d/$exe; printf "\nnl:$nl/3  nc:$nc/7:123\n";
+                exit 1;
+              fi
             done
           done
         done

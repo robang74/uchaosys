@@ -1,33 +1,43 @@
 
 /*
- * (c) 2026, roberto.foglietta@gmail.com, GPLv2
+ * (C) 2026, github::@robang74, GPLv2
  */
-//> Executing uChaoSys::umkaos.c v0.4.2
+//> Executing uChaoSys::umkaos v0.4.2
 
-// RAF: not aligned at 32 bit on purpose
-__attribute__((weak))
-const uint32_t __thread mltp[] = {
-  0xa5b3654c, 0xd4ab66a4, 0x9a9b4b25, 0x996d3332, 
-  0xccd96964, 0xb4d63552, 0xd2da5994, 0xa9cb4d2c, 
-  0x00a5b365, 0x00d4ab66, 0x009a9b4b, 0x00996d33, 
-  0x00ccd969, 0x00b4d635, 0x00d2da59, 0x00a9cb4d, 
-  0xa5b3654c, 0xd4ab66a4, 0x9a9b4b25, 0x996d3332, 
+static const uint32_t __thread copy[] = {
+  0xa6474558, 0x844d4072, 0x9e4d4311, 0x805b5862, 
+  0xd8040d72, 0x960f1f3a, 0xc31f2a68, 0xcb030b30, 
+  0x8c415e65, 0xda213a15, 0x864d6060, 0x8342607d, 
+  0xd4284a6c, 0xd8180937, 0x8c0a043b, 0xcd052927, 
+  0xdf14393d, 0xc1185068, 0xdf020b39, 0x825d1c72, 
+  0xa65f4466, 0x8c53457d, 0x8c081907, 0xde0c4525, 
+  0x8c234a35, 0x8c1f0534, 0x8c233460, 0xc9191330, 
+  0xcd094a21, 0xd9020b26, 0xac676026, 0xac6d6a52, 
+  0x00000000, 
+};
+#define COPY_SZE 128
+
+static const uint32_t __thread mltp[] = {
+  0xb4d32d34, 0xccd95a4c, 0x99cb354a, 0xa6ad552a, 
+  0x9a5b4d94, 0xa5d6332c, 0xd4d55332, 0xd2ab6a49, 
+  0x00b4d32d, 0x00ccd95a, 0x0099cb35, 0x00a6ad55, 
+  0x109a5b4d, 0x40a5d633, 0x00d4d553, 0x00d2ab6a, 
+  0xb4d32d34, 0xccd95a4c, 0x99cb354a, 0xa6ad552a, 
   0x00000000, 
 };
 #define MLTP_SZE 64
-#define MLTP_CHK 0x21b63455b21acae6
+#define MLTP_CHK 0x2889899c0bd7c30e
 
-__attribute__((weak))
 __attribute__((aligned(4)))
-const uint32_t __thread mtbl[] = {
-  0x2aa4544c, 0x92323425, 0x26524a64, 0x492c2994, 
-  0x5a665665, 0x2b33534b, 0x55352d69, 0x364d6a59, 
-  0xcdabadb3, 0x5b6d6b9b, 0xb6d6b5d9, 0xd3cbd5da, 
-  0x96d4aaa5, 0x9599b29a, 0xcab4accc, 0xc9a9a6d2, 
+static const uint32_t __thread mtbl[] = {
+  0x644c5434, 0x262aa44a, 0x252c2994, 0x92495232, 
+  0x565a662d, 0x59556935, 0x65332b4d, 0x4b6a3653, 
+  0x6dd9cdd3, 0x9badb5cb, 0xdad6b35b, 0xb6ab6bd5, 
+  0xa9cc95b4, 0x96a6ac99, 0xaaa5c99a, 0xcad2b2d4, 
   0x00000000, 
 };
 #define MTBL_SZE 64
-#define MTBL_CHK 0x8c9c602f2f656be6
+#define MTBL_CHK 0x4fb06b5c9303da2c
 
-//> Run time:   30447 nS --> 0.030 mS
+//> Run time:   42837 nS --> 0.043 mS
 

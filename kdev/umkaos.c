@@ -97,7 +97,7 @@ typedef const uint32_t cu32_t;
     "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
     "\n//> Executing uChaoSys::umkaos " VERSION
     "\n//> Use w/arg N for 2^N bytes dataout\n"
-    "\n\0\0\0\0"
+    "\n \0\0\0"
   };
   #define COPY_SZE 128
 #endif

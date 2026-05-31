@@ -53,17 +53,24 @@
 #endif
 
 #if USE_MTBL | USE_MLTP
-#ifndef MTBL_SZE
-#include "uchaos_tbl.h"
-#endif
-#define TABLESZE MTBL_SZE
-#define urnd_init() memcpy(table, mtbl, TABLESZE)
+  #include "uchaos_tbl.h"
+  #if USE_MTBL
+    #ifndef MTBL_SZE
+    #define TABLESZE MTBL_SZE
+    #endif
+    #define urnd_init() memcpy(table, mtbl, TABLESZE)
+  #endif
+  #if USE_MLTP
+    #define TABLESZE 64
+    #ifndef MLTP_SZE
+    #define MLTP_SZE TABLESZE
+    #endif
+    #define urnd_init() memset(table,    0, TABLESZE)
+  #endif
 #else
-#define TABLESZE 64
-#ifndef MLTP_SZE
-#define MLTP_SZE TABLESZE
-#endif
-#define urnd_init() memset(table,    0, TABLESZE)
+  #define MLTP_SZE 64
+  #define TABLESZE 64
+  #define urnd_init() do{}while(0)
 #endif
 
 #ifdef UCHAOS_SEQ_C

@@ -2,27 +2,29 @@
  * uchaos_seq.c - Character sequencer for uchaos-based jitter hashing
  * (c) 2026, Roberto A. Foglietta <roberto.foglietta@gmail.com>, GPLv2
  *
- * Compile and run with (check uchaos_seq.c for all the cases):
- *   CFLAGS="-s -g0 -O1 -falign-functions=32 -I../usrl"
- *   CFLAGS="$CFLAGS -mavx2 -flto -Wno-format-extra-args"
- *   cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos   #1
- *   ./umkaos > uchaos_tbl.h
- *   cc $CFLAGS -D_USE_MLTP -D_USE_FNCS umkaos.c -o umkaos               #2
- *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
- *   ./umkaos > uchaos_tbl.h
- *   cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos   #3
- *   ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
- *
- * Recursive compiling test:
- *  cmpl() { cc $CFLAGS -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos; }
- *  for i in $(seq 10); do cmpl && ./umkaos | tee uchaos_tbl.h; done
- *
- * Functioning as RNG tests:
- *  px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
- *  px 4 "./umkaos 20 2>&-" | ent                                        #A
- *  px 8 "./umkaos 25 2>&-" | dd bs=1M of=/dev/null                      #B
- *  px 4 "./umkaos 34 2>&-" | ../prnd/RNG_test stdin64                   #C
- *
+ *******************************************************************************
+
+ # Compile and run with (check uchaos_seq.c for all the cases):
+    CFLAGS="-s -g0 -O1 -falign-functions=32 -I../usrl"
+    CFLAGS="$CFLAGS -mavx2 -flto -Wno-format-extra-args"
+    cc $CFLAGS                         umkaos.c -o umkaos && ./umkaos   #1
+    ./umkaos > uchaos_tbl.h
+    cc $CFLAGS -D_USE_MLTP -D_USE_FNCS umkaos.c -o umkaos               #2
+    ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
+    ./umkaos > uchaos_tbl.h
+    cc $CFLAGS -D_RNG_ONLY -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos   #3
+    ./umkaos; size umkaos; echo;strings umkaos|sed -ne "s/.\{6\}/&/p"
+
+ # Recursive compiling test:
+    cmpl() { cc $CFLAGS -D_USE_FNCS -D_USE_MLTP umkaos.c -o umkaos; }
+    for i in $(seq 10); do cmpl && ./umkaos | tee uchaos_tbl.h; done
+
+ # Functioning as RNG tests:
+    px() { echo "px n:$1" >&2; eval parallel -uj$1 "'$2'" ::: {1..$1}; }
+    px 4 "./umkaos 20 2>&-" | ent                                        #A
+    px 8 "./umkaos 25 2>&-" | dd bs=1M of=/dev/null                      #B
+    px 4 "./umkaos 34 2>&-" | ../prnd/RNG_test stdin64                   #C
+
  *******************************************************************************
  *
  * Results (on v0.4.2, w -O1, code refactorying, p.4)
@@ -277,20 +279,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if( (MLTP_SZE != 64 && MLTP_SZE != 128)
-#if USE_MTBL
-   || (MTBL_SZE != 64 && MTBL_SZE != 128)
-#endif
-   || (TABLESZE != 64 && TABLESZE != 128) )
-  {
-    prterr("\n> ERROR: unsupported table size\n");
-    return 1;
-  }
-
-  urnd_init();
-
-  collect_entropy(); // entc: 2,2,2
-
   if(umks_head && umks_head[0]) {
 #if RNG_ONLY
 /*
@@ -304,12 +292,26 @@ int main(int argc, char *argv[]) {
   }
 
 #if USE_MLTP | USE_MTBL ////////////////////////////////////////////////// #1 //
-#if USE_MLTP
+  if( (TABLESZE != 64 && TABLESZE != 128)
+  #if USE_MTBL
+   || (MTBL_SZE != 64 && MTBL_SZE != 128)
+  #endif
+  #if USE_MLTP
+   || (MLTP_SZE != 64 && MLTP_SZE != 128)
+  #endif
+  ) {
+    prterr("\n> ERROR: unsupported table size\n");
+    return 1;
+  }
+  #if USE_MLTP
   if(chktbl_match(mltp, MLTP_CHK, MLTP_STRN))
     return 1;
-#endif
+  #endif
+  #if USE_MTBL
   if(chktbl_match(mtbl, MTBL_CHK, MTBL_STRN))
     return 1;
+  #endif
+  urnd_init();
 #else //////////////////////////////////////////////////////////////////// #2 //
   do {
     // byte WR pointer to the table
@@ -380,10 +382,12 @@ int main(int argc, char *argv[]) {
     }
   } while(0);
 #endif /////////////////////////////////////////////////////////////////// #3 //
+
   do {
     int max = (argn?:4);
-    uint8_t mpage[WRITESZE];
     uint32_t rndr[4], rndm[4];
+
+    uint8_t mpage[WRITESZE];
     uint32_t *p = (uint32_t *)mpage;
 
     collect_entropy(); // entc: 5,3,3 (+1)
@@ -446,7 +450,7 @@ int main(int argc, char *argv[]) {
     } else {
 #if RNG_ONLY // ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 #else
-      uint32_t tb[MLTP_SZE + 16], m;
+      uint32_t tb[MLTP_SZE + 2], m;
       uint8_t *w = (uint8_t *)tb;
 
       // scramble the table by sectors
@@ -462,7 +466,7 @@ int main(int argc, char *argv[]) {
 
       #define ATTR_WEAK "\n__attribute__((weak))"
       #define ATTR_ALGN "\n__attribute__((aligned(4)))"
-      #define ARRY_TYPE "\nconst uint32_t __thread "
+      #define ARRY_TYPE "\nstatic const uint32_t __thread "
       #define STAT_TYPE "\nstatic"
       #define ARRY_OPEN "[] = {"
       #define ARRY_CLSE "\n};"
@@ -471,7 +475,7 @@ int main(int argc, char *argv[]) {
       n = COPY_SZE >> 2;
       if(umks_head) {
         cpyxcpy(mpage, m);
-        print2(STAT_TYPE ARRY_TYPE COPY_VARN ARRY_OPEN);
+        print2(ARRY_TYPE COPY_VARN ARRY_OPEN);
         prntbl(mpage, 1 + n);
         print2(ARRY_CLSE DEFN_STRN COPY_STRN "_SZE %d", n << 2);
         newln2();
@@ -484,7 +488,7 @@ int main(int argc, char *argv[]) {
       //1by:    | 3,4,5,4 | 4,5,4,3 | 5,4,3,4 | 4,5,4,3 |
       n = MLTP_SZE >> 2;
       // RAF: mltp is not aligned at 32-bit on purpose
-      print2(ATTR_WEAK ARRY_TYPE MLTP_VARN ARRY_OPEN);
+      print2(ARRY_TYPE MLTP_VARN ARRY_OPEN);
       for(i = 0; i < (TABLESZE >> 2); i++) {
         const uint8_t *q = &table[i];
         *w++ =  q[ 0 + i];
@@ -513,7 +517,7 @@ int main(int argc, char *argv[]) {
           MLTP_SZE, chktbl(tb) );
       newln2();
 
-      print2(ATTR_WEAK ATTR_ALGN ARRY_TYPE MTBL_VARN ARRY_OPEN);
+      print2(ATTR_ALGN ARRY_TYPE MTBL_VARN ARRY_OPEN);
       prntbl(table, 1 + (TABLESZE >> 2));
       print2(ARRY_CLSE
         DEFN_STRN MTBL_STRN "_SZE %d"

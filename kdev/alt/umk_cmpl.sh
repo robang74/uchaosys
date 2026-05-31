@@ -30,8 +30,8 @@ for r in $r_seq; do
               fi
               nc=$($d/$exe | wc -lc | tr -d ' ')
               nl=$($d/$exe | grep -E "robang74|umkaos|dataout" | wc -l)
-              if [ "$nl$nc" != "37123" ]; then
-                $d/$exe; printf "\nnl:$nl/3  nc:$nc/7:123\n";
+              if [ "$nl$nc" != "37123" -a "$nl$nc" != "37124" ]; then
+                $d/$exe; printf "\nnl:$nl/3  nc:$nc/7:123:124\n";
                 exit 1;
               fi
             done

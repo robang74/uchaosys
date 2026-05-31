@@ -23,16 +23,16 @@ for r in $r_seq; do
               flg="-D_USE_$a -D_USE_$b -D_$c -O$o -$p -f$f"
               cmd="cc \$CFLAGS -o $d/$exe -I. -I../usrl $d/umkaos-r$r.c"
               echo "$cmd $flg"
-              eval "$cmd $flg" 2>/dev/null
+              eval "$cmd $flg" 2>/dev/null || exit 1
               if ! echo "$flg" | grep -q "RNG_ONLY"; then
                 $d/$exe > uchaos_tbl.h
-                eval "$cmd $flg -D_RNG_ONLY" 2>/dev/null
+                eval "$cmd $flg -D_RNG_ONLY" 2>/dev/null || exit 2
               fi
               nc=$($d/$exe | wc -lc | tr -d ' ')
               nl=$($d/$exe | grep -E "robang74|umkaos|dataout" | wc -l)
               if [ "$nl$nc" != "37123" -a "$nl$nc" != "37124" ]; then
                 $d/$exe; printf "\nnl:$nl/3  nc:$nc/7:123:124\n";
-                exit 1;
+                exit 3;
               fi
             done
           done

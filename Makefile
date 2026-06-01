@@ -119,7 +119,7 @@ PATHC_KDIR := musl/patches/linux-$(KERNVER)
 
 musl/.conf: $(MUSL_DPNDS)
 	@$(call print_start,"","")
-	cp -arf cnfg/hashes/*.sha1 musl/hashes/
+	cp -arLf cnfg/hashes/*.sha1 musl/hashes/
 	cp -alLf cnfg/Makefile.musl musl/Makefile
 	cp -alLf cnfg/Makefile.lite musl/litecross/Makefile
 	mkdir -p $(PATHC_KDIR) && for fp in $(PATCH_NAME); do \
@@ -159,6 +159,7 @@ defconfig: .sync
 	rm -f $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f bbox/.config bbox/.conf
 	rm -f musl/.conf $(MAKELOG)
+	cp -f cnfg/uchaos_tbl.h kdev
 	$(MAKELNX) musl/.conf
 
 _sources: $(SDIR)/.done qemu/src/.done gzcmd.gz.sh

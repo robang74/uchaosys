@@ -13,36 +13,39 @@ fi
 
 r_seq=${1:-$(seq 0 9)}
 
+DOCKNAME="alpine-i386-dev"
 INCL=${INCL:--I. -I.. -I../usrl -I../../usrl}
 
-if [ "$DOCK" != "1" ]; then
-  test -r  getnanos.h || cp -alf ../usrl/getnanos.h .
-  if docker ps -a 2>&- | grep -q alpine-i386-dev; then
+if [ "${NO_DOCKER:-0}" != "1" ]; then
+  test -r  getnanos.h || ln -f ../usrl/getnanos.h .
+  if docker ps -a 2>&- | grep -q $DOCKNAME; then
     echo
-    echo "Using docker named: alpine-i386-dev"
+    echo "Using docker named: $DOCKNAME"
     echo
-    devc="-v ".:/src" -w /src alpine-i386-dev"
-    docker run --rm $devc /bin/sh -c "DOCK=1 sh $0 $1"
+    devc="-u $(id -u):$(id -g) -v .:/src -w /src $DOCKNAME"
+    docker run --rm $devc /bin/sh -c "NO_DOCKER=1 sh $0 $1"
     exit $?
   fi
   strp() { true; }
 else
-  CFLAGS="-s -O1 -Wno-format-extra-args -D_USE_FNCS -Qn"
-  CFLAGS="$CFLAGS -falign-functions=32 -g0 -D_RNG_ONLY -fno-ident"
-  CFLAGS="$CFLAGS -ffunction-sections -fdata-sections -Wl,--gc-sections"
+  CFLAGS="-Wno-format-extra-args -fno-ident -Qn -falign-functions=32"
+  CFLAGS="$CFLAGS -ffunction-sections -fdata-sections -Wl,--gc-sections -g0"
   CFLAGS="$CFLAGS -m32 -march=i486 -mtune=generic -mno-avx -mno-sse -mno-sse3"
-  CFLAGS="$CFLAGS -mno-sse2 -mno-avx2 -Wl,--build-id=none -static"
+  CFLAGS="$CFLAGS -mno-sse2 -mno-avx2 -Wl,--build-id=none -static -s"
   strp() {
     strip --strip-all --remove-section=.comment --remove-section=.note $@
   }
   sync
 fi
 
-rm -f umkaosh
-cc $CFLAGS $INCL umkaos.c -o umkaosh
-./umkaosh  > uchaos_tbl.h.tmp
-grep -q MTBL uchaos_tbl.h.tmp ||                                          exit 2
-mv -f uchaos_tbl.h.tmp uchaos_tbl.h
+wrtchktbl() {
+  $1 | tee uchaos_tbl.h.tmp | grep -q MTBL &&
+    mv -f uchaos_tbl.h.tmp uchaos_tbl.h
+}
+
+exe="umkaosh"; rm -f $exe
+cc $CFLAGS $INCL umkaos.c -o $exe &&
+  wrtchktbl ./$exe ||                                                     exit 2
 
 set -e
 for r in $r_seq; do
@@ -60,12 +63,12 @@ for r in $r_seq; do
               rm -f $d/$exe
               echo "$cmd $flg"
               eval "$cmd $flg" 2>$exe.err || {
-                chown 1000:1000  $exe.err; cat $exe.err;                  exit 3
+                cat $exe.err;                                             exit 3
               }; rm -f $exe.err
               if echo "$flg" | grep -q "RNG_ONLY"; then
                 strp $d/$exe
               else
-                $d/$exe | tee uchaos_tbl.h | grep -q MTBL ||              exit 4
+                wrtchktbl $d/$exe ||                                      exit 4
                 eval "$cmd $flg -D_RNG_ONLY" 2>/dev/null  ||              exit 5
               fi
               nc=$($d/$exe | wc -lc | tr -d ' ')

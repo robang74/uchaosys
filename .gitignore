@@ -6,7 +6,12 @@ kdev/modules.order
 kdev/Module.symvers
 kdev/uchaos_dev.ko.gz
 kdev/uchaos_dev.ko
+kdev/getnanos.h
 kdev/uchaos_tbl.h
+kdev/umkaos-hurd.tgz
+kdev/umkaos32.gz.sh
+kdev/umkaos32
+kdev/umkaosh
 kdev/umkaos
 kdev/uckaos
 kdev/*.cmd

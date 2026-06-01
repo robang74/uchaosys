@@ -51,7 +51,7 @@ docker ps -a | grep i386/alpine:latest
 docker commit $cont-id alpine-i386-dev
 docker rename $cont-id alpine-i386-dev
 
-devc="-v ".:/src" -w /src alpine-i386-dev"
+devc="-u $(id -u):$(id -g) -v .:/src -w /src /src alpine-i386-dev"
 export devc
 ```
 
@@ -63,7 +63,7 @@ export devc
 > This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
 
 ```sh
-devc="-v ".:/src" -w /src alpine-i386-dev"
+devc="-u $(id -u):$(id -g) -v .:/src -w /src /src alpine-i386-dev"
 docker run -it --rm $devc /bin/sh
 # Inside the container:
 cat << 'EOF' > iamroot.c
@@ -115,7 +115,7 @@ strp() {
   strip --strip-all --remove-section=.comment --remove-section=.note $@
 }
 
-devc="-v ".:/src" -w /src alpine-i386-dev"
+devc="-u $(id -u):$(id -g) -v .:/src -w /src /src alpine-i386-dev"
 docker run --rm $devc /bin/sh -c "cc $CFLAGS -D_USE_MLTP \
   $CFLAGS32 umkaos.c -no-pie -o $biname && chown 1000:1000 $biname"
 ```
@@ -152,6 +152,15 @@ umkaos32: ELF 32-bit LSB executable, Intel 80386,
  */
 //> Executing uChaoSys::umkaos v0.4.2
 //> Use w/arg N for 2^N bytes dataout
+```
+
+To build many variants:
+
+```
+cd kdev
+sh alt/umk_cmpl.sh
+sh alt/umk_cmpl.sh tarball
+sh alt/umk_cmpl.sh clean
 ```
 
 <br>

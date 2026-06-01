@@ -38,8 +38,11 @@ else
   sync
 fi
 
-cc $CFLAGS $INCL umkaos.c -o umkaos32
-./umkaos32 | tee uchaos_tbl.h | grep -q MTBL || exit -1
+rm -f umkaosh
+cc $CFLAGS $INCL umkaos.c -o umkaosh
+./umkaosh  > uchaos_tbl.h.tmp
+grep -q MTBL uchaos_tbl.h.tmp ||                                          exit 2
+mv -f uchaos_tbl.h.tmp uchaos_tbl.h
 
 set -e
 for r in $r_seq; do
@@ -57,19 +60,18 @@ for r in $r_seq; do
               rm -f $d/$exe
               echo "$cmd $flg"
               eval "$cmd $flg" 2>$exe.err || {
-                cat $exe.err; exit 2
+                chown 1000:1000  $exe.err; cat $exe.err;                  exit 3
               }; rm -f $exe.err
               if echo "$flg" | grep -q "RNG_ONLY"; then
                 strp $d/$exe
               else
-                $d/$exe | tee uchaos_tbl.h | grep -q MTBL || exit 3
-                eval "$cmd $flg -D_RNG_ONLY" 2>/dev/null  || exit 4
+                $d/$exe | tee uchaos_tbl.h | grep -q MTBL ||              exit 4
+                eval "$cmd $flg -D_RNG_ONLY" 2>/dev/null  ||              exit 5
               fi
               nc=$($d/$exe | wc -lc | tr -d ' ')
               nl=$($d/$exe | grep -E "robang74|umkaos|dataout" | wc -l)
               if [ "$nl$nc" != "37123" -a "$nl$nc" != "37124" ]; then
-                $d/$exe; printf "\nnl:$nl/3  nc:$nc/7:123:124\n";
-                exit 5;
+                $d/$exe; printf "\nnl:$nl/3  nc:$nc/7:123:124\n";         exit 6
               fi
             done
           done

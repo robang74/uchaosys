@@ -121,8 +121,9 @@ int prtxcpy(int fd) {
   uint32_t n = HEAD_SIZE >> 2;
   uint32_t x, c = q[wn-1];
 
-  print1("\n// hsize: %d / %d, xchar: 0x%08x\n",
-    HEAD_SIZE, wn << 2, c);
+  print1(
+    "\n// hsize: %d / %d, xchar: 0x%08x\n",
+      HEAD_SIZE, (unsigned)wn << 2, c);
 
   if(!c) {
     wn = write(fd, q, HEAD_SIZE);
@@ -142,7 +143,7 @@ void cpyxcpy(void *vp, uint32_t m) {
   m ^= q[wn-1];
   print1(
     "\n// hsize: %d / %d, xchar: 0x%08x\n",
-      HEAD_SIZE, wn << 2, m);
+      HEAD_SIZE, (unsigned)wn << 2, m);
 
   if(m) {
     while(wn-- && *q)

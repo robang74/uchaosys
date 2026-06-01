@@ -38,7 +38,7 @@ The 32-bit binary shows a drop in performance which is just a fraction (`-33%`) 
 
 ```sh
 # After the preparation:
-docker -it run i386/alpine:latest /bin/sh
+docker run -it i386/alpine:latest /bin/sh
 # Inside the container:
 apk update
 apk add build-base musl-dev
@@ -46,7 +46,10 @@ exit
 
 # get the container id with
 docker ps -a | grep i386/alpine:latest
+
+# after grabbed the container id
 docker commit $cont-id alpine-i386-dev
+docker rename $cont-id alpine-i386-dev
 
 devc="-v ".:/src" -w /src alpine-i386-dev"
 export devc
@@ -104,8 +107,9 @@ CFLAGS="-s -O1 -Wno-format-extra-args -I../usrl -D_USE_FNCS"
 CFLAGS="$CFLAGS -flto -falign-functions=32 -g0 -D_RNG_ONLY"
 CFLAGS="$CFLAGS -ffunction-sections -fdata-sections -Wl,--gc-sections"
 
-CFLAGS32="-m32 -march=i486 -mtune=generic -mno-avx -mno-sse -mno-sse3"
-CFLAGS32="$CFLAGS32 -mno-sse2 -mno-avx2 -Wl,--build-id=none -static"
+CFLAGS32="-m32 -march=i486 -mtune=generic -mno-avx -mno-sse"
+CFLAGS32="$CFLAGS32 -mno-sse2 -mno-sse3 -mno-avx2 -fno-ident"
+CFLAGS32="$CFLAGS32 -Qn -Wl,--build-id=none -static"
 
 strp() {
   strip --strip-all --remove-section=.comment --remove-section=.note $@

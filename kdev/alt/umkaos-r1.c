@@ -249,7 +249,9 @@ int main(int argc, char *argv[]) {
     wn = COPY_SZE;
     r = 1 + !!argn;
     c = umks_head[COPY_SZE - 2];
-    print1("\n// hsize: %d / %ld, xchar: 0x%02x\n", HEAD_SIZE, wn, c);
+    print1(
+	"\n// hsize: %d / %d, xchar: 0x%02x\n",
+		HEAD_SIZE, (unsigned)wn, c);
 #if RNG_ONLY
     if( HEAD_SIZE != 123 || wn != 128 ) // RAF: weak fingerprint
       return 1;

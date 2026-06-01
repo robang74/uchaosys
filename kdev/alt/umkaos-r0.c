@@ -208,7 +208,9 @@ int main(int argc, char *argv[]) {
   n = _strlen(umks_head);
   wn = sizeof(umks_head);
   c = umks_head[n + 1];
-  print1("\n hsize: %d / %ld, xchar: 0x%02x\n", n, wn, c);
+  print1(
+    "\n hsize: %d / %d, xchar: 0x%02x\n",
+      n, (unsigned)wn, c);
 #if RNG_ONLY
   if( n != 123 || wn != 128 ) // RAF: 123,128 weak fingerprint
     return 1;

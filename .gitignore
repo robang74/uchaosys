@@ -8,6 +8,7 @@ kdev/uchaos_dev.ko.gz
 kdev/uchaos_dev.ko
 kdev/getnanos.h
 kdev/uchaos_tbl.h
+kdev/alt/umkaos-r*
 kdev/umkaos-hurd.tgz
 kdev/umkaos32.gz.sh
 kdev/umkaos32

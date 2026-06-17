@@ -4,11 +4,9 @@
 #
 export TERM=xterm PATH=/bin:/sbin:/usr/bin:/usr/sbin ENV=/etc/profile
 
-exec 3>/dev/nul
+exec 3>/dev/null
 
-krnver=$(uname -r)
-mkdir -p /lib/modules;
-ln -sf /lib/modules /lib/modules/$krnver
+ln -sf /lib/modules /lib/modules/$(uname -r)
 
 # temporary folder
 
@@ -56,7 +54,7 @@ if test -r /lib/modules/uchaos_dev.ko; then
   echo
   echo "Module creates /dev/uchaos which can be initialised with 8-zeros"
   printf "$HLINE\n\n"
-  modinfo /lib/modules/uchaos_dev.ko
+  modinfo uchaos_dev.ko
 fi
 if grep "WRINIT" -q /proc/cmdline; then
   if which uchaosbox >&3; then

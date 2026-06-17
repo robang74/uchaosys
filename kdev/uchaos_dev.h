@@ -49,7 +49,10 @@
   #else
     #define get_time_ns() __early_raw_cycles
   #endif
-#endif //__KERNEL__
+  #define __THREAD
+#else  // __KERNEL__
+  #define __THREAD __thread
+#endif // __KERNEL__
 
 #define AB  (6)
 #define ABL (AB-3)        //  2 or  3
@@ -109,8 +112,8 @@ typedef u64 __attribute__((aligned(HASHSIZE))) archul_t;
 
 #define ABL_ALIGN(x) align_t(archul_t, x)
 
-static archul_t *kbuf = NULL; // Stack allocation, one char device only
-static archul_t *kbufptr = NULL;
+static __THREAD archul_t *kbuf = NULL; // Stack allocation, one char device only
+static __THREAD archul_t *kbufptr = NULL;
 
 /*
  * ABOUT CODE INVARIABILITY: among different optimisation levels than the current:
@@ -206,12 +209,12 @@ static atomic_t loop_failure = ATOMIC_INIT(0);
 __attribute__((flatten))
 static archul_t djb2tum(archul_t seed, int num)
 {
-    static __thread archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASHSEED;
+    static __THREAD archul_t dmx = 0, dmn = -1, mavg = 0, ohs = HASHSEED;
 #ifdef _PROVIDE_STATS
-    static __thread archul_t avg = 0, jmn = -1, jmx = 0, javg = 0;
-    static __thread u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
+    static __THREAD u64 nexp = 0, evnt = 0, ncl = 0, tcyl = 0, nhsh = 0;
+    static __THREAD archul_t avg = 0, jmn = -1, jmx = 0, javg = 0;
 #endif
-    static __thread unsigned long failure_jiff = 0;
+    static __THREAD unsigned long failure_jiff = 0;
 
     volatile int i, j = 0; // volatile as current CPU memory barrier in the loop
     register archul_t ent = 0, hsh = ohs; // these two in particular need accel.

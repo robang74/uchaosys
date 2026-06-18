@@ -1,9 +1,41 @@
+From 68b9eef9f37f991ea33ec134ea67bd6b8c95e97e Mon Sep 17 00:00:00 2001
+From: "Roberto A. Foglietta" <roberto.foglietta@gmail.com>
+Date: Thu Apr 16 09:34:35 2026 +0200
+Subject: [PATCH] printk: fix zero-valued printk timestamps in early boot V6
+
 This is a heavily "refactored by hands" patch for Linux Kernel 5.15.202 LTS
 trying to solve the source tree janitoring vs 1-single place hack for hackers
 in need for a simple-bare profiling tool and based on the patch V4 submitted by
 
+    Pre-Kernel boot time (qemu, KVM, bios) is 0.251063 / 1.896 = 0.132 seconds
+
+    [    0.250814] Linux version 5.15.202 (roberto@x280) (x86_64-linux-musl-gcc
+                   (GCC) 14.3.0, GNU ld (GNU Binutils) 2.44) #1 Thu A6
+    [    0.250820] Command line: HOST=x86_64 root=/dev/ram0 init=/init
+                   console=ttyS0,115200n8 net.ifnames=0 nokaslr
+    [    0.250823] KERNEL supported cpus:
+    [    0.250824]   Intel GenuineIntel
+    [    0.250826]   AMD AuthenticAMD
+    [    0.250972] BIOS-provided physical RAM map:
+    [    0.250973] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+    [    0.250978] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+    [    0.250981] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+    [    0.250983] BIOS-e820: [mem 0x0000000000100000-0x0000000001fdefff] usable
+    [    0.250986] BIOS-e820: [mem 0x0000000001fdf000-0x0000000001ffffff] reserved
+    [    0.250989] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff] reserved
+    [    0.250991] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff] reserved
+    [    0.250994] BIOS-e820: [mem 0x00000000feffc000-0x00000000feffffff] reserved
+    [    0.250996] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+    [    0.251043] NX (Execute Disable) protection: active
+    [    0.251050] Hypervisor detected: KVM
+    [    0.251053] kvm-clock: Using msrs 4b564d01 and 4b564d00
+    [    0.251063] kvm-clock: cpu 0, msr bac001, primary cpu clock
+    [    0.000001] kvm-clock: using sched offset of 56130848 cycles
+    [    0.000003] clocksource: kvm-clock: mask: 0xffffffffffffffff
+                   max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+    [    0.000005] tsc: Detected 1896.002 MHz processor
+
 From: Tim Bird <tim.bird@sony.com>
-Subject: [PATCH v4 1/1] printk: fix zero-valued printk timestamps in early boot
 Date: Fri, 10 Apr 2026 14:37:41 -0600
 Message-ID: <20260410203741.997410-2-tim.bird@sony.com>
 
@@ -13,7 +45,7 @@ boot-time optimization efforts. This period ranges from 17 to 1700
 milliseconds on different embedded machines running Linux.
 
 Add support for early timestamps based on processor cycle-generators
-that need no kernel initialization.This feature isn't intended for a 
+that need no kernel initialization.This feature isn't intended for a
 generic distro kernels but for temporary use during kernel development
 and boot-time research and optimization by kernel hackers only.
 
@@ -26,42 +58,111 @@ of time from the kernel's timekeeping initialization. This results in
 a discontinuity in the printk timestamp values, one time, when
 kernel timekeeping starts.
 
-Signed-off-by: Tim Bird <tim.bird@sony.com>
+Suggested-by: Tim Bird <tim.bird@sony.com>
 Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
----
-V5 -> V6
+
+V5 -> V6 // RAF
   Feature moved in the proper menu place, immediately after:
   Kernel hacking -> printk and dmesg options -> show timitng information printks
   Comments and descriptions more clearly indicate the aim and the limits of this
   patch and the related feature introduced by this patch.
-V4 -> V5
+V4 -> V5 // RAF
   Rationale: single point of change hack for printk. Code rewritten, entirely.
   It provides a feature for kernel hackers willing to profiling the early boot
   with a basic printk approach (rather than using HW monitors which might not
   be available or immediately available). Thus, it is a first-look or a last
   resort hack profiling feature. Something that isn't good to spread around
   the kernel sources tree and it is fine to have into a single header file.
-V3 -> V4
+V3 -> V4 // Tim
   Replace config vars with single one: CONFIG_EARLY_CYCLES_KHZ
   Replace runtime calibration with static config variable
   Remove reference to get_cycles()
   Add support for RISCV platforms
-V2 -> V3
+V2 -> V3 // Tim
   Default CONFIG option to 'n'
   Move more code into early_times.h (reduce ifdefs in init/main.c)
   Use match64 helper routines
   Use cycles_t instead of u64 type
   Add #defines for EARLY_CYCLES_BIT and EARLY_CYCLES_MASK
   Invert if logic in adjust_early_ts()
-V1 -> V2
+V1 -> V2 // Tim
   Remove calibration CONFIG vars
   Add 'depends on' to restrict arches (to handle ppc bug)
   Add early_ts_offset to avoid discontinuity
   Save cycles in ts_nsec, and convert on output
   Move conditional code to include file early_times.h
 
---- a/lib/Kconfig.debug	2026-04-16 08:52:44.771618719 +0200
-+++ b/lib/Kconfig.debug	2026-04-16 08:55:08.358941989 +0200
+Source:
+- https://raw.githubusercontent.com/robang74/uchaosys/refs/heads/v074/
+		/cnfg/printk-early-boot-timestamps-hack-v6.patch
+- commit: 2026-04-16, #2bd0bb1
+
+---
+ kernel/printk/early_times.h | 26 ++++++++++++++++++++++++++
+ kernel/printk/printk.c      | 12 ++++++++++++
+ lib/Kconfig.debug           | 23 +++++++++++++++++++++++
+ 3 files changed, 61 insertions(+)
+ create mode 100644 kernel/printk/early_times.h
+
+diff --git a/kernel/printk/early_times.h b/kernel/printk/early_times.h
+new file mode 100644
+index 000000000000..af0ef42bd1f1
+--- /dev/null
++++ b/kernel/printk/early_times.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _EARLY_TIMES_H
++#define _EARLY_TIMES_H
++
++#include <linux/timekeeping.h>
++
++/*
++ * Fencing isn't optional here, otherwise unreliable values displaying
++ */
++#if defined(CONFIG_ARM64)
++	#include <asm/sysreg.h>
++	#define __early_raw_cycles ({ u64 val; \
++		asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
++#elif defined(CONFIG_X86_64)
++	#define __early_raw_cycles ({ u64 val; \
++		asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
++			: "=a"(val) : : "rdx"); val; })
++#elif defined(CONFIG_RISCV_TIMER)
++	#define __early_raw_cycles ({ u64 val; \
++		asm volatile("fence; rdtime %0" : "=r"(val)); val; })
++#else
++	#define __early_raw_cycles 0
++#endif
++
++#endif /* _EARLY_TIMES_H */
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index 113990f38436..0405a988c96f 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -2151,6 +2151,18 @@ int vprintk_store(int facility, int level,
+ 	 */
+ 	ts_nsec = local_clock();
+ 
++#if CONFIG_PRINTK_EARLY_BOOT_TIMINGS
++#include "early_times.h"
++	/*
++	 * Very few developers are going to use this feature and it is
++	 * expected they're able to deal with it as a single entry-point of
++	 * changes. An hack to be further customised by them for porting the
++	 * kernel on not-yet-supported silicon or bug fixing / optimisations.
++	 */
++	if (unlikely(!ts_nsec))
++		ts_nsec = __early_raw_cycles;
++#endif
++
+ 	if (!printk_enter_irqsave(recursion_ptr, irqflags))
+ 		return 0;
+ 
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index db4f8ac489d4..714427089cb7 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
 @@ -18,6 +18,29 @@ config PRINTK_TIME
  	  The behavior is also controlled by the kernel command line
  	  parameter printk.time=1. See Documentation/admin-guide/kernel-parameters.rst
@@ -92,53 +193,6 @@ V1 -> V2
  config PRINTK_CALLER
  	bool "Show caller information on printks"
  	depends on PRINTK
---- /dev/null	2026-04-10 15:35:49.659741644 +0200
-+++ b/kernel/printk/early_times.h	2026-04-15 11:32:49.786728602 +0200
-@@ -0,0 +1,26 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _EARLY_TIMES_H
-+#define _EARLY_TIMES_H
-+
-+#include <linux/timekeeping.h>
-+
-+/*
-+ * Fencing isn't optional here, otherwise unreliable values displaying
-+ */
-+#if defined(CONFIG_ARM64)
-+	#include <asm/sysreg.h>
-+	#define __early_raw_cycles ({ u64 val; \
-+		asm volatile("isb; mrs %0, cntvct_el0" : "=r"(val)); val; })
-+#elif defined(CONFIG_X86_64)
-+	#define __early_raw_cycles ({ u64 val; \
-+		asm volatile("lfence; rdtsc; shl $32, %%rdx; or %%rdx, %%rax" \
-+			: "=a"(val) : : "rdx"); val; })
-+#elif defined(CONFIG_RISCV_TIMER)
-+	#define __early_raw_cycles ({ u64 val; \
-+		asm volatile("fence; rdtime %0" : "=r"(val)); val; })
-+#else
-+	#define __early_raw_cycles 0
-+#endif
-+
-+#endif /* _EARLY_TIMES_H */
---- a/kernel/printk/printk.c	2026-04-15 11:39:55.372066802 +0200
-+++ b/kernel/printk/printk.c	2026-04-15 11:39:33.458953582 +0200
-@@ -2151,6 +2151,18 @@ int vprintk_store(int facility, int leve
- 	 */
- 	ts_nsec = local_clock();
- 
-+#if CONFIG_PRINTK_EARLY_BOOT_TIMINGS
-+#include "early_times.h"
-+	/*
-+	 * Very few developers are going to use this feature and it is
-+	 * expected they're able to deal with it as a single entry-point of
-+	 * changes. An hack to be further customised by them for porting the
-+	 * kernel on not-yet-supported silicon or bug fixing / optimisations.
-+	 */
-+	if (unlikely(!ts_nsec))
-+		ts_nsec = __early_raw_cycles;
-+#endif
-+
- 	if (!printk_enter_irqsave(recursion_ptr, irqflags))
- 		return 0;
- 
+-- 
+2.34.1
+

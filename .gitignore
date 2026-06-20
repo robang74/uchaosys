@@ -44,6 +44,7 @@ qemu/qemu-system-x86_64.ldc
 qemu/qemu-system-x86_64.nma
 qemu/qemu-system-x86_64.rsp
 qemu/v10.2.2.tar.gz
+qemu/v10.2.3.tar.gz
 qemu/minz/miniz.o
 qemu/output
 qemu/build

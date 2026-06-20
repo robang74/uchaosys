@@ -9,7 +9,7 @@ prnt() { echo "$@" | tr ' ' '\n' | sort | shft; }
 
 url_site="https://github.com/robang74/qemu"
 url_path="/archive/refs/tags/"
-url_name="v10.2.2.tar.gz"
+url_name="v10.2.3.tar.gz"
 
 dwnl_cmd="wget -c"
 infl_cmd="tar -xzf"

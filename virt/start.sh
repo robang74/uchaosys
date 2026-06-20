@@ -50,9 +50,13 @@ updtquit=0
 zerokelv=0
 zerotest=0
 quietrun=0
+singlcpu=0
 
 while getopts "ZzuUqm:wM:" opt; do
   case $opt in
+    s)
+      singlcpu=1
+      ;;
     u)
       imgupdte=1
       ;;
@@ -105,13 +109,14 @@ if [ $imgupdte -ne 0 ]; then
   du -k qemu-s* bzImage | sed -e "s/\t/ KB /" -e "s/^/ /"
   sz=$(( ($(du -b *.rom *.bin | cut -f1 | tr '\n' +)512) >> 10 ))
   printf "%5d KB rom/bin files\n" $sz
-  if [ $updtquit -ne 0 ]; then exit 0; fi
+  if [ $updtquit -ne 0 ]; then sync & exit 0; fi; sync
   read -p ">>> Updated, press ENTER to continue " key
 fi
 
 # Preparing the QEMU virtual machine configuration #############################
 
 export QTTYUC=${QTTYUC:-8250.nr_uarts=4 console=ttyS0,115200n8}
+ovrcmt=" -overcommit mem-lock=off -run-with async-teardown=on,exit-with-parent=on"
 
 cmdlnx="$cmdlnx HOST=x86_64 root=/dev/ram0 init=/init $QTTYUC net.ifnames=0 nokaslr"
 nograp="-nographic -vga none -display none -serial mon:stdio"
@@ -151,12 +156,16 @@ cmdlnx="-append '$cmdlnx rcutree.rcu_expedited=1 ${KARGS:-}'"
 # disable this line if it creates trouble because ulimit -l isn't friendly
 grep -qi uchaos /etc/os-release || qaccel="$qaccel -overcommit mem-lock=on"
 
-cmd="$rundir/$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
+test $singlcpu -ne 0 -a which taskset >/dev/null &&
+  cmd='taskset -cp $(awk "{print \$39}" /proc/self/stat) $$ && exec '
+
+cmd="$cmd $rundir/$qemubin -m ${QMSZE:-128M} -kernel ${kimg} -initrd ${rfsimg} ${nograp:-} \
      -no-reboot ${boxnme:-} ${qaccel:-} ${netisl:-} ${cmdlnx:-} ${QARGS:-} \
-     -bios bios-microvm.bin"
+     -bios bios-microvm.bin ${ovrcmt:-}"
 
 # Starting the QEMU configuraed virtual machine ################################
 
-sh -xc "$cmd"; stty sane; printf '\e[?7h'
+echo "Syncing the disk ..."; sync
+exec sh -xc "$cmd"; stty sane; printf '\e[?7h'
 echo; echo $cmd; echo
 

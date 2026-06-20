@@ -441,7 +441,7 @@ buildsys:
 
 buildall:
 	@$(call print_start,"","")
-	for tg in _toolchain buildsys _buildemu; do $(MAKELNX) $$tg || exit 1; done
+	for tg in _toolchain buildsys _buildemu; do $(MAKELNX) $$tg || exit 1; done; sync
 	@$(call print_stop)
 
 # targets: qemu related ////////////////////////////////////////////////////////

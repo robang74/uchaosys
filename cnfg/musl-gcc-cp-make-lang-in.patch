@@ -5,7 +5,7 @@
  g++-cross$(exeext): xg++$(exeext)
  	-rm -f g++-cross$(exeext)
 -	cp xg++$(exeext) g++-cross$(exeext)
-+	cp -al xg++$(exeext) g++-cross$(exeext)
++	cp -al xg++$(exeext) g++-cross$(exeext) &
  
  # The compiler itself.
  # Shared with C front end:

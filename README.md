@@ -25,7 +25,9 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 * [Technical Presentation for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) &nbsp;(2026-03-16)
 * [Why it works so well as training consultancy content](docs/gemini-thinking-uchaosys-peer-review.md#why-it-works-so-well-as-training-consultancy-content) &nbsp;(2026-04-07)
 
-Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources.
+Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. In fact, `/dev/uchaos` also passed the PractRand 256GB test.
+
+![screenshot](docs/uchaosys-musl-linux-256GB-passed.png)
 
 Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views. Including the ability of self-hosting and self-executing in a cascade KVM 64MB to TCG 32MB, for example.
 
@@ -58,6 +60,9 @@ Moreover, using extreme qemu parameters settings, it is possible testing the sys
 
 ### Quick Start
 
+- Reference building OS: Ubuntu 22.04 LTS
+- Update OS range: since 1st commit to the last one
+
 > [!WARNING]
 >
 > Due to the recent and unusual network failures of the open source mirrors placed across the ocean, `make sources` might need to be executed a few times before complete correctly and in full. Tarball repositories aren't related with this project or github, but run by 3rd parties. Edit `cnfg/Makefile.musl` or `musl/Makefile` and choose your geographically nearest mirrors for the best download performances.
@@ -69,9 +74,9 @@ cd uchaosys
 #    git switch ${branch:-main}
 #    make copysrc FROM=$prevpath
 time make sources
-#    real	 2m42.075s
+#    real	 4m38.324s  <-- by a LTE 4G connection
 time make buildall status
-#    real	22m35.016s  <-- everything since v0.6.9
+#    real	26m23.436s  <-- everything since v0.6.9
 
 # to run uChaoSys on u/qemu
 make runqemu

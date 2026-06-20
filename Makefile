@@ -391,13 +391,13 @@ veryclean: realclean
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh $@
 # Call prnd/make veryclean
-	for dir in musl bbox qemu; do $(MAKELNX) -C $$dir clean ||:; done
+	for dir in bbox qemu musl; do $(MAKELNX) -C $$dir clean ||:; done
 
 deepclean: veryclean
 	@$(call print_start,"","Removing everything apart from the updated repo")
 # Call qemu/make.sh veryclean
 	cd qemu && sh make.sh $@
-	for dir in musl bbox; do $(MAKELNX) -C $$dir $@ ||:; done
+	for dir in bbox musl; do $(MAKELNX) -C $$dir $@ ||:; done
 	rm -rf $(MUSLTGZ) $(sort $(wildcard $(OUTPUT))) $(MAKELOG) .sync
 
 distclean: deepclean

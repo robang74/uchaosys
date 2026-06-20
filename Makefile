@@ -9,6 +9,7 @@ ENV_VARS     ?=
 NCPU         ?= $(shell nproc)
 MUSLCFGMAK   := cnfg/musl-125x.config.mak
 BBOXCFG      := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
+GZCMD        := $(shell which pigz gzip | head -n1)
 
 # Extract kernel version from config
 KERNVER      := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
@@ -193,9 +194,9 @@ $(OUTPUT)/.done: $(KDIR)/.hdrs
 
 $(MUSLTGZ): $(OUTPUT)/.done
 	@$(call print_start,"","")
-	rm -f $(MUSLTGZ) ; tar czf $@ $(OUTPUT)/
+	rm -f $@ && tar -c $(OUTPUT)/ | $(GZCMD) -c >$@
 	@echo
-	@$(call print_size, $(OUTPUT)/,m,MB)
+	@$(call print_size,$(OUTPUT)/,m,MB)
 	@$(call print_size,$@,m,MB)
 	@echo
 

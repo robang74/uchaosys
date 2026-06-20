@@ -76,11 +76,11 @@ dmesg_mangle() {
   dmesg | tee dmesg.txt | grep -E "uchaos: Init|random: crng"
 }
 
-echo; uname -a | sed -e "s,\(x86_64\) x86_64 x86_64,\\1,"
+echo; uname -a | sed -e "s,\(x86_64\) x86_64 x86_64,\\1,"; echo
 if which uchaos >&3; then
   if [ "$entrp" != "256" ] || grep -qe "UCTEST=0" /proc/cmdline; then
-    dmesg -r | uchaos -qZK1 -k /dev/random | md5sum 2>&1 | grep . |\
-      sed -e "s,  -$, --> /dev/random by uChaos,"
+    dmesg -r | { uchaos -qZK1 -k /dev/random | md5sum; } 2>&1 |
+	  grep . | sed -e "s,.* -$,     &-> /dev/random by uChaos,"
     pools=$(cat /proc/sys/kernel/random/poolsize)
     entrq=$(cat /proc/sys/kernel/random/entropy_avail)
     printf "\nActive console: %s, entropy: %d -> %d / %d bits\n" \
@@ -96,11 +96,11 @@ fi
 bnst=$(printf "0.%09d" $(( $(date +%s%N) - bttm )))
 bttm=$(sed -ne "s,\[ *\([0-9.]*\)*\] Run /init .*,\\1,p" dmesg.txt | head -c8)
 printf "\e[?7h
-      ===============================================
-      Welcome to Minimal Linux System for QEMU x86_64
-      Boot time %.03fs at /init + %.03fs at usr shell
-      Boot UUID: $(cat /proc/sys/kernel/random/boot_id)
-      ===============================================
-       type command 'reboot -f' to shutdown this VM
+     ===============================================
+     Welcome to Minimal Linux System for QEMU x86_64
+     Boot time %.03fs at /init + %.03fs at usr shell
+     Boot UUID: $(cat /proc/sys/kernel/random/boot_id)
+     ===============================================
+      type command 'reboot -f' to shutdown this VM
 \n" $bttm $bnst
 

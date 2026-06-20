@@ -73,8 +73,7 @@ if grep "WRINIT" -q /proc/cmdline; then
 fi
 
 dmesg_mangle() {
-  dmesg | tee dmesg.txt |\
-    grep -E "random: crng init|uchaos: Init"
+  dmesg | tee dmesg.txt | grep -E "uchaos: Init|random: crng"
 }
 
 echo; uname -a | sed -e "s,\(x86_64\) x86_64 x86_64,\\1,"

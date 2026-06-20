@@ -1,0 +1,11 @@
+--- a/musl/gcc-14.3.0.orig/gcc/cp/Make-lang.in	2026-06-20 09:12:27.446751132 +0200
++++ b/musl/gcc-14.3.0.orig/gcc/cp/Make-lang.in	2026-06-20 09:12:55.958873255 +0200
+@@ -86,7 +86,7 @@ xg++$(exeext): $(GXX_OBJS) $(EXTRA_GCC_O
+ # Create a version of the g++ driver which calls the cross-compiler.
+ g++-cross$(exeext): xg++$(exeext)
+ 	-rm -f g++-cross$(exeext)
+-	cp xg++$(exeext) g++-cross$(exeext)
++	cp -al xg++$(exeext) g++-cross$(exeext)
+ 
+ # The compiler itself.
+ # Shared with C front end:

@@ -78,7 +78,7 @@ cd uchaosys
 time make sources
 #    real	 4m38.324s  <-- by a LTE 4G connection
 time make buildall status
-#    real	26m23.436s  <-- everything since v0.6.9
+#    real	25m01.450s  <-- everything since v0.6.9
 
 # to run uChaoSys on u/qemu
 make runqemu

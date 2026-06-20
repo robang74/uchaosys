@@ -139,9 +139,10 @@ gzcmd.gz.sh: gzcmd.sh
 	sh $< $< gzcmd
 	touch $@
 
-$(SDIR)/.done:
+$(SDIR)/.done: cnfg/musl-gcc-cp-make-lang-in.patch
 	@$(call print_start,"","Wait downloading sources ...")
 	$(MAKELNX) HOSTCC=$(HOSTCC) -C musl extract_all
+	patch -Rfp1 --dry-run < $^ >&- || patch -p1 < $^
 	@$(call print_stop)
 	@echo "Sources download completed successfully"
 	@echo

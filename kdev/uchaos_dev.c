@@ -288,25 +288,25 @@ static int __init uchaos_init(void)
     if(verbosity >> 2)
         prtkinfo("Inject entropy %ld bytes, 1st seed: 0x%016llx\n",
             len, ebuf[0]);
-                                                             // backport fix but
-    if( badb_init == 2 ) {                                  // in 5.15.202 OOPS!
-        add_hwgenerator_randomness(ebuf, len, len << 3);   //
-    } else {                                              //
-    #ifdef CONFIG_RANDOM_TRUST_BOOTLOADER                //
-        add_bootloader_randomness(ebuf, len);           //
-    #else                                              //
-        add_device_randomness(ebuf, len);             // always safe to mix*
-    #endif                                           //
-    }                                               //
-    if( badb_init == 1 ) {                            //
-        if(verbosity >> 1)                           //
+
+    if( badb_init == 2 ) {                                   // backport fix but
+        add_hwgenerator_randomness(ebuf, len, len << 3);    // in 5.15.202 OOPS!
+    } else {                                               // bc not yet initial
+    #ifdef CONFIG_RANDOM_TRUST_BOOTLOADER                 // the same w/5.15.210
+        add_bootloader_randomness(ebuf, len);            //
+    #else                                               //
+        add_device_randomness(ebuf, len);              // always safe to mix*
+    #endif                                            //
+    }                                                //
+    if( badb_init == 1 ) {                          //
+        if(verbosity >> 1)                         //
             prtkinfo("Credit entropy function address  : 0x%016lx\n",
                 (uintptr_t)kernel_credit_entropy_bits);
-                                                  // when doing good OOPS and
-                                                 // this is the only viable way
-        kernel_credit_entropy_bits(len << 3);   // then badboy mode init! ;-)
-    }                                          //
-#endif                                        //* always safe, unless paranoic
+                                                // when doing good OOPS and
+                                               // this is the only viable way
+        kernel_credit_entropy_bits(len << 3); // then badboy mode init! ;-)
+    }                                        //
+#endif                                      //* always safe, unless paranoic
 
     // Only for debug and testing purposes,
     // like everything else here, anyway.

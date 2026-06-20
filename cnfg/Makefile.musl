@@ -88,7 +88,9 @@ veryclean: clean
 	rm -rf gmp-* zlib-* glib-* meson-*
 	rm -rf $(OUTPUT)/
 
-distclean: veryclean
+deepclean: veryclean
+
+distclean: deepclean
 	rm -rf $(SOURCES)/
 
 

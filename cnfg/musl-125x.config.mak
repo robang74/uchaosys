@@ -45,7 +45,7 @@ TARGET = $(ARCH)-linux-musl
 # ISL_VER = 0.27
 # PCRE2_VER = 10.47
 # ZLIB_VER = 1.3.2
-LINUX_VER = 5.15.202
+LINUX_VER = 5.15.210
 # LINUX_VER = headers-5.15.202
 
 # By default source archives are downloaded with wget. curl is also an option.

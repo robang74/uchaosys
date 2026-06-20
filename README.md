@@ -29,6 +29,8 @@ Last but not least, this project provides a micro Linux embedded system with a *
 
 ![screenshot](docs/uchaosys-musl-linux-256GB-passed.png)
 
+The screenshot above is about uChaoSys [v0.74](https://github.com/robang74/uchaosys/tree/v074), updated to musl 1.2.6 and linux 5.15.210, which despite the `initramfs.cpio.gz` containing the static-linked PractRand `RNG_test` file is 3 times larger than default and the RAM given to qemu is 1GB instead of 32MB, boots in less than 0.1s (0.098s).
+
 Checking the information below and those reported in the link above, we can agree that this project is interesting from several point of views. Including the ability of self-hosting and self-executing in a cascade KVM 64MB to TCG 32MB, for example.
 
 <br>

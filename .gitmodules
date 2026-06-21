@@ -16,3 +16,6 @@
 [submodule "ucfg"]
 	path = ucfg
 	url = https://github.com/robang74/u-config.git
+[submodule "zcmd"]
+	path = zcmd
+	url = https://github.com/robang74/gzcmd.sh.git

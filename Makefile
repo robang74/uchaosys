@@ -128,11 +128,9 @@ musl/.conf: $(MUSL_DPNDS)
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
 	touch $@
 
-gzcmd.sh:
+gzcmd.sh: .sync
 	@$(call print_start,"","")
-	wget $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -qO $@ ||\
-	  curl -sL $(GZCMD_REPO)/$(GZCMD_PATH)/$@ -o $@
-	sha1sum -c gzcmd.sh.sha1 || { rm -f $@; exit 1; }
+	cp -alf zcmd/gzcmd.sh .
 	touch $@
 
 gzcmd.gz.sh: gzcmd.sh

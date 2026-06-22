@@ -101,7 +101,7 @@ status:
 	@make _status | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig _sources
+.PHONY: update defconfig _sources zcmdtests
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -137,6 +137,10 @@ gzcmd.gz.sh: gzcmd.sh
 	@$(call print_start,"","")
 	sh $< $< gzcmd
 	touch $@
+
+zcmdtests: .sync
+	@$(call print_start,"","")
+	make -C zcmd tests
 
 $(SDIR)/.done: cnfg/musl-gcc-cp-make-lang-in.patch
 	@$(call print_start,"","Wait downloading sources ...")
@@ -344,6 +348,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	cp -alLf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
 	cp -alLf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
 	cp -alLf usrl/uchaosbox kdev/u?kaos $(CPIOTMP)/usr/bin/
+	cp -alLf zcmd/upexec $(CPIOTMP)/usr/bin/
 	chmod +x $(CPIOTMP)/init
 	# Symbolic links
 	ln -sf bin $(CPIOTMP)/usr/sbin
@@ -353,7 +358,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	ln -sf busybox $(CPIOTMP)/bin/sh
 	touch $@
 
-install: $(KIMG) $(CPIOTMP)/.done qemu/output/.done
+install: $(KIMG) zcmdtests $(CPIOTMP)/.done qemu/output/.done
 	@$(call print_start,"","")
 	cp -alLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U

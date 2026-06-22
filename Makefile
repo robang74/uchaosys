@@ -155,6 +155,11 @@ updatebbox: .sync
 	cd bbox && git fetch origin uchaosys --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
+updatezcmd: .sync
+	@echo "Updating zcmd at the main branch HEAD"
+	cd zcmd && git fetch origin main --jobs $(NCPU) \
+	  && git checkout FETCH_HEAD
+
 defconfig: .sync
 	rm -f $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f bbox/.config bbox/.conf

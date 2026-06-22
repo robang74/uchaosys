@@ -164,7 +164,8 @@ It is interesting to note how the memory is allocated&hairsp;.<br>
 #### External tools
 
 - [dL1](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/RNG_test.gz.sh) &dash; **PractRand RNG_test**, external static tool for testing randonmess quality
-- [dL2](https://github.com/robang74/bare-minimal-linux-system/raw/refs/heads/main/update/common/usr/bin/cmd.gz.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
+- [dL2](https://raw.githubusercontent.com/robang74/gzcmd.sh/refs/heads/main/gzcmd.sh) &dash; **gzcmd.sh**, converts an executable in a gziped self-extracting executable
+- [dL3](https://github.com/robang74/working-in-progress/raw/refs/heads/main/uchaosys.qemu/upexec) &dash; **upexec**, executes an ELF by stdin, usage: `zcat elf.gz | upexec [args]`
 
 While PractRand `RNG_test` (2288&nbsp;KB) is indispensable for testing, the `gzcmd.sh` is also relevant despite initramfs compression. In fact, the unreclaimable memory is allocated to host the uncompressed initramfs (aka `cpio` archive).
 

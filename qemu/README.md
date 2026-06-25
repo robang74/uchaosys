@@ -10,7 +10,7 @@ In 2019, RedHat presented the minimal footprint QEMU at 31MB for the Q35 machine
 
 - [KVM Forum 2019 (un)bloated QEMU](https://static.sched.com/hosted_files/kvmforum2019/c6/kvmforum19-bloat.pdf) &nbsp;(PDF slides, by RedHat)
 
-I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 8MB** (bios & roms included). As shown in the screenshot below which refers to the v0.6.5. Moreover, using [uzpexec](https://github.com/robang74/gzcmd.sh#uzpexec) the self-inflate executable's size shrunk to 2.55MB (available [here](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)).
+I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 8MB** (bios & roms included). As shown in the screenshot below which refers to the v0.6.5. Moreover, using [uzpexec](https://github.com/robang74/gzcmd.sh#uzpexec) the self-inflate executable's `UZP` format size shrunk to 2.55MB (available [here](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)).
 
 ![v0.6.5](../docs/red-hat-kvm-2019-qemu-footprint.png)
 
@@ -31,6 +31,10 @@ Since [v0.6.5](https://github.com/robang74/uchaosys/releases/tag/v0.6.5) the out
 
 The outcoming `uqemu` system emulator supports `microvm` and `q35` machines, the `tgc` (sw) and the `kvm` (hw) acceleration, as long as the kernel module for `kvm` support and userland access privileges are granted, obviously.
 
+> [!NOTE]
+>
+> The `qemu-system-x86_64`, provided in `UZP` self-inflate executable, appears to be an x86 ELF 32-bit LSB executable. That type file refers to the extractor. While qemu is expanded in RAM and execute in its original ELF 64-bit format.
+
 - [uchaosys snapshot](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu) &hairsp;folder for bzImage + initramfs **v0.6.3** &hairsp;w/ uqemu **v0.6.6** glibc-musl static elf64
 
 It has **not** been extensively tested and it was designed for embedded systems in mind, not desktops. However, it passed the self-contained self-hosted test which can be considered the ultimate health check in terms of a self-sufficient static binary: it works also for the embedded systems for which it has been designed for.
@@ -39,7 +43,7 @@ It has **not** been extensively tested and it was designed for embedded systems 
 
 > [!NOTE]
 >
-> This glibc-musl static qemu is capable of self-hosting and self-emulation. These aren't strictly necessary features, apart being the definitive binary healthy check.
+> This glibc-musl static qemu is capable of self-hosting and self-emulation. These aren't strictly necessary features, apart being the definitive binary healthy check. And qemu-in-qemu also works when delivered in `UZP` format without extra burden because `gzip` in compressing the CPIO archive skips already compressed files.
 
 ```sh
 cp -arf virt cpio.tmp

@@ -18,4 +18,4 @@
 	url = https://github.com/robang74/u-config.git
 [submodule "zcmd"]
 	path = zcmd
-	url = https://github.com/robang74/gzcmd.sh.git
+	url = https://github.com/robang74/uzpexec.git

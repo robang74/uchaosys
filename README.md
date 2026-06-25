@@ -4,7 +4,7 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB) and cpu/ram jittering randomness init of Linux cnrg for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB gzipped archive including static-linked PractRand.
+uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB, 2.55MB in [uzp](https://github.com/robang74/gzcmd.sh#uzpexec)) and cpu/ram jittering randomness init of Linux cnrg for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation (0.7MB) is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB tarball archive including static-linked PractRand `RNG_test` (0.9MB uzp).
 
 ### Index
 

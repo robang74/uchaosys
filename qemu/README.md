@@ -10,7 +10,7 @@ In 2019, RedHat presented the minimal footprint QEMU at 31MB for the Q35 machine
 
 - [KVM Forum 2019 (un)bloated QEMU](https://static.sched.com/hosted_files/kvmforum2019/c6/kvmforum19-bloat.pdf) &nbsp;(PDF slides, by RedHat)
 
-I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 6MB**. Do not trust me and try to replicate. By the way, the screenshot below refers to the v0.6.5.
+I did a "trick of mine", possibly two, and the minimal footprint to have a x86-64 with both kvm (q35) and tcg (microvm) is **a bit less than 8MB** (bios & roms included). As shown in the screenshot below which refers to the v0.6.5. Moreover, using [uzpexec](https://github.com/robang74/gzcmd.sh#uzpexec) the self-inflate executable's size shrunk to 2.55MB (available [here](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)).
 
 ![v0.6.5](../docs/red-hat-kvm-2019-qemu-footprint.png)
 

@@ -200,7 +200,7 @@ $(OUTPUT)/.done: $(KDIR)/.hdrs
 
 $(MUSLTGZ): $(OUTPUT)/.done
 	@$(call print_start,"","")
-	rm -f $@ && tar -c $(OUTPUT)/ | $(GZIP) -c >$@
+	rm -f $@ && tar -c $(OUTPUT)/ | $(GZIP) -1c >$@
 	@echo
 	@$(call print_size,$(OUTPUT)/,m,MB)
 	@$(call print_size,$@,m,MB)
@@ -429,7 +429,7 @@ qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done zcmd/u
 	@$(call print_start,"","")
 	cd qemu && rm -f output/$(QBIN) && sh make.sh
 	cp -af zcmd/uzpexec qemu/output/$(QBIN).uzp
-	cd qemu/output && $(GZIP) -c $(QBIN) >> $(QBIN).uzp
+	cd qemu/output && $(GZIP) -9c $(QBIN) >> $(QBIN).uzp
 	cd qemu/output && mv -f $(QBIN).uzp $(QBIN)
 	touch $@
 

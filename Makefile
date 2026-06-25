@@ -9,7 +9,7 @@ ENV_VARS     ?=
 NCPU         ?= $(shell nproc)
 MUSLCFGMAK   := cnfg/musl-125x.config.mak
 BBOXCFG      := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
-GZCMD        := $(shell which pigz gzip | head -n1)
+GZIP         := $(shell command -v pigz gzip | head -n1)
 
 # Extract kernel version from config
 KERNVER      := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\
@@ -41,14 +41,12 @@ export EXTRA_CFLAGS := $(EXTRA_CFLAGS)
 OPTS         := ARCH=$(ARCH) CROSS_COMPILE=$(CCPREFIX)
 OPTS         += CCPREFIX=$(CCPREFIX) KERNVER=$(KERNVER)
 OPTS         += EXTRA_CFLAGS="$(EXTRA_CFLAGS)" PATH=$(PATH)
-GZCMD_REPO   := https://raw.githubusercontent.com/robang74/bare-minimal-linux-system/
-GZCMD_PATH   := gzcmd.sh-v0.1.8
 
 KDIR_FILES   := $(addprefix $(KDIR)/, vmlinux bzImage System.map)
 VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))
 CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 
-ARTIFACTS    := prnd/RNG_test gzcmd.gz.sh $(VIRT_FILES) qemu/output/ ucfg/pkg-config
+ARTIFACTS    := prnd/RNG_test zcmd/uzpexec $(VIRT_FILES) qemu/output/ ucfg/pkg-config
 ARTIFACTS    += bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
 ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
 ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/umkaos kdev/$(KMOD)*
@@ -56,10 +54,10 @@ ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/umkaos kdev/$(KMO
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
 
-TRGDONE      := gzcmd.gz.sh kdev/uckaos prnd/RNG_test usrl/uchaosbox
+TRGDONE      := kdev/uckaos prnd/RNG_test usrl/uchaosbox
 TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD).gz
 TRGDONE      += virt/initramfs.cpio.gz $(KIMG) qemu/output/$(QBIN)
-TRGDONE      += kdev/umkaos $(MUSLTGZ)
+TRGDONE      += kdev/umkaos $(MUSLTGZ) zcmd/uzpexec
 
 define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
@@ -86,7 +84,7 @@ endef
 
 all:
 	rm -f $(MAKELOG)
-	for tg in sources buildall status; do $(MAKELNX) $$tg || exit 1; done
+	for tg in buildall status; do $(MAKELNX) $$tg || exit 1; done
 	@$(call print_stop)
 
 _status:
@@ -101,7 +99,7 @@ status:
 	@make _status | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig _sources zcmdtests
+.PHONY: update defconfig _defconfig sources _sources uzpexec
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -111,7 +109,7 @@ PATCH_NAME := printk-early-boot-timestamps-hack-v6
 PATCH_NAME += bothering-warn_unseeded_randomness-fix
 PATHC_KDIR := musl/patches/linux-$(KERNVER)
 
-.sync: .gitmodules
+.sync: | .gitmodules
 	@$(call print_start,"","Wait updating project dependencies ...")
 	git submodule update --init --recursive --depth 32 \
 	  --single-branch --jobs $(NCPU)
@@ -128,19 +126,11 @@ musl/.conf: $(MUSL_DPNDS)
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
 	touch $@
 
-gzcmd.sh: .sync
+zcmd/uzpexec: | .sync
 	@$(call print_start,"","")
-	cp -alf zcmd/gzcmd.sh .
-	touch $@
+	make -C zcmd uzpexec -j1
 
-gzcmd.gz.sh: gzcmd.sh
-	@$(call print_start,"","")
-	sh $< $< gzcmd
-	touch $@
-
-zcmdtests: .sync
-	@$(call print_start,"","")
-	make -C zcmd tests
+uzpexec: | zcmd/uzpexec
 
 $(SDIR)/.done: cnfg/musl-gcc-cp-make-lang-in.patch
 	@$(call print_start,"","Wait downloading sources ...")
@@ -151,40 +141,49 @@ $(SDIR)/.done: cnfg/musl-gcc-cp-make-lang-in.patch
 	@echo
 	touch $@
 
-update: .sync
+update: | .sync
 	@$(call print_stop)
 
-updatebbox: .sync
+updatebbox: | .sync
 	@echo "Updating busybox at the uchaosys branch HEAD"
 	cd bbox && git fetch origin uchaosys --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
-updatezcmd: .sync
+updatezcmd: | .sync
 	@echo "Updating zcmd at the main branch HEAD"
 	cd zcmd && git fetch origin main --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
-defconfig: .sync
+.dcfg: | .sync
 	rm -f $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f bbox/.config bbox/.conf
 	rm -f musl/.conf $(MAKELOG)
 	cp -f cnfg/uchaos_tbl.h kdev
 	$(MAKELNX) musl/.conf
+	@touch .dcfg
 
-_sources: $(SDIR)/.done qemu/src/.done gzcmd.gz.sh
+_defconfig: | .dcfg
 
-sources: defconfig 
+defconfig:
+	rm -f .dcfg
 	@$(call print_start,"","")
-	@$(MAKELNX) _sources
+	@$(MAKELNX) _$@
+	@$(call print_stop)
+
+_sources: $(SDIR)/.done qemu/src/.done
+
+sources: _defconfig 
+	@$(call print_start,"","")
+	@$(MAKELNX) _$@
 	@$(call print_stop)
 
 copysrc: $(FROM)/
 	@test -d  $(FROM)/
-	make -j$(NCPU) update
+	$(MAKELNX) update
 	cp -arlLf $(FROM)/$(SDIR) musl/
 	cp -arlLf $(FROM)/qemu/v*.tar.* qemu/
 	rm -f $(SDIR)/.done
-	make -j$(NCPU) defconfig
+	$(MAKELNX) defconfig
 	@echo
 	@$(call print_stop)
 	du -ks qemu/v*.tar.* $(SDIR)
@@ -201,7 +200,7 @@ $(OUTPUT)/.done: $(KDIR)/.hdrs
 
 $(MUSLTGZ): $(OUTPUT)/.done
 	@$(call print_start,"","")
-	rm -f $@ && tar -c $(OUTPUT)/ | $(GZCMD) -c >$@
+	rm -f $@ && tar -c $(OUTPUT)/ | $(GZIP) -c >$@
 	@echo
 	@$(call print_size,$(OUTPUT)/,m,MB)
 	@$(call print_size,$@,m,MB)
@@ -288,7 +287,7 @@ busybox:
 minz/amalgamation/.done: cnfg/amalgamate.sh
 	@$(call print_start,"","")
 	cp -alLf cnfg/amalgamate.sh minz/
-	cd minz && $(OPTS) sh -x amalgamate.sh
+	cd minz && $(OPTS) sh amalgamate.sh
 	touch $@
 
 miniz: minz/amalgamation/.done
@@ -340,7 +339,7 @@ rngtest: prnd/RNG_test
 # target: install //////////////////////////////////////////////////////////////
 .PHONY: install glib
 
-$(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
+$(CPIOTMP)/.done: zcmd/uzpexec kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	@$(call print_start,"","")
 	mkdir -p $(CPIOTMP)/
 	cp -arf cpio/* $(CPIOTMP)/
@@ -348,7 +347,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	cp -alLf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
 	cp -alLf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
 	cp -alLf usrl/uchaosbox kdev/u?kaos $(CPIOTMP)/usr/bin/
-	cp -alLf zcmd/upexec $(CPIOTMP)/usr/bin/
+	cp -alLf zcmd/uzpexec $(CPIOTMP)/usr/bin/
 	chmod +x $(CPIOTMP)/init
 	# Symbolic links
 	ln -sf bin $(CPIOTMP)/usr/sbin
@@ -358,7 +357,7 @@ $(CPIOTMP)/.done: kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	ln -sf busybox $(CPIOTMP)/bin/sh
 	touch $@
 
-install: $(KIMG) zcmdtests $(CPIOTMP)/.done qemu/output/.done
+install: $(KIMG) $(CPIOTMP)/.done qemu/output/.done
 	@$(call print_start,"","")
 	cp -alLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
@@ -379,10 +378,11 @@ realclean:
 	rm -rf $(ARTIFACTS) $(SDIR)/*.tmp
 	rm -f $(shell ls -1d virt/* | grep -v start.sh ||:)
 	@echo "Removing custom configuration files and links"
-# Protected by: test -r musl/config.mak
-	rm -f musl/{config.mak,.conf}
+	rm -f .dcfg
 # Protected by: test -e $lnxpath
 	rm -f $(LNXPATH)
+# Protected by: test -r musl/config.mak
+	rm -f musl/{config.mak,.conf}
 # Protected by: test -r $lnxpath/.config
 	rm -f $(KDIR)/{.config,.conf,.hdrs}
 # Protected by: test -r bbox/.config
@@ -394,8 +394,10 @@ realclean:
 
 veryclean: realclean
 	@$(call print_start,"","Cleaning ...")
-	rm -rf gzcmd.sh minz/_build/ qemu/src/
+	rm -rf minz/_build/ qemu/src/
 	for dir in kdev usrl prnd $(LNXPATH); do $(MAKELNX) -C $$dir $@ ||:; done
+# Call zcmd clean
+	make -C zcmd clean
 # Call qemu/make.sh clean
 	cd qemu && sh make.sh $@
 # Call prnd/make veryclean
@@ -423,14 +425,17 @@ qemu/src/.done:
 	cd qemu && sh make.sh sources
 	@$(call print_stop)
 
-qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done
+qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done zcmd/uzpexec
 	@$(call print_start,"","")
-	cd qemu && sh make.sh
+	cd qemu && rm -f output/$(QBIN) && sh make.sh
+	cp -af zcmd/uzpexec qemu/output/$(QBIN).uzp
+	cd qemu/output && $(GZIP) -c $(QBIN) >> $(QBIN).uzp
+	cd qemu/output && mv -f $(QBIN).uzp $(QBIN)
 	touch $@
 
 virt/.done: qemu/output/.done
 	@$(call print_start,"","")
-	cp -alf qemu/output/* virt/
+	cp -alf qemu/output/* $(VDIR)/
 	$(MAKELNX) install
 	touch $@
 
@@ -447,7 +452,7 @@ buildsys:
 	for tg in _bzImage _busybox miniz uchaos rngtest; do $(MAKELNX) $$tg || exit 1; done
 	@$(call print_stop)
 
-buildall:
+buildall: _defconfig _sources
 	@$(call print_start,"","")
 	for tg in _toolchain buildsys _buildemu; do $(MAKELNX) $$tg || exit 1; done; sync
 	@$(call print_stop)
@@ -455,13 +460,11 @@ buildall:
 # targets: qemu related ////////////////////////////////////////////////////////
 .PHONY: qemutest qemurset runqemu
 
-QEMU_FILES := virt/$(QBIN) virt/initramfs.cpio.gz
+QEMU_FILES := virt/initramfs.cpio.gz virt/$(QBIN)
 
-virt/$(QBIN):
-	$(MAKELNX) buildemu
+virt/initramfs.cpio.gz: $(KIMG)
 
-virt/initramfs.cpio.gz:
-	$(MAKELNX) install
+virt/$(QBIN): buildemu
 
 qemurset:
 	@$(call print_start,"","")

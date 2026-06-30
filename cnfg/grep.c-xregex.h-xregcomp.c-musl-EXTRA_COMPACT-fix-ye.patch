@@ -1,0 +1,119 @@
+From aebe24a77f32d3def942edb39e0bde63f9923a02 Mon Sep 17 00:00:00 2001
+From: "Roberto A. Foglietta" <roberto.foglietta@gmail.com>
+Date: Tue, 30 Jun 2026 21:12:49 +0200
+Subject: [PATCH] grep.c,xregex.h,xregcomp.c: musl + EXTRA_COMPACT fix (yet to
+ test)
+
+Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
+---
+ findutils/grep.c |  3 +++
+ include/xregex.h | 59 ++++++++++++++++++++++++++++++++++++++++++++++++
+ libbb/xregcomp.c |  4 ++++
+ 3 files changed, 66 insertions(+)
+
+diff --git a/findutils/grep.c b/findutils/grep.c
+index f6d0a73..982352c 100644
+--- a/findutils/grep.c
++++ b/findutils/grep.c
+@@ -177,6 +177,9 @@ struct globals {
+ #if !ENABLE_EXTRA_COMPAT
+ 	int reflags;
+ #else
++	#ifndef RE_TRANSLATE_TYPE //RAF: musl lacks of this definition
++	#define RE_TRANSLATE_TYPE unsigned char*
++	#endif
+ 	RE_TRANSLATE_TYPE case_fold; /* RE_TRANSLATE_TYPE is [[un]signed] char* */
+ #endif
+ 	smalluint invert_search;
+diff --git a/include/xregex.h b/include/xregex.h
+index 5e5e6a2..5dd8681 100644
+--- a/include/xregex.h
++++ b/include/xregex.h
+@@ -11,10 +11,69 @@
+ #ifndef BB_REGEX_H
+ #define BB_REGEX_H 1
+ 
++#if ENABLE_EXTRA_COMPAT && !defined(__GLIBC__)
++#define re_pattern_buffer bb_gnu_re_pattern_buffer
++#endif
++
+ #include <regex.h>
+ 
++#if ENABLE_EXTRA_COMPAT && !defined(__GLIBC__)
++#undef re_pattern_buffer
++struct re_pattern_buffer {
++    void *buffer;
++    unsigned long allocated;
++    unsigned long used;
++    unsigned long syntax;
++    char *translate;
++    unsigned char fastmap_accurate;
++    unsigned char can_be_null;
++};
++#endif
++
+ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
+ 
++#if ENABLE_EXTRA_COMPAT
++                                                    //RAF,TODO: yes to test
++#if !defined(__GLIBC__) && !defined(_REGEX_RE_COMP) //&& !defined(__UCLIBC__)
++
++#ifndef REGOFF_T_DEFINED
++typedef off_t regoff_t;
++#endif
++
++struct re_registers {
++    unsigned num_regs;
++    regoff_t *start;
++    regoff_t *end;
++};
++
++#ifndef RE_SYNTAX_EGREP
++# define RE_SYNTAX_EGREP 0
++# define RE_INTERVALS    0
++# define RE_NO_BK_BRACES 0
++# define RE_SYNTAX_GREP  0
++#endif
++
++#ifndef re_syntax_options
++# define re_syntax_options __bb_re_syntax_options
++extern unsigned long __bb_re_syntax_options;
++#endif
++
++#undef re_compile_pattern
++#define re_compile_pattern(pattern, len, preg) \
++    regcomp((void *)(preg), pattern, REG_EXTENDED)
++
++#undef re_search
++#define re_search(preg, string, size, start, range, regs) \
++    regexec((void *)(preg), string, 0, NULL, 0)
++
++#undef regfree
++#define regfree(preg) regfree((void *)(preg))
++
++#define _REGEX_RE_COMP 1
++#endif /* __GLIBC__ */
++
++#endif /* ENABLE_EXTRA_COMPAT */
++
+ char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags) FAST_FUNC;
+ void xregcomp(regex_t *preg, const char *regex, int cflags) FAST_FUNC;
+ 
+diff --git a/libbb/xregcomp.c b/libbb/xregcomp.c
+index 5870012..a1b18a7 100644
+--- a/libbb/xregcomp.c
++++ b/libbb/xregcomp.c
+@@ -9,6 +9,10 @@
+  */
+ #include "libbb.h"
+ #include "xregex.h"
++                                               //RAF,TODO; yet to test
++#if ENABLE_EXTRA_COMPAT && !defined(__GLIBC__) //&& !defined(__UCLIBC__)
++unsigned long __bb_re_syntax_options = 0;
++#endif
+ 
+ char* FAST_FUNC regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags)
+ {
+-- 
+2.34.1
+

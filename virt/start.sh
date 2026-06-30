@@ -118,7 +118,7 @@ fi
 export QTTYUC=${QTTYUC:-8250.nr_uarts=4 console=ttyS0,115200n8}
 ovrcmt=" -overcommit mem-lock=off -run-with async-teardown=on,exit-with-parent=on"
 
-cmdlnx="$cmdlnx HOST=x86_64 root=/dev/ram0 init=/init $QTTYUC net.ifnames=0 nokaslr"
+cmdlnx="$cmdlnx HOST=x86_64 root=/dev/ram0 init=/linuxrc $QTTYUC net.ifnames=0 nokaslr"
 nograp="-nographic -vga none -display none -serial mon:stdio"
 
 if [ "${QZERO:-0}" = "0" ]; then

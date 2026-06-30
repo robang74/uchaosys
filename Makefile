@@ -46,7 +46,7 @@ KDIR_FILES   := $(addprefix $(KDIR)/, vmlinux bzImage System.map)
 VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))
 CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 
-ARTIFACTS    := prnd/RNG_test zcmd/uzpexec $(VIRT_FILES) qemu/output/ ucfg/pkg-config
+ARTIFACTS    := prnd/RNG_test zcmd/uzpack $(VIRT_FILES) qemu/output/ ucfg/pkg-config
 ARTIFACTS    += bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
 ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
 ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/umkaos kdev/$(KMOD)*
@@ -57,7 +57,7 @@ MAKELOG      := make.log
 TRGDONE      := kdev/uckaos prnd/RNG_test usrl/uchaosbox
 TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD).gz
 TRGDONE      += virt/initramfs.cpio.gz $(KIMG) qemu/output/$(QBIN)
-TRGDONE      += kdev/umkaos $(MUSLTGZ) zcmd/uzpexec
+TRGDONE      += kdev/umkaos $(MUSLTGZ) zcmd/uzpack
 
 define print_size
 	du -$(2)s $(1) | sed -e "s/^/size: /" -e "s/\t/ $(3) /"
@@ -99,7 +99,7 @@ status:
 	@make _status | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig _defconfig sources _sources uzpexec resync
+.PHONY: update defconfig _defconfig sources _sources uzpack resync
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -130,11 +130,11 @@ musl/.conf: $(MUSL_DPNDS)
 	cp -alLf $(MUSLCFGMAK) musl/config.mak
 	touch $@
 
-zcmd/uzpexec: | .sync
+zcmd/uzpack: | .sync
 	@$(call print_start,"","")
-	make -C zcmd uzpexec -j1
+	make -C zcmd uzpack -j1
 
-uzpexec: | zcmd/uzpexec
+uzpack: | zcmd/uzpack
 
 $(SDIR)/.done: cnfg/musl-gcc-cp-make-lang-in.patch
 	@$(call print_start,"","Wait downloading sources ...")
@@ -155,7 +155,7 @@ updatebbox: | .sync
 
 updatezcmd: | .sync
 	@echo "Updating zcmd at the main branch HEAD"
-	cd zcmd && git fetch origin main --jobs $(NCPU) \
+	cd zcmd && git fetch origin master --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
 .dcfg: | .sync
@@ -343,7 +343,7 @@ rngtest: prnd/RNG_test
 # target: install //////////////////////////////////////////////////////////////
 .PHONY: install glib
 
-$(CPIOTMP)/.done: zcmd/uzpexec kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
+$(CPIOTMP)/.done: zcmd/uzpack kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	@$(call print_start,"","")
 	mkdir -p $(CPIOTMP)/
 	cp -arf cpio/* $(CPIOTMP)/
@@ -351,7 +351,7 @@ $(CPIOTMP)/.done: zcmd/uzpexec kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	cp -alLf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
 	cp -alLf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
 	cp -alLf usrl/uchaosbox kdev/u?kaos $(CPIOTMP)/usr/bin/
-	cp -alLf zcmd/uzpexec $(CPIOTMP)/usr/bin/
+	cp -alLf zcmd/uzpexec zcmd/uzpack $(CPIOTMP)/usr/bin/
 	chmod +x $(CPIOTMP)/init
 	# Symbolic links
 	ln -sf bin $(CPIOTMP)/usr/sbin
@@ -429,11 +429,10 @@ qemu/src/.done:
 	cd qemu && sh make.sh sources
 	@$(call print_stop)
 
-qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done zcmd/uzpexec
+qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done | zcmd/uzpack
 	@$(call print_start,"","")
 	cd qemu && rm -f output/$(QBIN) && sh make.sh
-	cp -af zcmd/uzpexec qemu/output/$(QBIN).uzp
-	cd qemu/output && $(GZIP) -9c $(QBIN) >> $(QBIN).uzp
+	cd qemu/output && ./uzpack $(QBIN) $(QBIN).uzp
 	cd qemu/output && mv -f $(QBIN).uzp $(QBIN)
 	touch $@
 

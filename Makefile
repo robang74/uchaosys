@@ -99,7 +99,7 @@ status:
 	@make _status | tee -a $(MAKELOG)
 
 # target: sources //////////////////////////////////////////////////////////////
-.PHONY: update defconfig _defconfig sources _sources uzpexec
+.PHONY: update defconfig _defconfig sources _sources uzpexec resync
 
 MUSL_DPNDS := $(wildcard cnfg/Makefile.*)
 MUSL_DPNDS += $(wildcard cnfg/hashes/*.sha1)
@@ -115,6 +115,10 @@ PATHC_KDIR := musl/patches/linux-$(KERNVER)
 	  --single-branch --jobs $(NCPU)
 	@echo
 	touch $@
+
+resync:
+	@rm -f .sync
+	$(MAKELNX) .sync
 
 musl/.conf: $(MUSL_DPNDS)
 	@$(call print_start,"","")

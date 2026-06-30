@@ -416,6 +416,7 @@ deepclean: veryclean
 
 distclean: deepclean
 	cd qemu && sh make.sh $@
+	make -C zcmd $@
 	rm -rf $(SDIR)/
 
 # target: build related ////////////////////////////////////////////////////////
@@ -432,8 +433,8 @@ qemu/src/.done:
 qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done | zcmd/uzpack
 	@$(call print_start,"","")
 	cd qemu && rm -f output/$(QBIN) && sh make.sh
-	cd qemu/output && ./uzpack $(QBIN) $(QBIN).uzp
-	cd qemu/output && mv -f $(QBIN).uzp $(QBIN)
+	sh zcmd/uzpack.sh -9 qemu/output/$(QBIN) $(QBIN).uzp
+	mv -f $(QBIN).uzp qemu/output/$(QBIN)
 	touch $@
 
 virt/.done: qemu/output/.done

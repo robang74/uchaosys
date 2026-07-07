@@ -77,3 +77,14 @@ CXL is designed for high performance data center computers, and the first real-w
 
 PCIe 5.0 on consumer/desktop platforms only started appearing with Intel 12th/13th gen and AMD Ryzen 7000, but even then those platforms don't expose CXL — the CPU has the PHY but the ecosystem (CXL memory expanders, accelerators) remains entirely a datacenter story.
 
+---
+
+### arm64 userland
+
+For testing the ARM64 [uzpexec](https://github.com/robang74/uzpexec) a arm-x86 userland translator was necessary. Moreover, the need was about having a recent stable version to support `execvat()` system call. Therefore, it has been built starting from this project.
+
+- `make qemu-arm64` -- generates it and uses `uzpack` to compress it
+- `1496	qemu/qemu-aarch64-static` -- the result is pretty shrunk in size (Kb)
+
+The target `qemu-arm64` is optional and it is not built by default
+

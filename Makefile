@@ -22,6 +22,7 @@ VDIR         := virt
 SDIR         := musl/sources
 KDIR         := musl/linux-$(KERNVER)
 QBIN         := qemu-system-$(ARCH)
+QARM         := qemu-aarch64-static
 MUSLTGZ      := musl-output.tar.gz
 LNXPATH      := kdev/linux-kernel
 CCPREFIX     := $(ARCH)-linux-musl-
@@ -47,9 +48,9 @@ VIRT_FILES   := $(addprefix virt/, *.bin *.rom .done $(QBIN))
 CONF_FILES   := $(addsuffix /.conf, bbox musl $(KDIR))
 
 ARTIFACTS    := prnd/RNG_test zcmd/uzpack $(VIRT_FILES) qemu/output/ ucfg/pkg-config
+ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done $(LNXPATH)
+ARTIFACTS    += minz/amalgamation/ kdev/uckaos kdev/umkaos kdev/$(KMOD)* qemu/$(QARM)
 ARTIFACTS    += bbox/busybox.elf bbox/.config cpio.cpio $(CPIOTMP)/ usrl/uchaosbox
-ARTIFACTS    += $(KDIR_FILES) $(CONF_FILES) $(SDIR)/.done $(OUTPUT)/.done
-ARTIFACTS    += minz/amalgamation/ $(LNXPATH) kdev/uckaos kdev/umkaos kdev/$(KMOD)*
 
 MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
@@ -420,15 +421,25 @@ distclean: deepclean
 	rm -rf $(SDIR)/
 
 # target: build related ////////////////////////////////////////////////////////
-.PHONY: buildemu _buildemu buildsys
+.PHONY: buildemu _buildemu buildsys qemu-arm64
 
 ucfg/pkg-config:
 	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
+
+qemu/$(QARM): qemu/src/.done
+	@$(call print_start,"","")
+	cd qemu && sh aarm64.txt
+	@$(call print_stop)
+
+qemu-arm64: qemu/$(QARM)
 
 qemu/src/.done:
 	@$(call print_start,"","")
 	cd qemu && sh make.sh sources
 	@$(call print_stop)
+
+qemu/output/$(QBIN): qemu/output/.done
+	test -r $@ || { rm -f $^; make $^; } 
 
 qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done | zcmd/uzpack
 	@$(call print_start,"","")
@@ -436,6 +447,7 @@ qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done | zcmd
 	sh zcmd/uzpack.sh -9 qemu/output/$(QBIN) $(QBIN).uzp
 	mv -f $(QBIN).uzp qemu/output/$(QBIN)
 	touch $@
+	@$(call print_stop)
 
 virt/.done: qemu/output/.done
 	@$(call print_start,"","")

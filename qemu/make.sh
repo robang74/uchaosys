@@ -111,7 +111,7 @@ LIBA=""
 glib="/usr/lib/${ARCH}-linux-gnu"
 mlib="/usr/lib/${ARCH}-linux-musl"
 for i in $ld_libz $ld_glib; do # util pthread pcre2-8
-  LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1 )
+  LIBA="$LIBA "$(find $glib/ -name lib$i.a | head -n1)
 done
 
 if [ ! -n "$ld_libz" ]; then
@@ -218,7 +218,7 @@ if [ "${1:-}" != "noconfig" ]; then
     --audio-drv-list= \
     --without-default-devices \
     --without-default-features \
-    --target-list=$ARCH-softmmu \
+    --target-list=$ARCH-softmmu,aarch64-linux-user \
     --with-devices-$ARCH=minikvm \
     --enable-kvm \
     --enable-tcg \
@@ -226,6 +226,7 @@ if [ "${1:-}" != "noconfig" ]; then
     --enable-vhost-net \
     --enable-slirp \
     --enable-fdt \
+    --enable-linux-user \
     --disable-attr --disable-cap-ng \
     --disable-tcg-interpreter --disable-auth-pam \
     --disable-zstd --disable-lzo --disable-bzip2 \
@@ -249,7 +250,7 @@ if [ ! -x $qbin ] ; then
   echo
   echo "Fix the linking stage and repeat ..."
   echo
-  CFLAGS=""
+  CFLAGS="-s"
   LDFLAGS="-no-pie"
   for i in open stat; do
     LDFLAGS="$LDFLAGS -Wl,--defsym,${i}64=$i -Wl,--defsym,f${i}64=f$i"

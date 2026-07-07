@@ -428,7 +428,7 @@ QEMUTODO := $(MUSLTGZ) minz/amalgamation/.done ucfg/pkg-config qemu/src/.done
 ucfg/pkg-config:
 	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
 
-qemu/$(QARM): $(QEMUTODO) | zcmd/uzpack
+qemu/$(QARM): qemu/output/.done
 	@$(call print_start,"","")
 	cd qemu && sh aarm64.txt
 	@$(call print_stop)

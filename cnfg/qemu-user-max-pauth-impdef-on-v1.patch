@@ -1,0 +1,17 @@
+--- a/linux-user/main.c	2026-07-07 22:56:39.940988261 +0200
++++ b/linux-user/main.c	2026-07-07 23:07:52.551802588 +0200
+@@ -795,6 +795,14 @@ int main(int argc, char **argv, char **e
+     if (cpu_model == NULL) {
+         cpu_model = get_elf_cpu_model(get_elf_eflags(execfd));
+     }
++    if (cpu_model == NULL || strcmp(cpu_model, "max") == 0) {
++        // RAF: 4 bytes of memory leak are negligible,
++        // the free() alone would take minum 8 bytes
++        // moreover it might cause a free() on argv[]
++        // it doesn't worth to investigate but set it.
++        // The new default priviledges emualtion speed.
++        cpu_model = strdup("max,pauth-impdef=on");
++	   }
+     cpu_type = parse_cpu_option(cpu_model);
+ 
+     /* init tcg before creating CPUs */

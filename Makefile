@@ -423,10 +423,12 @@ distclean: deepclean
 # target: build related ////////////////////////////////////////////////////////
 .PHONY: buildemu _buildemu buildsys qemu-arm64
 
+QEMUTODO := $(MUSLTGZ) minz/amalgamation/.done ucfg/pkg-config qemu/src/.done
+
 ucfg/pkg-config:
 	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
 
-qemu/$(QARM): qemu/src/.done
+qemu/$(QARM): $(QEMUTODO) | zcmd/uzpack
 	@$(call print_start,"","")
 	cd qemu && sh aarm64.txt
 	@$(call print_stop)
@@ -434,7 +436,6 @@ qemu/$(QARM): qemu/src/.done
 qemu-arm64: qemu/$(QARM)
 
 qemu/src/.done:
-qemu/output/$(QBIN):
 	@$(call print_start,"","")
 	cd qemu && sh make.sh sources
 	@$(call print_stop)
@@ -442,7 +443,7 @@ qemu/output/$(QBIN):
 qemu/output/$(QBIN): qemu/output/.done
 	test -r $@ || { rm -f $^; make $^; } 
 
-qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done | zcmd/uzpack
+qemu/output/.done: $(QEMUTODO) | zcmd/uzpack
 	@$(call print_start,"","")
 	cd qemu && rm -f output/$(QBIN) && sh make.sh
 	sh zcmd/uzpack.sh -9 qemu/output/$(QBIN) $(QBIN).uzp

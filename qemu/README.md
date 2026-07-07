@@ -85,6 +85,7 @@ For testing the ARM64 [uzpexec](https://github.com/robang74/uzpexec) a arm-x86 u
 
 - `make qemu-arm64` -- generates it and uses `uzpack` to compress it
 - `1496	qemu/qemu-aarch64-static` -- the result is pretty shrunk in size (Kb)
+- the 1.5MB pre-compiled ELF64 musl-static binary in UZP format is available [here](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)
 
-The target `qemu-arm64` is optional and it is not built by default
+The target `qemu-arm64` is optional and it is not built by default.
 

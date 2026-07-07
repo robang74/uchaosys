@@ -434,6 +434,7 @@ qemu/$(QARM): qemu/src/.done
 qemu-arm64: qemu/$(QARM)
 
 qemu/src/.done:
+qemu/output/$(QBIN):
 	@$(call print_start,"","")
 	cd qemu && sh make.sh sources
 	@$(call print_stop)
@@ -449,7 +450,7 @@ qemu/output/.done: minz/amalgamation/.done ucfg/pkg-config qemu/src/.done | zcmd
 	touch $@
 	@$(call print_stop)
 
-virt/.done: qemu/output/.done
+virt/.done: qemu/output/.done qemu/output/$(QBIN)
 	@$(call print_start,"","")
 	cp -alf qemu/output/* $(VDIR)/
 	$(MAKELNX) install

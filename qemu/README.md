@@ -84,6 +84,7 @@ PCIe 5.0 on consumer/desktop platforms only started appearing with Intel 12th/13
 For testing the ARM64 [uzpexec](https://github.com/robang74/uzpexec) a arm-x86 userland translator was necessary. Moreover, the need was about having a recent stable version to support `execvat()` system call. Therefore, it has been built starting from this project.
 
 - `make qemu-arm64` -- generates it and uses `uzpack` to compress it
+- based on v10.2.3, it supports by a patchfix system call `execveat()`
 - the result is pretty shrunk in size (Kb): `1496	qemu/qemu-aarch64-static`
 - it runs with `-cpu max,pauth-impdef=on` by default, for priviledging emulation speed
 - the 1.5MB pre-compiled ELF64 musl-static binary in UZP format is available [here](https://github.com/robang74/working-in-progress/tree/main/uchaosys.qemu)

@@ -1,0 +1,62 @@
+From a85208ab05579086b0c4c004385969ac88bcabcc Mon Sep 17 00:00:00 2001
+From: "Roberto A. Foglietta" <roberto.foglietta@gmail.com>
+Date: Wed, 8 Jul 2026 03:29:30 +0200
+Subject: [PATCH] linux-user/syscall.c: fixing execveat in qemu-aarch64-static
+
+/*
+ * RAF: the main cause of execveat() failure is the host trying
+ *      to access to "" by a guest address from which it reads
+ *      usually garbage instead of something expected like '\0'
+ *      but this bug doesn't happen on all the systems, because
+ *      some hardened Linux kernel configurations zeroed the mem
+ *      when it is allocated or -- securely -- after the free()
+ */
+
+Signed-off-by: Roberto A. Foglietta <roberto.foglietta@gmail.com>
+---
+ linux-user/syscall.c | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index 5c101c19e4..b4a9d18fc1 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -9026,6 +9026,35 @@ static int do_execv(CPUArchState *cpu_env, int dirfd,
+     }
+ 
+     const char *exe = p;
++    if (is_execveat && (flags & AT_EMPTY_PATH)) {
++#if 0
++        fprintf(stderr, "\nRAF, execveat()> "
++            "flags: 0x%04u & 0x%04u, exe: '%s' (%p)\n",
++                flags, AT_EMPTY_PATH, exe?:"null", exe);
++        fprintf(stderr,   "RAF, execveat()> "
++            "dirfd: %d, argp[0]: '%s' (%p)\n",
++                dirfd, argp?argp[0]:"null", argp[0]);
++        #if 0
++        int fd = dup(dirfd);
++        if(fd) {
++            dirfd = fd;
++            fcntl(fd, F_SETFD, FD_CLOEXEC);
++        }
++        #endif
++        fprintf(stderr,   "RAF, execveat()> "
++            "envp[0]: '%s' (%p), dupfd: %d\n\n",
++                envp?envp[0]:"null", envp, dirfd);
++#endif
++/*
++ * RAF: the main cause of execveat() failure is the host trying
++ *      to access to "" by a guest address from which it reads
++ *      usually garbage instead of something expected like '\0'
++ *      but this bug doesn't happen on all the systems, because
++ *      some hardened Linux kernel configurations zeroed the mem
++ *      when it is allocated or -- securely -- after the free()
++ */
++        exe = "";
++    } else
+     if (is_proc_myself(p, "exe")) {
+         exe = real_exec_path;
+     }
+-- 
+2.34.1
+

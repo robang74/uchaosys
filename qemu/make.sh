@@ -73,11 +73,12 @@ if [ "${1:-}" = "sources" -o ! -e src/.done ]; then
     $dwnl_cmd -c $url_site/$url_path/$url_name
   mkdir -p $src_dir $bin_dir
   cd $src_dir
-  cdr="../../cnfg/"
   $infl_cmd ../$url_name --strip-components=1
   sed -e '/cxl\.c/d' -e '/cxl-stub/d' -i hw/acpi/meson.build
-  patch -p1 < $cdr/qemu-q35-remove-old-machines-v4-patch
-  patch -p1 < $cdr/qemu-user-max-pauth-impdef-on-v1.patch
+  for i in ../patches/*.patch; do
+      echo "Applying patch $(basename $i)"
+      patch -p1 < $i;
+  done
   touch .done
   cd ..
   set +e

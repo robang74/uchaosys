@@ -362,7 +362,7 @@ $(CPIOTMP)/.done: zcmd/uzpack kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
 	ln -sf busybox $(CPIOTMP)/bin/sh
 	touch $@
 
-install: $(KIMG) $(CPIOTMP)/.done qemu/output/.done
+install: $(KIMG) $(CPIOTMP)/.done qemu/output/$(QBIN)
 	@$(call print_start,"","")
 	cp -alLf $(KIMG) $(VDIR)/
 	cd $(VDIR) && sh start.sh -U
@@ -428,7 +428,7 @@ QEMUTODO := $(MUSLTGZ) minz/amalgamation/.done ucfg/pkg-config qemu/src/.done
 ucfg/pkg-config:
 	cd ucfg && $(HOSTCC) $(EXTRA_CFLAGS) -o pkg-config main_posix.c -s -O1
 
-qemu/$(QARM): qemu/output/.done
+qemu/$(QARM): qemu/output/$(QBIN)
 	@$(call print_start,"","")
 	cd qemu && sh aarm64.txt
 	@$(call print_stop)
@@ -440,10 +440,7 @@ qemu/src/.done:
 	cd qemu && sh make.sh sources
 	@$(call print_stop)
 
-qemu/output/$(QBIN): qemu/output/.done
-	test -r $@ || { rm -f $^; make $^; } 
-
-qemu/output/.done: $(QEMUTODO) | zcmd/uzpack
+qemu/output/$(QBIN): $(QEMUTODO) | zcmd/uzpack
 	@$(call print_start,"","")
 	cd qemu && rm -f output/$(QBIN) && sh make.sh
 	sh zcmd/uzpack.sh -9 qemu/output/$(QBIN) $(QBIN).uzp
@@ -451,7 +448,7 @@ qemu/output/.done: $(QEMUTODO) | zcmd/uzpack
 	touch $@
 	@$(call print_stop)
 
-virt/.done: qemu/output/.done qemu/output/$(QBIN)
+virt/.done: qemu/output/$(QBIN)
 	@$(call print_start,"","")
 	cp -alf qemu/output/* $(VDIR)/
 	$(MAKELNX) install

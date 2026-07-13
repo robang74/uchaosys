@@ -22,7 +22,7 @@ This strongly increases the difficulty of being detected at running time and thu
 
 Moreover, because it does not need any particular privilege, every user can run it. Because its output is designed to be consumed by piping it, every application can `popen()` as an external independent executable without even the burden of integrating its GPLv2 code.
 
-- download the pre-compiled self-extracting 32bit static binary from [here](https://raw.githubusercontent.com/robang74/working-in-progress/refs/heads/main/uchaosys.qemu/umkaos32.gz.sh)
+- download the pre-compiled self-extracting 32bit static binary from [here](https://raw.githubusercontent.com/robang74/working-in-progress/refs/heads/main/uchaosys.qemu/umkaos32.uzp)
 
 Like uchaos and uckaos, aslo umkaos provides white-noise RNG which passed the 256GB PractRand test without flaw. Like every stochastic noise, sometimes it shows a 1E-3 event (unusual) and rarely a 2nd order event 1E-6 (mildly) but within the first 256GB, while a 3rd order event didn't seen yet. Such events are statistically probable thus their frequencies, the significant trait is their distribution is discrete by 1E-3 circa as 1st order.
 

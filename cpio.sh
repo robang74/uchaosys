@@ -8,7 +8,7 @@ cpiofl=${2:-initramfs.cpio.gz}
 tmpdir=${3:-cpio.tmp}
 vrtdir=${4:-virt/}
 
-zcmd="gzip"; which pigz >/dev/null && zcmd="pigz"
+zcmd=$(command -v zstd pigz gzip | head -n1)
 
 while true; do
   if [ "x$action" = "x-e" ]; then

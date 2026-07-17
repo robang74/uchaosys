@@ -9,7 +9,7 @@ ENV_VARS     ?=
 NCPU         ?= $(shell nproc)
 MUSLCFGMAK   := cnfg/musl-125x.config.mak
 BBOXCFG      := $(shell ls -1 cnfg/busybox-*.config | tail -n1)
-GZIP         := $(shell command -v pigz gzip | head -n1)
+GZIP         := $(shell command -v zstd pigz gzip | head -n1)
 
 # Extract kernel version from config
 KERNVER      := $(shell cut -d\# -f1 $(MUSLCFGMAK) | grep "LINUX_VER = [0-9]" |\

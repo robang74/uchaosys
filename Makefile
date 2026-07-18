@@ -56,7 +56,7 @@ MAKELNX      := $(MAKE) $(OPTS) -j$(NCPU)
 MAKELOG      := make.log
 
 TRGDONE      := kdev/uckaos prnd/RNG_test usrl/uchaosbox
-TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD).gz
+TRGDONE      += ucfg/pkg-config bbox/busybox.elf kdev/$(KMOD)
 TRGDONE      += virt/initramfs.cpio.gz $(KIMG) qemu/output/$(QBIN)
 TRGDONE      += kdev/umkaos $(MUSLTGZ) zcmd/uzpack
 
@@ -307,7 +307,7 @@ $(LNXPATH):
 
 $(KDIR)/System.map: $(KIMG)
 
-kdev/$(KMOD).gz: | $(LNXPATH) $(KDIR)/System.map
+kdev/$(KMOD): | $(LNXPATH) $(KDIR)/System.map
 	@$(call print_start,"","")
 	CC="$(CC) -static -mavx2" $(MAKELNX) -C kdev dist
 	@$(call print_stop)
@@ -320,12 +320,12 @@ usrl/uchaosbox:
 	@$(call print_stop)
 	@echo
 
-uchaos: minz/amalgamation/.done usrl/uchaosbox $(LNXPATH) kdev/$(KMOD).gz
+uchaos: minz/amalgamation/.done usrl/uchaosbox $(LNXPATH) kdev/$(KMOD)
 	@$(call print_start,"","")
-	@file kdev/$(KMOD).gz | cut -d, -f1,6-
-	@file kdev/$(KMOD).gz | cut -d, -f2-4
+	@file kdev/$(KMOD) | cut -d, -f1,6-
+	@file kdev/$(KMOD) | cut -d, -f2-4
 	@strings kdev/$(KMOD) | grep -e "^version=" | tr '\n' ' '
-	@$(call print_size,kdev/$(KMOD).gz,b,bytes)
+	@$(call print_size,kdev/$(KMOD),b,bytes)
 	@echo
 
 # target: rngtest //////////////////////////////////////////////////////////////
@@ -344,12 +344,12 @@ rngtest: prnd/RNG_test
 # target: install //////////////////////////////////////////////////////////////
 .PHONY: install glib
 
-$(CPIOTMP)/.done: zcmd/uzpack kdev/$(KMOD).gz bbox/busybox.elf usrl/uchaosbox
+$(CPIOTMP)/.done: zcmd/uzpack kdev/$(KMOD) bbox/busybox.elf usrl/uchaosbox
 	@$(call print_start,"","")
 	mkdir -p $(CPIOTMP)/
 	cp -arf cpio/* $(CPIOTMP)/
 	cd $(CPIOTMP) && mkdir -p tmp/ var/log/ lib/modules/ usr/bin/
-	cp -alLf kdev/$(KMOD).gz $(CPIOTMP)/lib/modules/$(KMOD)
+	cp -alLf kdev/$(KMOD) $(CPIOTMP)/lib/modules/$(KMOD)
 	cp -alLf bbox/busybox.elf $(CPIOTMP)/usr/bin/busybox
 	cp -alLf usrl/uchaosbox kdev/u?kaos $(CPIOTMP)/usr/bin/
 	cp -alLf zcmd/uzpexec zcmd/uzpack $(CPIOTMP)/usr/bin/
@@ -454,7 +454,7 @@ virt/.done: qemu/output/$(QBIN)
 	$(MAKELNX) install
 	touch $@
 
-_buildemu: $(KIMG) kdev/$(KMOD).gz virt/.done
+_buildemu: $(KIMG) kdev/$(KMOD) virt/.done
 	@$(call print_stop)
 
 buildemu:

@@ -59,10 +59,10 @@ all: uckaos umkaos $(KDIR)/.conf
 dist: all
 	@echo "Stripping debug symbols from uchaos_dev.ko..."
 	strip --strip-debug $(KO_FILE)
-	@echo "Compressing with gzip -9 ... "
-	gzip -9 -c $(KO_FILE) > $(KO_FILE).gz
+#	@echo "Compressing with gzip -9 ... "
+#	gzip -9 -c $(KO_FILE) > $(KO_FILE).gz
 	@printf "Final size: \n"
-	@du -b $(KO_FILE).gz uckaos umkaos | tr '\t' ' ' | sed -e "s/^/  /"
+	@du -b $(KO_FILE) uckaos umkaos | tr '\t' ' ' | sed -e "s/^/  /"
 	@echo
 
 sign: all
@@ -90,7 +90,7 @@ umkaos: umkaos.c uchaos_seq.h uchaos_seq.c uchaos_tbl.h
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	rm -f $(KO_FILE).gz uckaos umkaos
+	rm -f $(KO_FILE)* uckaos umkaos
 	rm -f uchaos_tbl.h umkaosh
 
 veryclean: clean

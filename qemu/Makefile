@@ -13,5 +13,6 @@ veryclean: clean
 deepclean: veryclean
 	sh make.sh $@
   
-deepclean: deepclean
+distclean: deepclean
 	sh make.sh $@
+

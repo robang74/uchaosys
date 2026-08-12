@@ -159,6 +159,11 @@ updatezcmd: | .sync
 	cd zcmd && git fetch origin master --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
+updateminz: | .sync
+	@echo "Updating minz at the main branch HEAD"
+	cd minz && git fetch origin master --jobs $(NCPU) \
+	  && git checkout FETCH_HEAD
+
 .dcfg: | .sync
 	rm -f $(KDIR)/.hdrs $(SDIR)/.done
 	rm -f bbox/.config bbox/.conf

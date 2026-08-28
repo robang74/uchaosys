@@ -161,7 +161,7 @@ updatezcmd: | .sync
 
 updateminz: | .sync
 	@echo "Updating minz at the main branch HEAD"
-	cd minz && git fetch origin amalg --jobs $(NCPU) \
+	cd minz && git fetch origin rfc1952 --jobs $(NCPU) \
 	  && git checkout FETCH_HEAD
 
 .dcfg: | .sync

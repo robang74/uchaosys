@@ -4,7 +4,7 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB, 2.55MB in [uzp](https://github.com/robang74/gzcmd.sh#uzpexec)) and cpu/ram jittering randomness init of Linux cnrg for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation (0.7MB) is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB tarball archive including static-linked PractRand `RNG_test` (0.9MB uzp).
+uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB, 2.55MB in [uzp](https://github.com/robang74/gzcmd.sh#uzpexec)) and cpu/ram jittering randomness init of Linux CRNG for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation (0.7MB) is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB tarball archive including static-linked PractRand `RNG_test` (0.9MB uzp).
 
 ### Index
 
@@ -37,9 +37,9 @@ Checking the information below and those reported in the link above, we can agre
 
 ### Abstract
 
-In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal crng once) by loading the module which needs to [hack the kernel internals](docs/linux-kernel-internals-hacking.md) because backport fix from 6.x left a corner case uncovered.
+In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal CRNG once) by loading the module which needs to [hack the kernel internals](docs/linux-kernel-internals-hacking.md) because backport fix from 6.x left a corner case uncovered.
 
-It is worth to underline that this choice is not suggested as per a standard case use of uChaos but it is necessary for testing uChaos/crng duo excluding every possible internal source of interference: if it doesn't fail, it isn't because other sources of entropy are supplying.
+It is worth to underline that this choice is not suggested as per a standard case use of uChaos but it is necessary for testing uChaos/CRNG duo excluding every possible internal source of interference: if it doesn't fail, it isn't because other sources of entropy are supplying.
 
 - [A Paradigm Shift: from Entropy Collection to Chaos Conduction](docs/uchaos-the-entropy-paradigm-shift.md) &nbsp;(2026-03-19)
 - [A Paradigm Shift: are ramdomness and certifications secure?](docs/linux-kernel-internals-hacking.md#randomness-and-security) &nbsp;(2026-05-06)
@@ -56,7 +56,7 @@ Check [this document](kdev/umkaos32.md) about `umkaos` 32bit i386 musl-static el
 
 In this peculiar system configuration uChaos replaces all the entropy sources within the Linux kernel and creates a character device driver that can be seen as a side channel and/or a malicious entropy injection channel, as well.
 
-Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability across reboots of the uchaos and Linux crng randomness providers, both.
+Moreover, using extreme qemu parameters settings, it is possible testing the system into a condition of complete isolation (AFAIK) which grants the predictability by repeatability across reboots of the uchaos and Linux CRNG randomness providers, both.
 
 <br>
 

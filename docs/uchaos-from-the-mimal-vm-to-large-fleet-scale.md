@@ -4,7 +4,7 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-The problem is already well-known but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savy one.
+The problem is already well-known, but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savy one.
 
 ---
 
@@ -34,7 +34,7 @@ This isn't a novelty or an exception, but every high-tech fundamental constraint
 
 #### VI. Synopsis
 
-The uChaos paradigm can independently tested by downloading [umkaos32.uzp](https://github.com/robang74/working-in-progress/blob/main/uchaosys.qemu/umkaos32.uzp), a 5KB Assembly written ELF32 headered auto-deflating `gzip`ed-executable statically linked which is able to generates 400 MB/s of randomness with 8x `parallel` on a i5-8365 CPU and passed 25GB of PractRand 64bit test several times.
+The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](https://github.com/robang74/working-in-progress/blob/main/uchaosys.qemu/umkaos32.uzp), a 5KB Assembly written ELF32 headered auto-deflating `gzip`ed-executable 32bit statically linked. It is able to generates 400 MB/s of randomness with 8x `parallel` on a i5-8365 CPU. It passed 256GB of PractRand 64bit test several times, including within a CPU/MEM pass-through network-isolated Qemu VM.
 
 ---
 

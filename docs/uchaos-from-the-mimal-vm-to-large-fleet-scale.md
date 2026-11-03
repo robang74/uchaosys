@@ -4,13 +4,13 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-The problem is already well-known, but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savy one.
+The problem is already well-known, but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savvy one.
 
 ---
 
 ### Executive Smmary
 
-The six-step essential-concepts framework for transitioning a local uChaoSys VM system to a large-scale fleet.
+The six-step essential-concepts framework for transitioning a local uChaoSys VM system to a large-scale fleet, from a business-aware and technical-insight perspectives, both.
 
 #### I. Problem
 

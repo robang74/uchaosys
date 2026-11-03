@@ -8,7 +8,7 @@ The problem is already well-known, but a standardised solution lacks because ent
 
 ---
 
-### Executive Smmary
+### Executive Summary
 
 The six-step essential-concepts framework for transitioning a local uChaoSys VM system to a large-scale fleet, from a business-aware and technical-insight perspectives, both.
 
@@ -42,7 +42,7 @@ The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](
 - It passed 256 GB of `PracRand` 64-bit test several times / systems,
 - including within a CPU/MEM pass-through network-isolated Qemu VM.
 
-The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically 32-bit avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
+The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically 32-bit CPU-architecture neutral avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
 
 ---
 

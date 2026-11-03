@@ -24,6 +24,7 @@ This project is based on the previous case study `random.txt` in [WIP](https://g
 
 * [Technical Presentation for Commercial Sponsorship](docs/uchaos-sponsorship-presentation.md) &nbsp;(2026-03-16)
 * [Why it works so well as training consultancy content](docs/gemini-thinking-uchaosys-peer-review.md#why-it-works-so-well-as-training-consultancy-content) &nbsp;(2026-04-07)
+* [uChaos from the mimal VM to a large fleet scale](docs/uchaos-from-the-mimal-vm-to-large-fleet-scale.md) &nbsp;(2027-11-03)
 
 Last but not least, this project provides a micro Linux embedded system with a **footprint below 2MB** (including the kernel and the initramfs, cfr. [Components](README.md#components)) as the result of a building process starting from the sources. In fact, `/dev/uchaos` also passed the PractRand 256GB test.
 

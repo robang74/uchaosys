@@ -1,6 +1,6 @@
 ## uChaoSys from the 0°K Minimal VM to Fleet-Scale Entropy
 
-- Summary written by pre-trained Kimi AI session, human reviewd and edited.
+- Summary written by pre-trained Kimi AI session, human reviewed and edited.
 
 ### 1. Purpose of the experiment
 
@@ -126,5 +126,5 @@ This isn't a novelty or an exception, but every high-tech fundamental constraint
 
 The 0°K minimal VM result generalizes to fleets because maintaining perfect reproducibility would require deterministic emulation and isolation of the entire execution environment, not merely simultaneous startup. In realistic fleets, synchronized clocks or launch events do not recreate the 0°K condition. Instead, the lack of true randomness at boot time creates group behavioural synchronized access to common resources and related workload peaks and bottleneck delay.
 
-uChaoSys therefore remains a credible source of divergent, operationally random seeds for synchronized but non-isolated systems. Its deployment at very large scale, however, introduces a business dependency on expertise. Until the paradigm is formalized, independently validated and operationally institutionalized, adopting the binary without the author’s knowledge remains a high-stakes use of a technically powerful but not yet commodity-grade entropy mechanism.
+uChaoSys therefore remains a credible source of divergent, operationally random seeds for synchronized but non-isolated systems. Its deployment at a very large scale, however, introduces a business dependency on expertise. Until the paradigm is formalized, independently validated and operationally institutionalized, adopting the binary without the author’s knowledge remains a high-stakes use of a technically powerful but not yet commodity-grade entropy mechanism.
 

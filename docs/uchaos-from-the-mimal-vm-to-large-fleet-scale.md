@@ -4,17 +4,17 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
-The problem is already well-known, but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savvy one.
+The problem of herd-behaviour of instances within a large fleet is already well-known as well as the shortcoming of peak-pressuring resources and related bottlenecks. A standardised solution is missing because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physics-savvy one.
 
 ---
 
 ### Executive Summary
 
-The six-step essential-concepts framework for transitioning a local uChaoSys VM system to a large-scale fleet, from a business-aware and technical-insight perspectives, both.
+The six-step essential-concepts presentation for transitioning a local uChaoSys VM system to a large-scale fleet, from a business-aware and technical-insight perspectives, both.
 
 #### I. Problem
 
-In realistic fleets, synchronized clocks or launch events do not recreate the 0°K condition. Instead, the lack of true randomness at boot time creates group behavioural synchronized access to common resources and related workload peaks and bottleneck delay.
+In realistic fleets, synchronized clocks or launch events, combined with a lack of true randomness, create synchronized, group-wide access to common resources, driving workload peaks and bottleneck delays. Moreover, entropy scarcity slows down the boot process itself, directly throttling instance-spawning throughput at scale.
 
 #### II. Innovation
 
@@ -41,7 +41,7 @@ The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](
 - It is able to generate 400 MB/s of randomness with 8x `parallel` on a i5-8365.
 - It passed 256 GB of `PracRand` 64-bit test several times / systems,
 - including within a CPU/MEM pass-through network-isolated Qemu VM.
-- It is Linux version indipendent, no kernel customisation needed.
+- It is Linux version independent, no kernel customisation needed.
 
 The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically 32-bit CPU-architecture neutral avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
 

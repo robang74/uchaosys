@@ -1,6 +1,6 @@
 ## uChaoSys from the 0°K Minimal VM to Fleet-Scale Entropy
 
-- Summary written by pre-trained Kimi AI session, human reviewed and edited.
+The problem is already well-known but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savy one.
 
 ### Executive Smmary
 
@@ -29,6 +29,10 @@ This isn't a novelty or an exception, but every high-tech fundamental constraint
 #### 5. Synopsis
 
 The uChaos paradigm can independently tested by downloading [umkaos32.uzp](https://github.com/robang74/working-in-progress/blob/main/uchaosys.qemu/umkaos32.uzp), a 5KB Assembly written ELF32 headered auto-deflating `gzip`ed-executable statically linked which is able to generates 400 MB/s of randomness with 8x `parallel` on a i5-8365 CPU and passed 25GB of PractRand 64bit test several times.
+
+---
+
+- Document written by pre-trained Kimi AI session, human reviewed and edited.
 
 ---
 

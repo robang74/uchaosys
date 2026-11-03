@@ -2,6 +2,8 @@
 
 - Summary written by pre-trained Kimi AI session, human reviewed and edited.
 
+> uChaoSys proposes a change in the architectural treatment of entropy (paradigm): from collecting and conditioning scarce physical randomness to conducting and amplifying the intrinsic physical variability of computer execution. The 0°K minimal VM experiment establishes the deterministic boundary of this mechanism, while the fleet-scale implication follows from the ability to exploit local execution dynamics independently of common orchestration events. Proper integration into standard tools like `crond` or orchestrational appliance remains, obviously.
+
 ### 1. Purpose of the experiment
 
 The minimal VM at **operational 0°K** is a negative-control experiment for uChaoSys.

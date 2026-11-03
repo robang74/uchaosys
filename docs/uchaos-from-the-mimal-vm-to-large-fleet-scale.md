@@ -38,7 +38,9 @@ This isn't a novelty or an exception, but every high-tech fundamental constraint
 
 The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](https://github.com/robang74/working-in-progress/blob/main/uchaosys.qemu/umkaos32.uzp), a 5KB Assembly written ELF32 headered auto-deflating `gzip`ed-executable 32-bit statically linked.
 
-It is able to generates 400 MB/s of randomness with 8x `parallel` on a i5-8365 CPU. It passed 256GB of `PracRand` 64-bit test several times, including within a CPU/MEM pass-through network-isolated Qemu VM.
+- It is able to generate 400 MB/s of randomness with 8x `parallel` on a i5-8365.
+- It passed 256 GB of `PracRand` 64-bit test several times / systems,
+- including within a CPU/MEM pass-through network-isolated Qemu VM.
 
 The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically 32-bit avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
 

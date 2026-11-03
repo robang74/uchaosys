@@ -92,7 +92,7 @@ To maintain perfectly reproducible seeds across a fleet, all of the following mu
 
 This is a fragile, conjunctive requirement. One physical CPU, one autonomous clock, one uncontrolled interrupt or one asynchronous I/O channel can introduce a local perturbation. Once introduced, the uChaoSys engine can amplify that difference before seed generation.
 
-- Therefore: fleet-wide T=0 ==> fleet-wide operational 0°K
+- Therefore, fleet-wide **T=0** does **not** imply fleet-wide operational **0°K**.
 
 A common start signal is only an external event. It synchronizes the nominal launch time, but does not remove entropy from each machine. A software-emulated CPU running by a synthetic clock is a necessary condition but not sufficient to have 0°K, and this never happens in production due to efficiency; the CPU/RAM pass-through is the default.
 

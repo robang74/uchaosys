@@ -4,7 +4,13 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
+### Abstract
+
 The problem of herd-behaviour of instances within a large fleet is already well-known as well as the shortcoming of peak-pressuring resources and related bottlenecks. A standardised solution is missing because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physics-savvy one.
+
+> Cyber–physical synchronization is no longer a hypothetical software concern. Hartmann et al. identified one-minute grid-frequency disturbances caused by large numbers of battery-storage systems performing periodic checks at the same time. This demonstrates how individually harmless, clock-aligned device behavior can accumulate into measurable infrastructure-scale effects. Randomizing the execution time of distributed periodic tasks is therefore both a computing and an infrastructure-resilience requirement.
+
+- One-minute frequency disturbances from unintended synchronization in cyber-physical power systems, published by Hartmann, C., Din, E.D., Carta, D. et al. on Nature Energy, [DOI](https://doi.org/10.1038/s41560-026-02144-0) (2026-10-30), based on collected [data](https://zenodo.org/records/21997337) (2025-10-10).
 
 ---
 

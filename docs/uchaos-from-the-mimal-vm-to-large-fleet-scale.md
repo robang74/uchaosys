@@ -47,9 +47,9 @@ The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically
 
 ---
 
-*The following part of this document was written by a pre-trained Kimi AI session, then after human reviewed and edited. The human author takes full responsibility for the text proposed below, as usual.*
+## Explantory documentation
 
----
+> The following part of this document was written by a pre-trained Kimi AI session, then after human reviewed and edited. The human author takes full responsibility for the text proposed below, as usual.
 
 ### 1. Purpose of the experiment
 

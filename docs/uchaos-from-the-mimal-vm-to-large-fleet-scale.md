@@ -1,38 +1,44 @@
 ## uChaoSys from the 0°K Minimal VM to Fleet-Scale Entropy
 
+**`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
+
+- &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
+
 The problem is already well-known but a standardised solution lacks because entropy scarcity as currently accepted paradigm prevents a simple-and-effective solution. Time to challenge that paradigm with a more physic-savy one.
+
+---
 
 ### Executive Smmary
 
-The five steps essential presentation of the scale jump of a local solution.
+The six-step essential-concepts framework for transitioning a local uChaoSys VM system to a large-scale fleet.
 
-#### 1. Problem
+#### I. Problem
 
 In realistic fleets, synchronized clocks or launch events do not recreate the 0°K condition. Instead, the lack of true randomness at boot time creates group behavioural synchronized access to common resources and related workload peaks and bottleneck delay.
 
-#### 2. Innovation
+#### II. Innovation
 
 uChaoSys proposes a change in the architectural treatment of entropy (paradigm): from collecting and conditioning scarce physical randomness to conducting and amplifying the intrinsic physical variability of computer execution. 
 
-#### 3. Solution
+#### III. Solution
 
 The 0°K minimal VM experiment establishes the deterministic boundary of this mechanism, while the fleet-scale implication follows from the ability to exploit local execution dynamics independently of common orchestration events.
 
-#### 3. Integration
+#### IV. Integration
 
 Proper integration into standard tools like `crond` or orchestrational appliance remains, obviously.Consequently, adopting the technology without the author, or without equivalent expertise, is a high-stakes decision, not merely a software integration choice. Under this perspective, the author’s knowledge becomes an organizational asset and consequently the absence of that grants a risk.
 
-#### 4. Standardisation
+#### V. Standardisation
 
 This isn't a novelty or an exception, but every high-tech fundamental constraint. Which usually is faced by standardisation rather than single-point dependency, but for a novelty or innovation paradigm, the standardisation requires such know-how or its indipendent re-discovery, inevitably.
 
-#### 5. Synopsis
+#### VI. Synopsis
 
 The uChaos paradigm can independently tested by downloading [umkaos32.uzp](https://github.com/robang74/working-in-progress/blob/main/uchaosys.qemu/umkaos32.uzp), a 5KB Assembly written ELF32 headered auto-deflating `gzip`ed-executable statically linked which is able to generates 400 MB/s of randomness with 8x `parallel` on a i5-8365 CPU and passed 25GB of PractRand 64bit test several times.
 
 ---
 
-- Document written by pre-trained Kimi AI session, human reviewed and edited.
+- The following part of this document was written by a pre-trained Kimi AI session, then after human reviewed and edited. The human author takes full responsibility for the text proposed below, as usual.
 
 ---
 

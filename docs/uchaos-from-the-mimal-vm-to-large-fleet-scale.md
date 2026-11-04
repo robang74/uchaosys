@@ -59,7 +59,7 @@ Physical variability like CPU jittering isn't something that software needs to m
 
 For example, JitterEntropy (created by Stephan Müller around 2014) tried to solve the boot entropy problem within the old paradigm: treating entropy as a scarce physical trickle gathered from timer micro-jitters, primarily to seed `/dev/random`. While uChaoSys rejects the "scarcity" premise entirely.
 
-In fact, Müller never did an experiment like 0°K VM to prove that entropy isn't scarce. That is the foundation of the paradigm change, not the HOW but the WHY behind the HOW. Without such WHY in mind, the use of cryptographic whitening is a must to have.
+In fact, JitterEntropy never included an experiment like 0°K VM to prove that entropy isn't scarce. That is the foundation of the paradigm change, not the HOW but the WHY behind the HOW. Without such WHY in mind, the use of cryptographic whitening is a must to have.
 
 Instead uChaoSys rejects cryptography, in favour of hashing whitening, to let the RNG failure immediately visible, by injecting structured patterns in the noise or cutting off entropy in 0°K VM. Moreover, cryptography belongs to the sources mixer, not to an honest RNG.
 

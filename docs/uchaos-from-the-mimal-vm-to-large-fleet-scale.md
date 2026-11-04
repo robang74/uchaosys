@@ -51,6 +51,22 @@ The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](
 
 The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically 32-bit CPU-architecture neutral avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
 
+---
+
+### Jittering vs 0°K paradigm
+
+Physical variability like CPU jittering isn't something that software needs to manufacture. It is an intrinsic property of real computing systems, and insanely difficult to eliminate completely.
+
+For example, JitterEntropy (created by Stephan Müller around 2014) tried to solve the boot entropy problem within the old paradigm: treating entropy as a scarce physical trickle gathered from timer micro-jitters, primarily to seed `/dev/random`. While uChaoSys rejects the "scarcity" premise entirely.
+
+In fact, Müller never faced the idea of making an experiment like 0°K VM to prove that entropy isn't scarce. That is the foundation of the paradigm change, not the HOW but the WHY behind the HOW. Without such WHY in mind, the use of cryptographic whitening is a must to have.
+
+Instead uChaoSys rejects cryptography, in favour of hashing whitening, to let the RNG failure immediately visible, by injecting structured patterns in the noise or cutting off entropy in 0°K VM. Moreover, cryptography belongs to the sources mixer, not to an honest RNG.
+
+The [paradigm shift](uchaos-the-entropy-paradigm-shift.md) is that a conventional RNG architecture asks how to obtain sufficiently good random output but never provides an answer, just a recipe. In fact, `PracRand` cannot differentiate an entropy-based RNG from a good pseudorandom one which depends on a seed that can be known or leaked.
+
+Whereas uChaoSys investigates, leveraging an experimental approach, what conditions make that output possible, and deliberately tests what happens when those conditions cease to exist. The entropy abundance easily allows to achieve sustained and relatively high throughputs with a little computational power.
+
 <br>
 
 ## Explantory documentation

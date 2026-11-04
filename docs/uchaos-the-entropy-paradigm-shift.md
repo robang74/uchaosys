@@ -8,7 +8,7 @@ The 0°K is a metaphor and a memento about how hard it is to cut off entropy fro
 
 This is the main idea behind uChaoSys and everyone, who has a bachelor in physics with low-temperature science-labs experience, can immediately grasp that. The 0°K is the whole summary of the paradigm shift, in fact. At the point that everything else is about HOW, and the WHY is just a sarcastic note about what NSA was "believing" was the "normality" for a third of century!
 
-Network Time Protocol (v1, RFC 1059, 1988): the network jitter was so prevalent and measurable that Mills studied it for years (v3, RFC 1305, 1992) to extract its average time and synchronize clocks. The chaos was there, amplified on a global scale and all that was missing was someone to view it as an entropy source instead of signal/noise issue.
+Network Time Protocol (v1, RFC 1059, 1988): the network jitter was so prevalent and measurable that Mills studied it for years (v3, RFC 1305, 1992) to extract its average time and synchronize clocks. The chaos was there, amplified on a global scale and all that was missing was someone to view it as an entropy source instead of a signal/noise issue, only.
 
 ---
 

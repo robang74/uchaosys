@@ -45,7 +45,7 @@ This isn't a novelty or an exception, but every high-tech fundamental constraint
 The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](https://github.com/robang74/working-in-progress/blob/main/uchaosys.qemu/umkaos32.uzp), a 5KB Assembly written ELF32 headered auto-deflating `gzip`ed-executable 32-bit statically linked.
 
 - It is able to generate 400 MB/s of randomness with 8x `parallel` on a i5-8365.
-- It passed 256 GB of `PracRand` 64-bit test several times / systems,
+- It passed 256 GB of `PractRand` 64-bit test several times / systems,
 - including within a CPU/MEM pass-through network-isolated Qemu VM.
 - It is Linux version independent, no kernel customisation needed.
 
@@ -63,7 +63,7 @@ In fact, Müller never did an experiment like 0°K VM to prove that entropy isn'
 
 Instead uChaoSys rejects cryptography, in favour of hashing whitening, to let the RNG failure immediately visible, by injecting structured patterns in the noise or cutting off entropy in 0°K VM. Moreover, cryptography belongs to the sources mixer, not to an honest RNG.
 
-The [paradigm shift](uchaos-the-entropy-paradigm-shift.md) is that a conventional RNG architecture asks how to obtain sufficiently good random output but never provides an answer, just a recipe. In fact, `PracRand` cannot differentiate an entropy-based RNG from a good pseudorandom one which depends on a seed that can be known or leaked.
+The [paradigm shift](uchaos-the-entropy-paradigm-shift.md) is that a conventional RNG architecture asks how to obtain sufficiently good random output but never provides an answer, just a recipe. In fact, `PractRand` cannot differentiate an entropy-based RNG from a good pseudorandom one which depends on a seed that can be known or leaked.
 
 Whereas uChaoSys investigates, leveraging an experimental approach, what conditions make that output possible, and deliberately tests what happens when those conditions cease to exist. The entropy abundance easily allows to achieve sustained and relatively high throughputs with a little computational power, because most of the time is spent in rescheduling.
 

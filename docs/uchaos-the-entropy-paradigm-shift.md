@@ -1,9 +1,12 @@
-
 ## A Paradigm Shift
 
 **`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
+
+The 0°K is a metaphor and a memento about how hard it is to cut off entropy from a system, and also exemplify how useless it is to achieve that condition in whatever efficient systems in production: it can be just a laboratory condition of work. That ensures that everywhere other than fabricated, the 0°K never happens spontaneously.
+
+This is the main idea behind uChaoSys, and everyone that has a bachelor in physics with low-temperature labs or science, can immediately grasp that. The 0°K is the whole summary of the paradigm shift, in fact. At the point that everything else is about HOW, and the WHY is just a sarcastic note about what NSA was "believing" was the "normality" for a &frac14; of century!
 
 ---
 

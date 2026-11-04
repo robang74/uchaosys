@@ -65,7 +65,7 @@ Instead uChaoSys rejects cryptography, in favour of hashing whitening, to let th
 
 The [paradigm shift](uchaos-the-entropy-paradigm-shift.md) is that a conventional RNG architecture asks how to obtain sufficiently good random output but never provides an answer, just a recipe. In fact, `PracRand` cannot differentiate an entropy-based RNG from a good pseudorandom one which depends on a seed that can be known or leaked.
 
-Whereas uChaoSys investigates, leveraging an experimental approach, what conditions make that output possible, and deliberately tests what happens when those conditions cease to exist. The entropy abundance easily allows to achieve sustained and relatively high throughputs with a little computational power.
+Whereas uChaoSys investigates, leveraging an experimental approach, what conditions make that output possible, and deliberately tests what happens when those conditions cease to exist. The entropy abundance easily allows to achieve sustained and relatively high throughputs with a little computational power, because most of the time is spent in rescheduling.
 
 <br>
 

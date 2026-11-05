@@ -51,7 +51,7 @@ The uChaoSys paradigm can be independently tested by downloading [umkaos32.uzp](
 - including within a CPU/MEM pass-through network-isolated Qemu VM.
 - It is Linux version independent, no kernel customisation needed.
 
-The [rationale about umkaos](.../kdev/umkaos32.md) explains how an intrinsically 32-bit CPU-architecture neutral avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
+The [rationale about umkaos](../kdev/umkaos32.md) explains how an intrinsically 32-bit CPU-architecture neutral avalanche algorithm runs just 1.5x faster when 64-bit compiled and AVX2 computed: its speed stems from architectural design rather than vector HW capabilities.
 
 ---
 

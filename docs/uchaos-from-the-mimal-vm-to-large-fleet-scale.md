@@ -12,6 +12,8 @@ The problem of herd-behaviour of instances within a large fleet is already well-
 
 - One-minute frequency disturbances from unintended synchronization in cyber-physical power systems, published by Hartmann, C., Din, E.D., Carta, D. et al. on Nature Energy, [DOI](https://doi.org/10.1038/s41560-026-02144-0) (2026-10-30), based on collected [data](https://zenodo.org/records/21997337) (2025-10-10).
 
+If you look at the problem in terms of elastic cloud infrastructure: light VM quickly booting is a must-to-have to scale up-down quickly. For a quick boot, the entropy-based RNG is another must-to-have, but it challenges the paradigm of entropy scarcity. Decoherence among instances and events requires good randomness, as well. uChaoSys faces all these three challenges at once. Plus, it offers a total deterministic VM (aka 0°K) to test the limit of the assumptions (falsification) and the functioning of the paradigm shift implementation (performance).
+
 ---
 
 ### Executive Summary

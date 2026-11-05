@@ -4,6 +4,10 @@
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
 
+---
+
+### Abstract
+
 uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB, 2.55MB in [uzp](https://github.com/robang74/gzcmd.sh#uzpexec)) and cpu/ram jittering randomness init of Linux CRNG for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation (0.7MB) is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB tarball archive including static-linked PractRand `RNG_test` (0.9MB uzp).
 
 From the perspective of an elastic cloud infrastructure, light VM quickly booting is a must-to-have to scale up-down quickly. For a quick boot, the entropy-based RNG is another must-to-have, but it challenges the paradigm of entropy scarcity. Decoherence among instances and events requires good randomness, as well. uChaoSys faces all these three challenges at once. Plus, it offers a total deterministic VM (aka 0°K) to test the limit of the assumptions (falsification) and the functioning of the paradigm shift implementation (performance).
@@ -38,7 +42,7 @@ Checking the information below and those reported in the link above, we can agre
 
 <br>
 
-### Abstract
+### Rationale
 
 In this specific system configuration kernel is compiled in such a way that uChaos is the only source of entropy available (and just for seed the internal CRNG once) by loading the module which needs to [hack the kernel internals](docs/linux-kernel-internals-hacking.md) because backport fix from 6.x left a corner case uncovered.
 

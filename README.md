@@ -6,6 +6,8 @@
 
 uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib static-linked qemu (7.5MB, 2.55MB in [uzp](https://github.com/robang74/gzcmd.sh#uzpexec)) and cpu/ram jittering randomness init of Linux CRNG for a faster and safer boot (0.1s). The full binary snapshot is a self-sufficient and self-running system. United with sources and documentation (0.7MB) is an embedded Linux course including kernel internals/module basics that can be delivered in a 6MB tarball archive including static-linked PractRand `RNG_test` (0.9MB uzp).
 
+From the perspective of an elastic cloud infrastructure, light VM quickly booting is a must-to-have to scale up-down quickly. For a quick boot, the entropy-based RNG is another must-to-have, but it challenges the paradigm of entropy scarcity. Decoherence among instances and events requires good randomness, as well. uChaoSys faces all these three challenges at once. Plus, it offers a total deterministic VM (aka 0°K) to test the limit of the assumptions (falsification) and the functioning of the paradigm shift implementation (performance).
+
 ### Index
 
 - [Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#musl-cross-make) &middot; [License](#License)

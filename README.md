@@ -230,3 +230,4 @@ Hence, the first step to take immediately after the exploration phase, would be 
 
 The overall license for the uChaoSys binaries is dependent on the system components thus the GPLv2 is the reference as the most demanding license among those involved as long as "GPLv2 or later" means GPLv2 as an option.
 
+Differently from code, documentation is under a different license entirely, usually CC BY-NC-ND 4.0 because code is about implementation of something that documentation presents. Therefore, the two serve two different, even if complementary, purposes.

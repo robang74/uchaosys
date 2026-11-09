@@ -12,6 +12,12 @@ uChaoSys is a minimal Linux system (2MB) running by a size-reduced musl-glib sta
 
 From the perspective of an elastic cloud infrastructure, light VM quickly booting is a must-to-have to scale up-down quickly. For a quick boot, the entropy-based RNG is another must-to-have, but it challenges the paradigm of entropy scarcity. Decoherence among instances and events requires good randomness, as well. uChaoSys faces all these three challenges at once. Plus, it offers a total deterministic VM (aka 0°K) to test the limit of the assumptions (falsification) and the functioning of the paradigm shift implementation (performance).
 
+Digital binary 0/1 removes noise, and creates Turing deterministic machines: an input generates always the same output. However, this elaboration doesn't happen in the void. Elaboration requires an elaborator. Some CPUs are relatively simple, imagine a Z80 or a C64, and execute assembly code directly without an operative system. With the introduction of networking and operating systems, chaos (latency and jittering) started to emerge as the first three versions of NTP (1988-1994) showed up.
+
+Modern CPUs and schedulers recreate the same conditions NTP addressed. Modern elaborators remain I/O deterministic but internally aren't anymore deterministic but intrinsically chaotic, and the jittering which isn't a novelty, is the observable effect. The novelty is the paradigm shift, and how to recreate a totally deterministic elaborator from which entropy cannot be extracted. This project presents it as a "synthetic" (totally software emulated) "0°K VM" (zero kelvin degrees VM) as a metaphor of cryogenics zero entropy.
+
+The complementary component is an algorithm (a software, in its implementation) which can extract entropy by jittering doing almost nothing rather than rescheduling and converting it into a white noise which is encoded in binary as a random numbers sequence. It returns to be deterministic when running into a 0°K VM which by construction is an artifact totally unrealistic to find in production. This entropy-based RNG can be extracted by the testing system (5MB) and compiled as a standalone (5KB), and still working in the wild.
+
 ### Index
 
 - [Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#musl-cross-make) &middot; [License](#License)

@@ -1,8 +1,14 @@
 ## μChaoSys
 
-**`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
+- **`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
+
+### Index
+
+[Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#musl-cross-make) &middot; [License](#License)
+
+![0KVM](docs/zero-entropy-virtual-machine.jpg)
 
 ---
 
@@ -21,16 +27,6 @@ The complementary component is an algorithm (a software, in its implementation) 
 The most shocking part is that nothing grants the min-entropy available to an adversary-aware cryptographic system. Which is what security wishes to have as a degree of confidence. it is a property of a probability distribution, not directly measurable without infinite observations. NIST is unusually explicit about this: SP 800-90B acknowledges that their entropy estimations rely on statistical assumptions, which cannot be replaced by an in-depth analysis. Therefore, it is an assessment and the related certification is based on the documentation provided, not facts.
 
 The Rubini & Foglietta's [thesis](https://github.com/robang74/working-in-progress/blob/main/pdf/2007-07-30-Tesi_Foglietta-051a.pdf) (2007) on latency and jitter in RTAI / RTNet already presents a mathematical and a computational model of the phenomenon, including a method for separating the causal components (on timings scale) and an independent measurement system. The same physics, but applied to CPU/RAM and with the opposite goal, supports uChaoSys. Which utilises that variability to extract entropy, and simultaneously demonstrating that, by eliminating the conditions that generate that variability, the RNG returns deterministic: chaos is not created, it is observed.
-
-### Index
-
-- [Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#musl-cross-make) &middot; [License](#License)
-
-![0KVM](docs/zero-entropy-virtual-machine.jpg)
-
-> [!WARNING]
->
-> **μChaoSys** isn't an operative system but a recipe to create a specific operative system. A recipe that a bright kid can operate as well as the recipe's product, but a dumb adult cannot. Deliberately and hopefully, this warning helps everyone to grasp how silly/mad is, in its fundamentals, the idea to divide knowledge and agency by age.
 
 <br>
 

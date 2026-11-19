@@ -52,7 +52,7 @@ zerotest=0
 quietrun=0
 singlcpu=0
 
-while getopts "ZzuUqm:wM:" opt; do
+while getopts "ZzuUqm:wM:s" opt; do
   case $opt in
     s)
       singlcpu=1

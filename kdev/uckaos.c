@@ -12,58 +12,8 @@
  * Compile with: musl-gcc uckaos.c -O3 -o uckaos -I../usrl -s -static
  */
 
-#include <time.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <sched.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/* RAF: userland counterparts moved in uchaos_dev.h */
 
-#define u8  uint8_t
-#define u16 uint16_t
-#define u32 uint32_t
-#define u64 uint64_t
-#define atomic_t bool
-#define ATOMIC_INIT(a) (a)
-#define printk(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
-#define get_time_ns get_nanos
-#define cpu_relax sched_yield
-#define signal_pending(a) (a)
-#define prtkinfo printk
-#define current false
-#define GFP_KERNEL 0
-#define USE_RAW_CYCLES 0 // Always undefined in userland
-#define kfree free
-
-static int min_delta = 3;
-static int init_runs = 7;
-static int loop_mult = 1;
-
-extern char __executable_start;
-#define _printk (&__executable_start)
-#define PAGE_SIZE sysconf(_SC_PAGESIZE)
-
-static inline unsigned get_order(uint32_t len) {
-  unsigned i = 0;
-  uint64_t n = (len + PAGE_SIZE - 1) / PAGE_SIZE;
-  if (n > 1) for(n--; n > 0; n >>= 1) i++;
-  return i;
-}
-
-static inline void *zmalloc(size_t len) {
-  void *p = malloc(len);
-  if(p) memset(p, 0, len);
-  return p;
-}
-#define kzalloc(a,b) zmalloc(a)
-
-#define __get_free_pages(a,b) mmap(NULL, (size_t)PAGE_SIZE << b, \
-            PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
-
-#include "getnanos.h"
 #include "uchaos_dev.h"
 
 int main(int argc, char *argv[]) {

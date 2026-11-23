@@ -96,7 +96,7 @@ typedef const uint32_t cu32_t;
   uint8_t umks_head[] = {
     "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
     "\n//> Executing uChaoSys::umkaos " VERSION
-    "\n//> Use w/arg N for 2^N bytes dataout\n"
+    "\n//> Use w/arg N for 2^N 64bit dataout\n"
     "\n \0\0\0"
   };
   #define COPY_SZE 128

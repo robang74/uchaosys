@@ -7,6 +7,8 @@
 #ifndef UCHAOS_DEV_H
 #define UCHAOS_DEV_H
 
+#define DRIVER_VERSION "0.7.0"
+
 /* RAF: barrier here prevents caching skew and potentially
  * pathological concentration by arbitrary cache reordering.
  * However, these phenomena aren't systematic but random.
@@ -73,6 +75,7 @@
   #define u64 uint64_t
   #define atomic_t bool
   #define ATOMIC_INIT(a) (a)
+  #define VERSION DRIVER_VERSION
   #define printk(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
   #define get_time_ns get_nanos
   #define cpu_relax sched_yield

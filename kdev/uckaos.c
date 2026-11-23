@@ -16,13 +16,23 @@
 
 #include "uchaos_dev.h"
 
+static const
+uint8_t ucks_head[] = {
+  "\n/*\n * (C) 2026, github::@robang74, GPLv2\n */"
+  "\n//> Executing uChaoSys::uckaos " VERSION
+  "\n//> Use w/arg N for each 8KB dataout\n"
+  "\n \0\0\0"
+};
+
 int main(int argc, char *argv[]) {
   archul_t ebuf[EBUF_ITEMS];
   size_t n, rept = 1, len = sizeof(ebuf);
 
+  write(2, ucks_head, sizeof(ucks_head));
   if(argc > 1) rept = atol(argv[1]);
 
   __init4_djb2tum(ebuf, EBUF_ITEMS);
+  write(2, "\n", 1);
   if(!kbuf || !rept) {
     n = write(fileno(stdout), (u8 *)ebuf, len);
     return rept ? -1 : 0;

@@ -116,6 +116,20 @@
 
 #include "uchaos_seq.h"
 
+#ifdef _USE_RAW_CLOCK
+# ifdef CLOCK_MONOTONIC_RAW
+//RAF: raw clock source, no adjtimex
+# define _CLOCK_MONO CLOCK_MONOTONIC_RAW
+# else
+# warning ("CLOCK_MONOTONIC_RAW undefined, fallback")
+# endif
+#endif
+
+#ifndef _CLOCK_MONO
+//RAF: previous setting, or fallback
+#define _CLOCK_MONO CLOCK_MONOTONIC
+#endif
+
 __attribute__((always_inline))
 static inline
 uint32_t comb32make(
@@ -190,7 +204,7 @@ uint64_t _get_30ns2(void)  {
   // Especially because nS or uS or mS do not matter apart
   // from a right shift, as long as there is some entropy
   // leaking by the LSB timings. Otherwise, deterministic.
-  if(clock_gettime(CLOCK_MONOTONIC, &ts)) {
+  if(clock_gettime(_CLOCK_MONO, &ts)) {
     perror("clock_gettime() failure");
     exit(-1);
   }

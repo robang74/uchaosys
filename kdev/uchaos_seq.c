@@ -190,7 +190,10 @@ uint64_t _get_30ns2(void)  {
   // Especially because nS or uS or mS do not matter apart
   // from a right shift, as long as there is some entropy
   // leaking by the LSB timings. Otherwise, deterministic.
-  clock_gettime(CLOCK_MONOTONIC, &ts);
+  if(clock_gettime(CLOCK_MONOTONIC, &ts)) {
+    perror("clock_gettime() failure");
+    exit(-1);
+  }
   // RAF: 2^30 -1BLN = 74M, but +2 bits & setdata()
   // cannot influence the nanornd() 0-init anymore.
   ct = ( (ts.tv_sec & 3) << 30 ) | ts.tv_nsec;

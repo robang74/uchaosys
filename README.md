@@ -1,5 +1,7 @@
 ## μChaoSys
 
+![0KVM](docs/zero-entropy-virtual-machine.jpg)
+
 - **`(c)`** 2026 – Roberto A. Foglietta &lt;roberto.foglietta@gmail.com&gt;, CC BY-NC-ND 4.0
 
 - &nbsp;Click on the button to know how to &nbsp;[![Sponsor me](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=flat&logo=github)](https://github.com/sponsors/robang74)&nbsp; this project and get in touch with me.
@@ -8,7 +10,9 @@
 
 [Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#musl-cross-make) &middot; [License](#License)
 
-![0KVM](docs/zero-entropy-virtual-machine.jpg)
+### Tests passed
+
+The 32-bit static linked 5KB self-extracting executable `umkaos32` is the *weakest* RNG of the `uchaosys` family due to the fact that it computes using 32-bit integers even on 64-bit systems. Despite this, as single process RNG, it managed to pass PractRand `stdin64` 256GB (possibly more, but untested yet above 2^38, when usually an "*academic*" non-cryptographic PRNG fails before 256MB) and the NIST Statistical Test Suite `{ s:8K, b:8M }` 32GB tests (when the 125MB is the minimum required: [results](kdev/nist-sts-umkaos32.txt) and their [interpretation](https://github.com/robang74/uchaosys/commit/99110d114fa317779d131cb452c6d7891deb3142)). 
 
 ---
 
@@ -33,10 +37,6 @@ The most shocking part is that nothing grants the min-entropy available to an ad
 The Rubini & Foglietta's [thesis](https://github.com/robang74/working-in-progress/blob/main/pdf/2007-07-30-Tesi_Foglietta-051a.pdf) (2007) on latency and jitter in RTAI / RTNet already presents a mathematical and a computational model of the phenomenon, including a method for separating the causal components (on timings scale) and an independent measurement system. The same physics, but applied to CPU/RAM and with the opposite goal, supports uChaoSys. Which utilises that variability to extract entropy, and simultaneously demonstrating that, by eliminating the conditions that generate that variability, the RNG returns deterministic: chaos is not created, it is observed.
 
 Finally, when all the { CPU, RAM, IRQ } subsystems are intrinsically deterministic in time response, and those subsystems remains deterministic even when coupled among them, whatever they are absolutely deterministic or deterministic because the internal time resolution available by software isn't sufficient to observe jittering, then uChaoSys approach (an TRNG without any other hardware than the system itself) cannot not provide a stochastic RNG but just a pseudo RNG. Which is exactly what happens in 0°K VM. In short, uChaoSys cannot create stochastic chaos, and it is not even supposed to do it but leverage it when it exists, exfiltrating it by jittering.
-
-#### Tests passed
-
-The 32-bit static linked 5KB self-extracting executable `umkaos32` is the *weakest* RNG of the `uchaosys` family due to the fact that it computes using 32-bit integers even on 64-bit systems. Despite this, as single process RNG, it managed to pass PractRand `stdin64` 256GB (possibly more, but untested yet above 2^38, when usually an "*academic*" non-cryptographic PRNG fails before 256MB) and the NIST Statistical Test Suite `{ s:8K, b:8M }` 32GB tests (when the 125MB is the minimum required: [results](kdev/nist-sts-umkaos32.txt) and their [interpretation](https://github.com/robang74/uchaosys/commit/99110d114fa317779d131cb452c6d7891deb3142)). 
 
 <br>
 

@@ -8,7 +8,7 @@
 
 ### Index
 
-[Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#musl-cross-make) &middot; [License](#License)
+[Presentation](#%CE%BCchaos-minimal-linux-qemu-bootable-system) &middot; [Abstract](#Abstract) &middot; [Configuration](#Configuration) &middot; [Quick Start](#quick-start) &middot; [Information](Information) &middot; [Components](Components) &middot; [Micro Qemu](#hacked-%CE%BC-qemu) &middot; [Musl Build](#building-system) &middot; [License](#License)
 
 ### Tests passed
 
@@ -232,7 +232,7 @@ virt/qemu-system-x86_64 -m 32 -kernel bzImage -initrd initramfs.cpio.gz \
 
 <br>
 
-### musl-cross-make
+### Building system
 
 The current build is based on `musl-cross-make` and it isn’t for the faint-hearted, precisely because you have to manually manage dependencies, cross-compilation patches, unpacking tarballs and merging filesystems. This introduces significant overhead in development, but this approach is also the only way to be aware of what goes into it, why and how.
 
